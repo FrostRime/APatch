@@ -149,6 +149,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UninstallDialog(showDialog: MutableState<Boolean>, navigator: DestinationsNavigator) {
+    return;
     BasicAlertDialog(
         onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
             decorFitsSystemWindows = true,
@@ -741,7 +742,7 @@ private fun AStatusCard(apState: APApplication.State) {
                         }
                     }
                 }
-                if (apState != APApplication.State.UNKNOWN_STATE) {
+                if (apState != APApplication.State.UNKNOWN_STATE && (apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED || apState == APApplication.State.ANDROIDPATCH_NEED_UPDATE)) {
                     Column(
                         modifier = Modifier.align(Alignment.CenterVertically)
                     ) {
@@ -756,7 +757,7 @@ private fun AStatusCard(apState: APApplication.State) {
                                 }
 
                                 else -> {
-                                    APApplication.uninstallApatch()
+                                    //APApplication.uninstallApatch()
                                 }
                             }
                         }, content = {
@@ -774,7 +775,7 @@ private fun AStatusCard(apState: APApplication.State) {
                                 }
 
                                 else -> {
-                                    Text(text = stringResource(id = R.string.home_ap_cando_uninstall))
+                                    //Text(text = stringResource(id = R.string.home_ap_cando_uninstall))
                                 }
                             }
                         })
