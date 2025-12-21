@@ -101,5 +101,3 @@ jobs:
         with:
           name: APatch
           path: ${{steps.sign_app.outputs.signedReleaseFile}}
-          makeLatest: true
-          replacesArtifacts: true
