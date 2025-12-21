@@ -28,7 +28,7 @@ apksign {
 }
 
 android {
-    namespace = "com.frost.apatch"
+    namespace = "me.bmax.apatch"
 
     buildTypes {
         debug {
@@ -69,6 +69,7 @@ android {
 
     defaultConfig {
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
+        applicationId = "com.frost.apatch"
 
         base.archivesName = "APatch_${managerVersionCode}_${managerVersionName}_${branchName}"
     }
