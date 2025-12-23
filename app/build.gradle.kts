@@ -1,8 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.tasks.PackageAndroidArtifact
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.agp.app)
@@ -36,8 +36,8 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
             )
         }
         release {
@@ -47,8 +47,8 @@ android {
             multiDexEnabled = true
             vcsInfo.include = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
             )
         }
     }
@@ -56,9 +56,7 @@ android {
     dependenciesInfo.includeInApk = false
 
     // https://stackoverflow.com/a/77745844
-    tasks.withType<PackageAndroidArtifact> {
-        doFirst { appMetadata.asFile.orNull?.writeText("") }
-    }
+    tasks.withType<PackageAndroidArtifact> { doFirst { appMetadata.asFile.orNull?.writeText("") } }
 
     buildFeatures {
         aidl = true
@@ -69,7 +67,7 @@ android {
 
     defaultConfig {
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
-        applicationId = "com.frost.apatch"
+        applicationId = "com.kqengine.meet"
 
         base.archivesName = "APatch_${managerVersionCode}_${managerVersionName}_${branchName}"
     }
@@ -80,9 +78,7 @@ android {
     }
 
     packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
+        jniLibs { useLegacyPackaging = true }
         resources {
             excludes += "**"
             merges += "META-INF/com/google/android/**"
@@ -96,37 +92,23 @@ android {
         }
     }
 
-    androidResources {
-        generateLocaleConfig = true
-    }
+    androidResources { generateLocaleConfig = true }
 
     sourceSets["main"].jniLibs.srcDir("libs")
 
     applicationVariants.all {
-        kotlin.sourceSets {
-            getByName(name) {
-                kotlin.srcDir("build/generated/ksp/$name/kotlin")
-            }
-        }
+        kotlin.sourceSets { getByName(name) { kotlin.srcDir("build/generated/ksp/$name/kotlin") } }
     }
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 
 kotlin {
     jvmToolchain(21)
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_21
-    }
+    compilerOptions { jvmTarget = JvmTarget.JVM_21 }
 }
 
-fun registerDownloadTask(
-    taskName: String, srcUrl: String, destPath: String, project: Project
-) {
+fun registerDownloadTask(taskName: String, srcUrl: String, destPath: String, project: Project) {
     project.tasks.register(taskName) {
         val destFile = File(destPath)
 
@@ -150,33 +132,33 @@ fun isFileUpdated(url: String, localFile: File): Boolean {
 
 fun downloadFile(url: String, destFile: File) {
     URI.create(url).toURL().openStream().use { input ->
-        destFile.outputStream().use { output ->
-            input.copyTo(output)
-        }
+        destFile.outputStream().use { output -> input.copyTo(output) }
     }
 }
 
 registerDownloadTask(
-    taskName = "downloadKpimg",
-    srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kpimg-android",
-    destPath = "${project.projectDir}/src/main/assets/kpimg",
-    project = project
+        taskName = "downloadKpimg",
+        srcUrl =
+                "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kpimg-android",
+        destPath = "${project.projectDir}/src/main/assets/kpimg",
+        project = project
 )
 
 registerDownloadTask(
-    taskName = "downloadKptools",
-    srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kptools-android",
-    destPath = "${project.projectDir}/libs/arm64-v8a/libkptools.so",
-    project = project
+        taskName = "downloadKptools",
+        srcUrl =
+                "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kptools-android",
+        destPath = "${project.projectDir}/libs/arm64-v8a/libkptools.so",
+        project = project
 )
 
 // Compat kp version less than 0.10.7
 // TODO: Remove in future
 registerDownloadTask(
-    taskName = "downloadCompatKpatch",
-    srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/0.10.7/kpatch-android",
-    destPath = "${project.projectDir}/libs/arm64-v8a/libkpatch.so",
-    project = project
+        taskName = "downloadCompatKpatch",
+        srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/0.10.7/kpatch-android",
+        destPath = "${project.projectDir}/libs/arm64-v8a/libkpatch.so",
+        project = project
 )
 
 tasks.register<Copy>("mergeScripts") {
@@ -189,12 +171,13 @@ tasks.register<Copy>("mergeScripts") {
     }
 }
 
-tasks.getByName("preBuild").dependsOn(
-    "downloadKpimg",
-    "downloadKptools",
-    "downloadCompatKpatch",
-    "mergeScripts",
-)
+tasks.getByName("preBuild")
+        .dependsOn(
+                "downloadKpimg",
+                "downloadKptools",
+                "downloadCompatKpatch",
+                "mergeScripts",
+        )
 
 // https://github.com/bbqsrc/cargo-ndk
 // cargo ndk -t arm64-v8a build --release
@@ -228,13 +211,9 @@ tasks.register<Delete>("apdClean") {
     delete(file("${project.projectDir}/libs/arm64-v8a/libapd.so"))
 }
 
-tasks.clean {
-    dependsOn("apdClean")
-}
+tasks.clean { dependsOn("apdClean") }
 
-ksp {
-    arg("compose-destinations.defaultTransitions", "none")
-}
+ksp { arg("compose-destinations.defaultTransitions", "none") }
 
 dependencies {
     implementation(libs.androidx.appcompat)
