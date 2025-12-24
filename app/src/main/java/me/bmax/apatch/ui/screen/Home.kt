@@ -29,7 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.InstallMobile
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -82,7 +81,6 @@ import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -108,14 +106,8 @@ private val managerVersion = getManagerVersion()
 @Destination<RootGraph>(start = true)
 @Composable
 fun HomeScreen(navigator: DestinationsNavigator) {
-    var showPatchFloatAction by remember { mutableStateOf(true) }
-
     val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
-
-    if (kpState != APApplication.State.UNKNOWN_STATE) {
-        showPatchFloatAction = false
-    }
 
     Scaffold(
             topBar = {
@@ -124,8 +116,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                                 dropUnlessResumed {
                                     navigator.navigate(InstallModeSelectScreenDestination)
                                 },
-                        navigator,
-                        kpState
+                    kpState
                 )
             }
     ) { innerPadding ->
@@ -318,11 +309,8 @@ fun RebootDropdownItem(@StringRes id: Int, reason: String = "") {
 @Composable
 private fun TopBar(
         onInstallClick: () -> Unit,
-        navigator: DestinationsNavigator,
         kpState: APApplication.State
 ) {
-    val uriHandler = LocalUriHandler.current
-    var showDropdownMoreOptions by remember { mutableStateOf(false) }
     var showDropdownReboot by remember { mutableStateOf(false) }
 
     TopAppBar(
@@ -366,15 +354,6 @@ private fun TopBar(
                         }
                     }
                 }
-
-                Box {
-                    IconButton(onClick = { showDropdownMoreOptions = true }) {
-                        Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = stringResource(id = R.string.settings)
-                        )
-                    }
-                }
             }
     )
 }
@@ -395,8 +374,6 @@ private fun KStatusCard(
     if (showAuthKeyDialog.value) {
         AuthSuperKey(showDialog = showAuthKeyDialog, showFailedDialog = showAuthFailedTipDialog)
     }
-
-    val showUninstallDialog = remember { mutableStateOf(false) }
 
     val cardBackgroundColor =
             when (kpState) {
@@ -496,13 +473,13 @@ private fun KStatusCard(
                         Spacer(Modifier.height(4.dp))
                         Text(
                                 text =
-                                        "${Version.installedKPVString()} (${managerVersion.second}) - " +
+                                        "${Version.installedKPVString()} - ${managerVersion.first} " +
                                                 if (apState !=
                                                                 APApplication.State
                                                                         .ANDROIDPATCH_NOT_INSTALLED
                                                 )
-                                                        "Full"
-                                                else "KernelPatch",
+                                                        "[😁]"
+                                                else "[😡]",
                                 style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -724,8 +701,6 @@ private fun AStatusCard(apState: APApplication.State) {
                                             Icon(Icons.Outlined.Cached, contentDescription = "busy")
                                         }
                                         else -> {
-                                            // Text(text = stringResource(id =
-                                            // R.string.home_ap_cando_uninstall))
                                         }
                                     }
                                 }
@@ -834,7 +809,7 @@ private fun InfoCard(kpState: APApplication.State, apState: APApplication.State)
             ) {
                 InfoCardItem(
                         stringResource(R.string.home_apatch_version),
-                        managerVersion.second.toString()
+                        managerVersion.first + " (" + managerVersion.second + ")"
                 )
                 Spacer(Modifier.height(16.dp))
             }
