@@ -397,9 +397,6 @@ private fun KStatusCard(
     }
 
     val showUninstallDialog = remember { mutableStateOf(false) }
-    if (showUninstallDialog.value) {
-        UninstallDialog(showDialog = showUninstallDialog, navigator)
-    }
 
     val cardBackgroundColor =
             when (kpState) {
