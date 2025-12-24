@@ -67,7 +67,7 @@ android {
 
     defaultConfig {
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
-        applicationId = "com.kqengine.meet"
+        applicationId = "com.example.apatch"
 
         base.archivesName = "APatch_${managerVersionCode}_${managerVersionName}_${branchName}"
     }
