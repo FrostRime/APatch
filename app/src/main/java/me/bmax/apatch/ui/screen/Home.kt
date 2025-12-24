@@ -149,64 +149,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                 UpdateCard()
             }
             InfoCard(kpState, apState)
-            LearnMoreCard()
             Spacer(Modifier)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun UninstallDialog(showDialog: MutableState<Boolean>, navigator: DestinationsNavigator) {
-    return
-    BasicAlertDialog(
-            onDismissRequest = { showDialog.value = false },
-            properties =
-                    DialogProperties(
-                            decorFitsSystemWindows = true,
-                            usePlatformDefaultWidth = false,
-                    )
-    ) {
-        Surface(
-                modifier = Modifier.width(320.dp).wrapContentHeight(),
-                shape = RoundedCornerShape(20.dp),
-                tonalElevation = AlertDialogDefaults.TonalElevation,
-                color = AlertDialogDefaults.containerColor,
-        ) {
-            Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
-                Box(
-                        Modifier.padding(PaddingValues(bottom = 16.dp))
-                                .align(Alignment.CenterHorizontally)
-                ) {
-                    Text(
-                            text = stringResource(id = R.string.home_dialog_uninstall_title),
-                            style = MaterialTheme.typography.headlineSmall
-                    )
-                }
-                Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                ) {
-                    TextButton(
-                            onClick = {
-                                showDialog.value = false
-                                APApplication.uninstallApatch()
-                            }
-                    ) { Text(text = stringResource(id = R.string.home_dialog_uninstall_ap_only)) }
-
-                    TextButton(
-                            onClick = {
-                                showDialog.value = false
-                                APApplication.uninstallApatch()
-                                navigator.navigate(
-                                        PatchesDestination(PatchesViewModel.PatchMode.UNPATCH)
-                                )
-                            }
-                    ) { Text(text = stringResource(id = R.string.home_dialog_uninstall_all)) }
-                }
-            }
-            val dialogWindowProvider = LocalView.current.parent as DialogWindowProvider
-            APDialogBlurBehindUtils.setupWindowBlurListener(dialogWindowProvider.window)
         }
     }
 }
@@ -430,38 +373,6 @@ private fun TopBar(
                                 imageVector = Icons.Filled.MoreVert,
                                 contentDescription = stringResource(id = R.string.settings)
                         )
-                        ProvideMenuShape(RoundedCornerShape(10.dp)) {
-                            DropdownMenu(
-                                    expanded = showDropdownMoreOptions,
-                                    onDismissRequest = { showDropdownMoreOptions = false }
-                            ) {
-                                DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                    stringResource(
-                                                            R.string
-                                                                    .home_more_menu_feedback_or_suggestion
-                                                    )
-                                            )
-                                        },
-                                        onClick = {
-                                            showDropdownMoreOptions = false
-                                            uriHandler.openUri(
-                                                    "https://github.com/bmax121/APatch/issues/new/choose"
-                                            )
-                                        }
-                                )
-                                DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(R.string.home_more_menu_about))
-                                        },
-                                        onClick = {
-                                            navigator.navigate(AboutScreenDestination)
-                                            showDropdownMoreOptions = false
-                                        }
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -626,19 +537,15 @@ private fun KStatusCard(
                                         APApplication.State.KERNELPATCH_NEED_REBOOT -> {
                                             reboot()
                                         }
-                                        APApplication.State.KERNELPATCH_UNINSTALLING -> {
-                                            // Do nothing
-                                        }
                                         else -> {
-                                            if (apState ==
+                                            if (!(apState ==
                                                             APApplication.State
                                                                     .ANDROIDPATCH_INSTALLED ||
                                                             apState ==
                                                                     APApplication.State
-                                                                            .ANDROIDPATCH_NEED_UPDATE
-                                            ) {
-                                                showUninstallDialog.value = true
-                                            } else {
+                                                                            .ANDROIDPATCH_NEED_UPDATE)
+                                            )
+                                            {
                                                 navigator.navigate(
                                                         PatchesDestination(
                                                                 PatchesViewModel.PatchMode.UNPATCH
@@ -677,14 +584,6 @@ private fun KStatusCard(
                                             Icon(Icons.Outlined.Cached, contentDescription = "busy")
                                         }
                                         else -> {
-                                            Text(
-                                                    text =
-                                                            stringResource(
-                                                                    id =
-                                                                            R.string
-                                                                                    .home_ap_cando_uninstall
-                                                            )
-                                            )
                                         }
                                     }
                                 }
@@ -1011,33 +910,6 @@ fun UpdateCard() {
                         content = changelog,
                         markdown = true,
                         confirm = updateText
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun LearnMoreCard() {
-    val uriHandler = LocalUriHandler.current
-
-    ElevatedCard {
-        Row(
-                modifier =
-                        Modifier.fillMaxWidth()
-                                .clickable { uriHandler.openUri("https://apatch.dev") }
-                                .padding(24.dp),
-                verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                        text = stringResource(R.string.home_learn_apatch),
-                        style = MaterialTheme.typography.titleSmall
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                        text = stringResource(R.string.home_click_to_learn_apatch),
-                        style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
