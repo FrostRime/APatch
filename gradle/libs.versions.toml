@@ -1,5 +1,6 @@
 [versions]
 agp = "8.13.2"
+icons-lucide-cmp = "2.2.1"
 kotlin = "2.3.0"
 ksp = "2.3.4"
 compose-bom = "2025.12.01"
@@ -45,6 +46,8 @@ com-github-topjohnwu-libsu-io = { group = "com.github.topjohnwu.libsu", name = "
 
 dev-rikka-rikkax-parcelablelist = { module = "dev.rikka.rikkax.parcelablelist:parcelablelist", version = "2.0.1" }
 
+icons-tabler-outline-cmp = { module = "com.composables:icons-tabler-outline-cmp", version = "2.2.1" }
+icons-tabler-filled-cmp = { module = "com.composables:icons-tabler-filled-cmp", version = "2.2.1" }
 io-coil-kt-coil-compose = { group = "io.coil-kt", name = "coil-compose", version = "2.7.0" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.10.2" }

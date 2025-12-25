@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
@@ -42,7 +41,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,7 +56,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,6 +64,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.outline.ArrowAutofitDown
+import com.composables.icons.tabler.outline.PackageImport
+import com.composables.icons.tabler.outline.PlayerPlay
+import com.composables.icons.tabler.outline.Trash
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ExecuteAPMActionScreenDestination
@@ -79,11 +81,11 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.WebUIActivity
-import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.ModuleRemoveButton
 import me.bmax.apatch.ui.component.ModuleStateIndicator
 import me.bmax.apatch.ui.component.ModuleUpdateButton
+import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.ui.viewmodel.APModuleViewModel
@@ -186,7 +188,7 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                     selectZipLauncher.launch(intent)
                 }) {
                 Icon(
-                    painter = painterResource(id = R.drawable.package_import),
+                    imageVector = Tabler.Outline.PackageImport,
                     contentDescription = null
                 )
             }
@@ -555,24 +557,6 @@ private fun ModuleItem(
                         Spacer(modifier = Modifier.width(12.dp))
                     }
 
-                    if (module.hasWebUi) {
-                        FilledTonalButton(
-                            onClick = { onClick(module) },
-                            enabled = true,
-                            contentPadding = PaddingValues(12.dp)
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                painter = painterResource(id = R.drawable.webui),
-                                contentDescription = stringResource(id = R.string.apm_webui_open)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
                     if (module.hasActionScript) {
                         FilledTonalButton(
                             onClick = {
@@ -582,22 +566,23 @@ private fun ModuleItem(
                         ) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
-                                painter = painterResource(id = R.drawable.play_circle),
+                                imageVector = Tabler.Outline.PlayerPlay,
                                 contentDescription = stringResource(id = R.string.apm_action)
                             )
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
                     }
+                    Spacer(modifier = Modifier.weight(1f))
                     ModuleRemoveButton(enabled = !module.remove, onClick = { onUninstall(module) })
                 }
             }
 
             if (module.remove) {
-                ModuleStateIndicator(R.drawable.trash)
+                ModuleStateIndicator(Tabler.Outline.Trash)
             }
             if (module.update) {
-                ModuleStateIndicator(R.drawable.device_mobile_down)
+                ModuleStateIndicator(Tabler.Outline.ArrowAutofitDown)
             }
         }
     }

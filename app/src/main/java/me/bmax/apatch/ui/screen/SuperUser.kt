@@ -16,9 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +44,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.outline.DotsVertical
+import com.composables.icons.tabler.outline.UserCog
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import kotlinx.coroutines.launch
@@ -88,7 +88,7 @@ fun SuperUserScreen() {
                         onClick = { showDropdown = true },
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.MoreVert,
+                            imageVector = Tabler.Outline.DotsVertical,
                             contentDescription = stringResource(id = R.string.settings)
                         )
 
@@ -225,7 +225,7 @@ private fun AppItem(
             .padding(horizontal = 24.dp)
     ) {
         SwitchItem(
-            icon = Icons.Filled.Security,
+            icon = Tabler.Outline.UserCog,
             title = stringResource(id = R.string.su_pkg_excluded_setting_title),
             summary = stringResource(id = R.string.su_pkg_excluded_setting_summary),
             checked = excludeApp == 1,

@@ -257,6 +257,9 @@ dependencies {
     implementation(libs.sheet.compose.dialogs.input)
 
     implementation(libs.markdown)
+    
+    implementation(libs.icons.tabler.outline.cmp)
+    implementation(libs.icons.tabler.filled.cmp)
 
     implementation(libs.ini4j)
 

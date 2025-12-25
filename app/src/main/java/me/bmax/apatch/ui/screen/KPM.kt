@@ -42,7 +42,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,7 +58,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
@@ -71,6 +69,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.outline.PackageImport
+import com.composables.icons.tabler.outline.Settings
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
@@ -86,10 +87,10 @@ import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.ConfirmResult
-import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.KPModuleRemoveButton
 import me.bmax.apatch.ui.component.LoadingDialogHandle
 import me.bmax.apatch.ui.component.ProvideMenuShape
+import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.ui.viewmodel.KPModel
@@ -214,7 +215,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                     containerColor = MaterialTheme.colorScheme.primary,
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.package_import),
+                        imageVector = Tabler.Outline.PackageImport,
                         contentDescription = null
                     )
                 }
@@ -596,7 +597,7 @@ private fun KPModuleItem(
                     ) {
                         Icon(
                             modifier = Modifier.size(20.dp),
-                            painter = painterResource(id = R.drawable.settings),
+                            imageVector = Tabler.Outline.Settings,
                             contentDescription = stringResource(id = R.string.kpm_control)
                         )
                     }

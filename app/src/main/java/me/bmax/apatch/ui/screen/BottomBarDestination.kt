@@ -1,18 +1,18 @@
 package me.bmax.apatch.ui.screen
 
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Apps
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.filled.Apps
+import com.composables.icons.tabler.filled.Bandage
+import com.composables.icons.tabler.filled.Home
+import com.composables.icons.tabler.filled.Settings
+import com.composables.icons.tabler.filled.User
+import com.composables.icons.tabler.outline.Apps
+import com.composables.icons.tabler.outline.Bandage
+import com.composables.icons.tabler.outline.Home
+import com.composables.icons.tabler.outline.Settings
+import com.composables.icons.tabler.outline.User
 import com.ramcosta.composedestinations.generated.destinations.APModuleScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.HomeScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.KPModuleScreenDestination
@@ -32,40 +32,40 @@ enum class BottomBarDestination(
     Home(
         HomeScreenDestination,
         R.string.home,
-        Icons.Filled.Home,
-        Icons.Outlined.Home,
+        Tabler.Filled.Home,
+        Tabler.Outline.Home,
         false,
         false
     ),
     KModule(
         KPModuleScreenDestination,
         R.string.kpm,
-        Icons.Filled.Build,
-        Icons.Outlined.Build,
+        Tabler.Filled.Bandage,
+        Tabler.Outline.Bandage,
         true,
         false
     ),
     SuperUser(
         SuperUserScreenDestination,
         R.string.su_title,
-        Icons.Filled.Security,
-        Icons.Outlined.Security,
+        Tabler.Filled.User,
+        Tabler.Outline.User,
         true,
         false
     ),
     AModule(
         APModuleScreenDestination,
         R.string.apm,
-        Icons.Filled.Apps,
-        Icons.Outlined.Apps,
+        Tabler.Filled.Apps,
+        Tabler.Outline.Apps,
         false,
         true
     ),
     Settings(
         SettingScreenDestination,
         R.string.settings,
-        Icons.Filled.Settings,
-        Icons.Outlined.Settings,
+        Tabler.Filled.Settings,
+        Tabler.Outline.Settings,
         false,
         false
     )
