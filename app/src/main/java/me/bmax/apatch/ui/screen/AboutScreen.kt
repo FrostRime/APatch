@@ -37,6 +37,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.filled.BrandGithub
+import com.composables.icons.tabler.outline.BrandTelegram
+import com.composables.icons.tabler.outline.BrandWebflow
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -110,7 +114,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     onClick = { uriHandler.openUri("https://github.com/bmax121/APatch") }
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.github),
+                        imageVector = Tabler.Filled.BrandGithub,
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
@@ -121,7 +125,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     onClick = { uriHandler.openUri("https://t.me/APatchChannel") }
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.telegram),
+                        imageVector = Tabler.Outline.BrandTelegram,
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
@@ -138,7 +142,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     onClick = { uriHandler.openUri("https://hosted.weblate.org/engage/APatch") }
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.weblate),
+                        imageVector = Tabler.Outline.BrandWebflow,
                         contentDescription = null,
                         modifier = Modifier.size(ButtonDefaults.IconSize)
                     )
@@ -150,7 +154,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     onClick = { uriHandler.openUri("https://t.me/apatch_discuss") }
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.telegram),
+                        imageVector = Tabler.Outline.BrandTelegram,
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
