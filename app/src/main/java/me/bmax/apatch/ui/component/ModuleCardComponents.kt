@@ -17,6 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.filled.Trash
 import com.composables.icons.tabler.outline.ArrowAutofitDown
 import com.composables.icons.tabler.outline.Trash
 import me.bmax.apatch.R
@@ -42,7 +43,7 @@ fun ModuleRemoveButton(
 ) {
     Icon(
         modifier = Modifier.size(20.dp),
-        imageVector = Tabler.Outline.Trash,
+        imageVector = Tabler.Filled.Trash,
         contentDescription = stringResource(id = R.string.apm_remove)
     )
 }
@@ -55,7 +56,7 @@ fun KPModuleRemoveButton(
 ) {
     Icon(
         modifier = Modifier.size(20.dp),
-        imageVector = Tabler.Outline.Trash,
+        imageVector = Tabler.Filled.Trash,
         contentDescription = stringResource(id = R.string.kpm_unload)
     )
 }

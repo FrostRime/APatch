@@ -70,8 +70,8 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.filled.Settings
 import com.composables.icons.tabler.outline.PackageImport
-import com.composables.icons.tabler.outline.Settings
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
@@ -597,7 +597,7 @@ private fun KPModuleItem(
                     ) {
                         Icon(
                             modifier = Modifier.size(20.dp),
-                            imageVector = Tabler.Outline.Settings,
+                            imageVector = Tabler.Filled.Settings,
                             contentDescription = stringResource(id = R.string.kpm_control)
                         )
                     }

@@ -46,7 +46,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.outline.DotsVertical
-import com.composables.icons.tabler.outline.UserCog
+import com.composables.icons.tabler.outline.UserX
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import kotlinx.coroutines.launch
@@ -131,7 +131,9 @@ fun SuperUserScreen() {
             isRefreshing = viewModel.isRefreshing
         ) {
             LazyColumn(Modifier.fillMaxSize()) {
-                items(viewModel.appList.filter { it.packageName != apApp.packageName }, key = { it.packageName + it.uid }) { app ->
+                items(
+                    viewModel.appList.filter { it.packageName != apApp.packageName },
+                    key = { it.packageName + it.uid }) { app ->
                     AppItem(app)
                 }
             }
@@ -225,7 +227,7 @@ private fun AppItem(
             .padding(horizontal = 24.dp)
     ) {
         SwitchItem(
-            icon = Tabler.Outline.UserCog,
+            icon = Tabler.Outline.UserX,
             title = stringResource(id = R.string.su_pkg_excluded_setting_title),
             summary = stringResource(id = R.string.su_pkg_excluded_setting_summary),
             checked = excludeApp == 1,

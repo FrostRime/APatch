@@ -25,22 +25,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Commit
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.DeveloperMode
-import androidx.compose.material.icons.filled.Engineering
-import androidx.compose.material.icons.filled.FilePresent
-import androidx.compose.material.icons.filled.FormatColorFill
-import androidx.compose.material.icons.filled.InvertColors
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.RemoveFromQueue
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Translate
-import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -80,8 +64,27 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.core.os.LocaleListCompat
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.filled.Artboard
+import com.composables.icons.tabler.filled.BrightnessAuto
+import com.composables.icons.tabler.filled.FileCode
+import com.composables.icons.tabler.filled.FileSettings
+import com.composables.icons.tabler.filled.FileTime
+import com.composables.icons.tabler.filled.Globe
+import com.composables.icons.tabler.filled.Key
+import com.composables.icons.tabler.filled.Moon
+import com.composables.icons.tabler.filled.Paint
+import com.composables.icons.tabler.filled.Palette
+import com.composables.icons.tabler.outline.DeviceFloppy
+import com.composables.icons.tabler.outline.InfoCircle
+import com.composables.icons.tabler.outline.Language
+import com.composables.icons.tabler.outline.ReportAnalytics
+import com.composables.icons.tabler.outline.Share
+import com.composables.icons.tabler.outline.Tournament
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -114,7 +117,7 @@ import java.util.Locale
 @Destination<RootGraph>
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SettingScreen() {
+fun SettingScreen(navigator: DestinationsNavigator) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
@@ -213,7 +216,7 @@ fun SettingScreen() {
                 ListItem(
                     leadingContent = {
                         Icon(
-                            Icons.Filled.Key, stringResource(id = R.string.super_key)
+                            Tabler.Filled.Key, stringResource(id = R.string.super_key)
                         )
                     },
                     headlineContent = { Text(stringResource(id = R.string.clear_super_key)) },
@@ -229,7 +232,7 @@ fun SettingScreen() {
 
             // store key local?
             SwitchItem(
-                icon = Icons.Filled.Key,
+                icon = Tabler.Filled.Key,
                 title = stringResource(id = R.string.settings_donot_store_superkey),
                 summary = stringResource(id = R.string.settings_donot_store_superkey_summary),
                 checked = bSkipStoreSuperKey,
@@ -241,7 +244,7 @@ fun SettingScreen() {
             // Global mount
             if (kPatchReady && aPatchReady) {
                 SwitchItem(
-                    icon = Icons.Filled.Engineering,
+                    icon = Tabler.Filled.Globe,
                     title = stringResource(id = R.string.settings_global_namespace_mode),
                     summary = stringResource(id = R.string.settings_global_namespace_mode_summary),
                     checked = isGlobalNamespaceEnabled,
@@ -260,7 +263,7 @@ fun SettingScreen() {
             // Lite Mode
             if (kPatchReady && aPatchReady) {
                 SwitchItem(
-                    icon = Icons.Filled.RemoveFromQueue,
+                    icon = Tabler.Filled.Artboard,
                     title = stringResource(id = R.string.settings_lite_mode),
                     summary = stringResource(id = R.string.settings_lite_mode_mode_summary),
                     checked = isLiteModeEnabled,
@@ -273,7 +276,7 @@ fun SettingScreen() {
             // Force OverlayFS
             if (kPatchReady && aPatchReady && isOverlayFSAvailable) {
                 SwitchItem(
-                    icon = Icons.Filled.FilePresent,
+                    icon = Tabler.Filled.FileSettings,
                     title = stringResource(id = R.string.settings_force_overlayfs_mode),
                     summary = stringResource(id = R.string.settings_force_overlayfs_mode_summary),
                     checked = forceUsingOverlayFS,
@@ -291,7 +294,7 @@ fun SettingScreen() {
                     )
                 }
                 SwitchItem(
-                    icon = Icons.Filled.DeveloperMode,
+                    icon = Tabler.Filled.FileCode,
                     title = stringResource(id = R.string.enable_web_debugging),
                     summary = stringResource(id = R.string.enable_web_debugging_summary),
                     checked = enableWebDebugging
@@ -311,7 +314,7 @@ fun SettingScreen() {
             }
 
             SwitchItem(
-                icon = Icons.Filled.Update,
+                icon = Tabler.Filled.FileTime,
                 title = stringResource(id = R.string.settings_check_update),
                 summary = stringResource(id = R.string.settings_check_update_summary),
                 checked = checkUpdate
@@ -327,7 +330,7 @@ fun SettingScreen() {
                 )
             }
             SwitchItem(
-                icon = Icons.Filled.InvertColors,
+                icon = Tabler.Filled.BrightnessAuto,
                 title = stringResource(id = R.string.settings_night_mode_follow_sys),
                 summary = stringResource(id = R.string.settings_night_mode_follow_sys_summary),
                 checked = nightFollowSystem
@@ -345,7 +348,7 @@ fun SettingScreen() {
                     )
                 }
                 SwitchItem(
-                    icon = Icons.Filled.DarkMode,
+                    icon = Tabler.Filled.Moon,
                     title = stringResource(id = R.string.settings_night_theme_enabled),
                     checked = nightThemeEnabled
                 ) {
@@ -364,7 +367,7 @@ fun SettingScreen() {
                     )
                 }
                 SwitchItem(
-                    icon = Icons.Filled.ColorLens,
+                    icon = Tabler.Filled.Palette,
                     title = stringResource(id = R.string.settings_use_system_color_theme),
                     summary = stringResource(id = R.string.settings_use_system_color_theme_summary),
                     checked = useSystemDynamicColor
@@ -386,7 +389,7 @@ fun SettingScreen() {
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.outline
                         )
-                    }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
+                    }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
 
                 }
             } else {
@@ -401,7 +404,7 @@ fun SettingScreen() {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.outline
                     )
-                }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
+                }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
             }
 
             // su path
@@ -409,7 +412,8 @@ fun SettingScreen() {
                 ListItem(
                     leadingContent = {
                         Icon(
-                            Icons.Filled.Commit, stringResource(id = R.string.setting_reset_su_path)
+                            Tabler.Outline.Tournament,
+                            stringResource(id = R.string.setting_reset_su_path)
                         )
                     },
                     supportingContent = {},
@@ -432,13 +436,13 @@ fun SettingScreen() {
                 } ?: stringResource(id = R.string.system_default),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.outline)
-            }, leadingContent = { Icon(Icons.Filled.Translate, null) })
+            }, leadingContent = { Icon(Tabler.Outline.Language, null) })
 
             // log
             ListItem(
                 leadingContent = {
                     Icon(
-                        Icons.Filled.BugReport, stringResource(id = R.string.send_log)
+                        Tabler.Outline.ReportAnalytics, stringResource(id = R.string.send_log)
                     )
                 },
                 headlineContent = { Text(stringResource(id = R.string.send_log)) },
@@ -471,7 +475,7 @@ fun SettingScreen() {
                                         }
                                 ) {
                                     Icon(
-                                        Icons.Filled.Save,
+                                        Tabler.Outline.DeviceFloppy,
                                         contentDescription = null,
                                         modifier = Modifier.align(Alignment.CenterHorizontally)
                                     )
@@ -523,7 +527,7 @@ fun SettingScreen() {
                                             }
                                         }) {
                                     Icon(
-                                        Icons.Filled.Share,
+                                        Tabler.Outline.Share,
                                         contentDescription = null,
                                         modifier = Modifier.align(Alignment.CenterHorizontally)
                                     )
@@ -546,9 +550,19 @@ fun SettingScreen() {
                     })
             }
 
-
+            //About
+            ListItem(
+                leadingContent = {
+                    Icon(
+                        Tabler.Outline.InfoCircle, stringResource(id = R.string.about)
+                    )
+                },
+                supportingContent = {},
+                headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
+                modifier = Modifier.clickable {
+                    navigator.navigate(AboutScreenDestination)
+                })
         }
-
     }
 }
 

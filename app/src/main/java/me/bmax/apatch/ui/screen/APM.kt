@@ -65,10 +65,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
-import com.composables.icons.tabler.outline.ArrowAutofitDown
+import com.composables.icons.tabler.filled.ArrowAutofitDown
+import com.composables.icons.tabler.filled.PlayerPlay
+import com.composables.icons.tabler.filled.Settings
+import com.composables.icons.tabler.filled.Trash
 import com.composables.icons.tabler.outline.PackageImport
-import com.composables.icons.tabler.outline.PlayerPlay
-import com.composables.icons.tabler.outline.Trash
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ExecuteAPMActionScreenDestination
@@ -158,42 +159,42 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                 onSearchTextChange = { searchText = it },
                 onClearClick = { searchText = "" }
             )
-    }, floatingActionButton = if (hideInstallButton) {
-        { /* Empty */ }
-    } else {
-        {
-            val selectZipLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) {
-                if (it.resultCode != RESULT_OK) {
-                    return@rememberLauncherForActivityResult
+        }, floatingActionButton = if (hideInstallButton) {
+            { /* Empty */ }
+        } else {
+            {
+                val selectZipLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.StartActivityForResult()
+                ) {
+                    if (it.resultCode != RESULT_OK) {
+                        return@rememberLauncherForActivityResult
+                    }
+                    val data = it.data ?: return@rememberLauncherForActivityResult
+                    val uri = data.data ?: return@rememberLauncherForActivityResult
+
+                    Log.i("ModuleScreen", "select zip result: $uri")
+
+                    navigator.navigate(InstallScreenDestination(uri, MODULE_TYPE.APM))
+
+                    viewModel.markNeedRefresh()
                 }
-                val data = it.data ?: return@rememberLauncherForActivityResult
-                val uri = data.data ?: return@rememberLauncherForActivityResult
 
-                Log.i("ModuleScreen", "select zip result: $uri")
-
-                navigator.navigate(InstallScreenDestination(uri, MODULE_TYPE.APM))
-
-                viewModel.markNeedRefresh()
+                FloatingActionButton(
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        // select the zip file to install
+                        val intent = Intent(Intent.ACTION_GET_CONTENT)
+                        intent.type = "application/zip"
+                        selectZipLauncher.launch(intent)
+                    }) {
+                    Icon(
+                        imageVector = Tabler.Outline.PackageImport,
+                        contentDescription = null
+                    )
+                }
             }
-
-            FloatingActionButton(
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                containerColor = MaterialTheme.colorScheme.primary,
-                onClick = {
-                    // select the zip file to install
-                    val intent = Intent(Intent.ACTION_GET_CONTENT)
-                    intent.type = "application/zip"
-                    selectZipLauncher.launch(intent)
-                }) {
-                Icon(
-                    imageVector = Tabler.Outline.PackageImport,
-                    contentDescription = null
-                )
-            }
-        }
-    }, snackbarHost = { SnackbarHost(snackBarHost) }) { innerPadding ->
+        }, snackbarHost = { SnackbarHost(snackBarHost) }) { innerPadding ->
         when {
             hasMagisk -> {
                 Box(
@@ -281,8 +282,8 @@ private fun ModuleList(
                 runCatching {
                     if (Patterns.WEB_URL.matcher(changelogUrl).matches()) {
                         apApp.okhttpClient.newCall(
-                                okhttp3.Request.Builder().url(changelogUrl).build()
-                            ).execute().use { it.body?.string().orEmpty() }
+                            okhttp3.Request.Builder().url(changelogUrl).build()
+                        ).execute().use { it.body?.string().orEmpty() }
                     } else {
                         changelogUrl
                     }
@@ -566,7 +567,7 @@ private fun ModuleItem(
                         ) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
-                                imageVector = Tabler.Outline.PlayerPlay,
+                                imageVector = Tabler.Filled.PlayerPlay,
                                 contentDescription = stringResource(id = R.string.apm_action)
                             )
                         }
@@ -574,15 +575,28 @@ private fun ModuleItem(
                         Spacer(modifier = Modifier.width(12.dp))
                     }
                     Spacer(modifier = Modifier.weight(1f))
+                    if (module.hasWebUi) {
+                        FilledTonalButton(
+                            onClick = { onClick(module) },
+                            enabled = true,
+                            contentPadding = PaddingValues(12.dp)
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                imageVector = Tabler.Filled.Settings,
+                                contentDescription = stringResource(id = R.string.apm_webui_open)
+                            )
+                        }
+                    }
                     ModuleRemoveButton(enabled = !module.remove, onClick = { onUninstall(module) })
                 }
             }
 
             if (module.remove) {
-                ModuleStateIndicator(Tabler.Outline.Trash)
+                ModuleStateIndicator(Tabler.Filled.Trash)
             }
             if (module.update) {
-                ModuleStateIndicator(Tabler.Outline.ArrowAutofitDown)
+                ModuleStateIndicator(Tabler.Filled.ArrowAutofitDown)
             }
         }
     }
