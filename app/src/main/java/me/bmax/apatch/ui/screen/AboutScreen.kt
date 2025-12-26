@@ -2,7 +2,9 @@ package me.bmax.apatch.ui.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,12 +12,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -26,33 +31,47 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.composables.icons.tabler.Tabler
-import com.composables.icons.tabler.filled.BrandGithub
 import com.composables.icons.tabler.outline.BrandGithub
 import com.composables.icons.tabler.outline.BrandTelegram
 import com.composables.icons.tabler.outline.BrandWebflow
+import com.composables.icons.tabler.outline.Trash
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
+import me.bmax.apatch.ui.viewmodel.PatchesViewModel
 import me.bmax.apatch.util.Version
+import me.bmax.apatch.util.ui.APDialogBlurBehindUtils
 
 @Destination<RootGraph>
 @Composable
 fun AboutScreen(navigator: DestinationsNavigator) {
     val uriHandler = LocalUriHandler.current
+    val showUninstallDialog = remember { mutableStateOf(false) }
+    if (showUninstallDialog.value) {
+        UninstallDialog(showDialog = showUninstallDialog, navigator)
+    }
 
     Scaffold(
         topBar = {
@@ -163,6 +182,23 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 }
             }
 
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilledTonalButton(
+                    onClick = { showUninstallDialog.value = true }
+                ) {
+                    Icon(
+                        imageVector = Tabler.Outline.Trash,
+                        contentDescription = null,
+                    )
+                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                    Text(text = stringResource(id = R.string.home_ap_cando_uninstall))
+                }
+            }
+
             OutlinedCard(
                 modifier = Modifier.padding(vertical = 30.dp, horizontal = 20.dp),
                 shape = RoundedCornerShape(15.dp)
@@ -179,7 +215,6 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     )
                 }
             }
-
         }
     }
 }
@@ -195,4 +230,62 @@ private fun TopBar(onBack: () -> Unit = {}) {
             ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
         },
     )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UninstallDialog(showDialog: MutableState<Boolean>, navigator: DestinationsNavigator) {
+    BasicAlertDialog(
+        onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
+            decorFitsSystemWindows = true,
+            usePlatformDefaultWidth = false,
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .width(320.dp)
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = AlertDialogDefaults.TonalElevation,
+            color = AlertDialogDefaults.containerColor,
+        ) {
+            Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
+                Box(
+                    Modifier
+                        .padding(PaddingValues(bottom = 16.dp))
+                        .align(Alignment.CenterHorizontally)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.home_dialog_uninstall_title),
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center
+                ) {
+                    TextButton(onClick = {
+                        showDialog.value = false
+                        APApplication.uninstallApatch()
+                    }) {
+                        Text(text = stringResource(id = R.string.home_dialog_uninstall_ap_only))
+                    }
+
+                    TextButton(onClick = {
+                        showDialog.value = false
+                        APApplication.uninstallApatch()
+                        navigator.navigate(
+                            com.ramcosta.composedestinations.generated.destinations.PatchesDestination(
+                                PatchesViewModel.PatchMode.UNPATCH
+                            )
+                        )
+                    }) {
+                        Text(text = stringResource(id = R.string.home_dialog_uninstall_all))
+                    }
+                }
+            }
+            val dialogWindowProvider = LocalView.current.parent as DialogWindowProvider
+            APDialogBlurBehindUtils.setupWindowBlurListener(dialogWindowProvider.window)
+        }
+    }
 }

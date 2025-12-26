@@ -166,7 +166,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
             val failToastText = stringResource(id = R.string.kpm_load_toast_failed)
             val loadingDialog = rememberLoadingDialog()
 
-            val selectZipLauncher = rememberLauncherForActivityResult(
+            rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.StartActivityForResult()
             ) {
                 if (it.resultCode != RESULT_OK) {
@@ -414,7 +414,10 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun KPModuleList(
-    viewModel: KPModuleViewModel, modules: List<KPModel.KPMInfo>, modifier: Modifier = Modifier, state: LazyListState
+    viewModel: KPModuleViewModel,
+    modules: List<KPModel.KPMInfo>,
+    modifier: Modifier = Modifier,
+    state: LazyListState
 ) {
     val moduleStr = stringResource(id = R.string.kpm)
     val moduleUninstallConfirm = stringResource(id = R.string.kpm_unload_confirm)

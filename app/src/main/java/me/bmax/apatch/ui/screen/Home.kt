@@ -171,9 +171,11 @@ fun AuthFailedTipDialog(showDialog: MutableState<Boolean>) {
         ) {
             Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
                 // Title
-                Box(Modifier
-                    .padding(PaddingValues(bottom = 16.dp))
-                    .align(Alignment.Start)) {
+                Box(
+                    Modifier
+                        .padding(PaddingValues(bottom = 16.dp))
+                        .align(Alignment.Start)
+                ) {
                     Text(
                         text = stringResource(id = R.string.home_dialog_auth_fail_title),
                         style = MaterialTheme.typography.headlineSmall
@@ -236,9 +238,11 @@ fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableSta
         ) {
             Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
                 // Title
-                Box(Modifier
-                    .padding(PaddingValues(bottom = 16.dp))
-                    .align(Alignment.Start)) {
+                Box(
+                    Modifier
+                        .padding(PaddingValues(bottom = 16.dp))
+                        .align(Alignment.Start)
+                ) {
                     Text(
                         text = stringResource(id = R.string.home_auth_key_title),
                         style = MaterialTheme.typography.headlineSmall
@@ -246,9 +250,11 @@ fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableSta
                 }
 
                 // Content
-                Box(Modifier
-                    .weight(weight = 1f, fill = false)
-                    .align(Alignment.Start)) {
+                Box(
+                    Modifier
+                        .weight(weight = 1f, fill = false)
+                        .align(Alignment.Start)
+                ) {
                     Text(
                         text = stringResource(id = R.string.home_auth_key_desc),
                         style = MaterialTheme.typography.bodyMedium
@@ -460,9 +466,11 @@ private fun KStatusCard(
                         Icon(Tabler.Outline.DeviceUnknown, "Unknown")
                     }
                 }
-                Column(Modifier
-                    .weight(2f)
-                    .padding(start = 16.dp)) {
+                Column(
+                    Modifier
+                        .weight(2f)
+                        .padding(start = 16.dp)
+                ) {
                     when (kpState) {
                         APApplication.State.KERNELPATCH_INSTALLED -> {
                             Text(
@@ -659,9 +667,11 @@ private fun AStatusCard(apState: APApplication.State) {
                         )
                     }
                 }
-                Column(Modifier
-                    .weight(2f)
-                    .padding(start = 16.dp)) {
+                Column(
+                    Modifier
+                        .weight(2f)
+                        .padding(start = 16.dp)
+                ) {
                     when (apState) {
                         APApplication.State.ANDROIDPATCH_NOT_INSTALLED -> {
                             Text(
@@ -782,9 +792,11 @@ fun WarningCard() {
                     containerColor = run { MaterialTheme.colorScheme.error }
                 )
         ) {
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
                 Column(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.Center,

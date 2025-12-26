@@ -9,6 +9,7 @@ import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -222,18 +223,16 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                     onInstallModule = {
                         navigator.navigate(InstallScreenDestination(it, MODULE_TYPE.APM))
                     },
-                    onClickModule = { id, name, hasWebUi ->
-                        if (hasWebUi) {
-                            webUILauncher.launch(
-                                Intent(
-                                    context, WebUIActivity::class.java
-                                ).setData("apatch://webui/$id".toUri()).putExtra("id", id)
-                                    .putExtra("name", name)
-                            )
-                        }
-                    },
                     snackBarHost = snackBarHost,
-                    context = context
+                    context = context,
+                    onWebuiModule = { id, name ->
+                        webUILauncher.launch(
+                            Intent(
+                                context, WebUIActivity::class.java
+                            ).setData("apatch://webui/$id".toUri()).putExtra("id", id)
+                                .putExtra("name", name)
+                        )
+                    }
                 )
             }
         }
@@ -249,7 +248,7 @@ private fun ModuleList(
     modifier: Modifier = Modifier,
     state: LazyListState,
     onInstallModule: (Uri) -> Unit,
-    onClickModule: (id: String, name: String, hasWebUi: Boolean) -> Unit,
+    onWebuiModule: (id: String, name: String) -> Unit,
     snackBarHost: SnackbarHostState,
     context: Context
 ) {
@@ -451,8 +450,8 @@ private fun ModuleList(
                                     )
                                 }
                             },
-                            onClick = {
-                                onClickModule(it.id, it.name, it.hasWebUi)
+                            onWebui = {
+                                onWebuiModule(it.id, it.name)
                             })
                         // fix last item shadow incomplete in LazyColumn
                         Spacer(Modifier.height(1.dp))
@@ -474,13 +473,14 @@ private fun ModuleItem(
     onUninstall: (APModuleViewModel.ModuleInfo) -> Unit,
     onCheckChanged: (Boolean) -> Unit,
     onUpdate: (APModuleViewModel.ModuleInfo) -> Unit,
-    onClick: (APModuleViewModel.ModuleInfo) -> Unit,
+    onWebui: (APModuleViewModel.ModuleInfo) -> Unit,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
 ) {
     val decoration = if (!module.remove) TextDecoration.None else TextDecoration.LineThrough
     val moduleAuthor = stringResource(id = R.string.apm_author)
     val viewModel = viewModel<APModuleViewModel>()
+    var showActions by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
@@ -491,7 +491,9 @@ private fun ModuleItem(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onClick(module) },
+                .clickable {
+                    showActions = !showActions
+                },
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -540,56 +542,66 @@ private fun ModuleItem(
                     color = MaterialTheme.colorScheme.outline
                 )
 
-                HorizontalDivider(
-                    thickness = 1.5.dp,
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-
-                Row(
+                AnimatedVisibility(
+                    visible = showActions,
                     modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
                 ) {
-                    if (updateUrl.isNotEmpty()) {
-                        ModuleUpdateButton(onClick = { onUpdate(module) })
+                    HorizontalDivider(
+                        thickness = 1.5.dp,
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
 
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (module.hasActionScript) {
+                            FilledTonalButton(
+                                onClick = {
+                                    navigator.navigate(ExecuteAPMActionScreenDestination(module.id))
+                                    viewModel.markNeedRefresh()
+                                }, enabled = true, contentPadding = PaddingValues(12.dp)
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    imageVector = Tabler.Filled.PlayerPlay,
+                                    contentDescription = stringResource(id = R.string.apm_action)
+                                )
+                            }
 
-                    if (module.hasActionScript) {
-                        FilledTonalButton(
-                            onClick = {
-                                navigator.navigate(ExecuteAPMActionScreenDestination(module.id))
-                                viewModel.markNeedRefresh()
-                            }, enabled = true, contentPadding = PaddingValues(12.dp)
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Tabler.Filled.PlayerPlay,
-                                contentDescription = stringResource(id = R.string.apm_action)
-                            )
+                            Spacer(modifier = Modifier.width(12.dp))
                         }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    if (module.hasWebUi) {
-                        FilledTonalButton(
-                            onClick = { onClick(module) },
-                            enabled = true,
-                            contentPadding = PaddingValues(12.dp)
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Tabler.Filled.Settings,
-                                contentDescription = stringResource(id = R.string.apm_webui_open)
-                            )
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (module.hasWebUi) {
+                            FilledTonalButton(
+                                onClick = {
+                                    onWebui(module)
+                                },
+                                enabled = true,
+                                contentPadding = PaddingValues(12.dp)
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    imageVector = Tabler.Filled.Settings,
+                                    contentDescription = stringResource(id = R.string.apm_webui_open)
+                                )
+                            }
                         }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        if (updateUrl.isNotEmpty()) {
+                            ModuleUpdateButton(onClick = { onUpdate(module) })
+
+                            Spacer(modifier = Modifier.width(12.dp))
+                        }
+                        ModuleRemoveButton(
+                            enabled = !module.remove,
+                            onClick = { onUninstall(module) })
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    ModuleRemoveButton(enabled = !module.remove, onClick = { onUninstall(module) })
                 }
             }
 

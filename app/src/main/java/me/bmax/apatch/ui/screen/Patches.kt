@@ -27,12 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -73,6 +67,12 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.filled.Eye
+import com.composables.icons.tabler.filled.Settings
+import com.composables.icons.tabler.filled.Trash
+import com.composables.icons.tabler.outline.EyeClosed
+import com.composables.icons.tabler.outline.Reload
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import kotlinx.coroutines.Dispatchers
@@ -111,7 +111,7 @@ fun Patches(mode: PatchesViewModel.PatchMode) {
                         }
                     }
                 },
-                icon = { Icon(Icons.Filled.Refresh, reboot) },
+                icon = { Icon(Tabler.Outline.Reload, reboot) },
                 text = { Text(text = reboot) },
             )
         }
@@ -377,7 +377,7 @@ private fun ExtraItem(extra: KPModel.IExtraInfo, existed: Boolean, onDelete: () 
                 )
                 if (extra.type == KPModel.ExtraType.KPM) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
+                        imageVector = Tabler.Filled.Settings,
                         contentDescription = "Config",
                         modifier = Modifier
                             .padding(end = 8.dp)
@@ -385,7 +385,7 @@ private fun ExtraItem(extra: KPModel.IExtraInfo, existed: Boolean, onDelete: () 
                     )
                 }
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Tabler.Filled.Trash,
                     contentDescription = "Delete",
                     modifier = Modifier
                         .padding(end = 8.dp)
@@ -484,7 +484,7 @@ private fun SetSuperKeyView(viewModel: PatchesViewModel) {
                         onClick = { keyVisible = !keyVisible }
                     ) {
                         Icon(
-                            imageVector = if (keyVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            imageVector = if (keyVisible) Tabler.Filled.Eye else Tabler.Outline.EyeClosed,
                             contentDescription = null,
                             tint = Color.Gray
                         )

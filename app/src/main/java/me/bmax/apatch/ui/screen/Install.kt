@@ -161,7 +161,8 @@ private fun TopBar(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
     }, actions = {
         IconButton(onClick = onSave) {
             Icon(
-                imageVector = Tabler.Outline.DeviceFloppy, contentDescription = "Localized description"
+                imageVector = Tabler.Outline.DeviceFloppy,
+                contentDescription = "Localized description"
             )
         }
     })
