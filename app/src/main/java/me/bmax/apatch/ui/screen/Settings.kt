@@ -558,7 +558,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     )
                 },
                 supportingContent = {},
-                headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
+                headlineContent = { Text(stringResource(id = R.string.about)) },
                 modifier = Modifier.clickable {
                     navigator.navigate(AboutScreenDestination)
                 })

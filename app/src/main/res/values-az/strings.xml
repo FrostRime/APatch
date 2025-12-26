@@ -11,7 +11,7 @@
     <string name="about">Haqqında</string>
     <string name="settings_app_language">Dil</string>
     <string name="home_learn_apatch">APatch haqqında öyrənin</string>
-    <string name="about_source_code">Mənbə koduna %1$s ünvanında baxın<br/>%2$s kanalımıza qoşulun.qrupumuza qoşulun.</string>
+    <string name="about_source_code">Mənbə koduna %1$s ünvanında baxın<br />%2$s kanalımıza qoşulun.qrupumuza qoşulun.</string>
     <string name="system_default">Sistem defoltu</string>
     <string name="send_log">Günlükü göndərin</string>
     <string name="safe_mode">Təhlükəsiz rejim</string>

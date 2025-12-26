@@ -46,7 +46,7 @@
     <string name="kpm_load_toast_succ">සාර්ථකව එකතු කරන ලදී</string>
     <string name="home_selinux_status">SELinux තත්වය</string>
     <string name="apm_update">යාවත්කාලීන කරන්න</string>
-    <string name="about_source_code">මූල කේතය බලන්න %1$s<br/> අපේ ටෙලිග්‍රෑම් චැනලයට එකතු වන්න %2$s</string>
+    <string name="about_source_code">මූල කේතය බලන්න %1$s<br /> අපේ ටෙලිග්‍රෑම් චැනලයට එකතු වන්න %2$s</string>
     <string name="settings">සැකසුම්</string>
     <string name="reboot_recovery">Recovery එකට</string>
     <string name="reboot_bootloader">Fastboot mode එකට</string>

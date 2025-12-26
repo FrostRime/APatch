@@ -13,7 +13,7 @@
     <string name="reboot_edl">Repornește la EDL</string>
     <string name="about">Despre</string>
     <string name="home_learn_apatch">Invata APatch</string>
-    <string name="about_source_code">Vezi codul sursă la %1$s<br/> Alătură-te canalului nostru %2$s <p/>Devin-o membrul grupului %3$s</string>
+    <string name="about_source_code">Vezi codul sursă la %1$s<br /> Alătură-te canalului nostru %2$s <p />Devin-o membrul grupului %3$s</string>
     <string name="send_log">Trimite log-uri</string>
     <string name="clear_super_key">Șterge cheia</string>
     <string name="patch_set_superkey">Setează Superkey</string>

@@ -13,7 +13,7 @@
     <string name="reboot_bootloader">But semula ke Bootloader</string>
     <string name="reboot_download">But semula ke Download</string>
     <string name="reboot_edl">But semula ke EDL</string>
-    <string name="about_source_code">Lihat kod sumber di %1$s<br/>Sertai saluran kami di %2$s</string>
+    <string name="about_source_code">Lihat kod sumber di %1$s<br />Sertai saluran kami di %2$s</string>
     <string name="send_log">Hantar log</string>
     <string name="safe_mode">Safe mode</string>
     <string name="super_key">SuperKey</string>

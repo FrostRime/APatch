@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.BrandGithub
+import com.composables.icons.tabler.outline.BrandGithub
 import com.composables.icons.tabler.outline.BrandTelegram
 import com.composables.icons.tabler.outline.BrandWebflow
 import com.ramcosta.composedestinations.annotation.Destination
@@ -114,7 +115,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     onClick = { uriHandler.openUri("https://github.com/bmax121/APatch") }
                 ) {
                     Icon(
-                        imageVector = Tabler.Filled.BrandGithub,
+                        imageVector = Tabler.Outline.BrandGithub,
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))

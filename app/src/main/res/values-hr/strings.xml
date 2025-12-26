@@ -12,7 +12,7 @@
     <string name="settings_app_language">Jezik</string>
     <string name="home_learn_apatch">Nauči o APatch-u</string>
     <string name="home_click_to_learn_apatch">Nauči više o značajkama APatch i kako ih koristiti</string>
-    <string name="about_source_code">Pogledaj izvorni kod na %1$s<br/>Pridruži se na našem %2$s kanalu</string>
+    <string name="about_source_code">Pogledaj izvorni kod na %1$s<br />Pridruži se na našem %2$s kanalu</string>
     <string name="send_log">Pošalji logove</string>
     <string name="safe_mode">Sigurni način</string>
     <string name="super_key">SuperKey</string>

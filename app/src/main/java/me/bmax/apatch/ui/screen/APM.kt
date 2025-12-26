@@ -588,6 +588,7 @@ private fun ModuleItem(
                             )
                         }
                     }
+                    Spacer(modifier = Modifier.width(12.dp))
                     ModuleRemoveButton(enabled = !module.remove, onClick = { onUninstall(module) })
                 }
             }
