@@ -59,7 +59,7 @@ jobs:
           cache-targets: false
 
       - name: Replace package_id
-        if: github.event_name == "workflow_dispatch"
+        if: github.event_name == 'workflow_dispatch'
         run: |
           sed -i 's/com.frost.rime/${{ github.event.inputs.package_id }}/g' app/build.gradle.kts
 
