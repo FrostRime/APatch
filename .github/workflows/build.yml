@@ -95,5 +95,5 @@ jobs:
         if: ${{ env.SIGNING_KEY != '' }}
         uses: actions/upload-artifact@v6
         with:
-          name: manager.apk
+          name: manager
           path: ${{steps.sign_app.outputs.signedReleaseFile}}

@@ -557,7 +557,7 @@ private fun ModuleItem(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 8.dp),
+                            .padding(top = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (module.hasActionScript) {
