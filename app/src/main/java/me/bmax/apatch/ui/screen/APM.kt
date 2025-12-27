@@ -500,7 +500,7 @@ private fun ModuleItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
@@ -534,8 +534,7 @@ private fun ModuleItem(
 
                 Text(
                     modifier = Modifier
-                        .alpha(alpha = alpha)
-                        .padding(horizontal = 16.dp),
+                        .alpha(alpha = alpha),
                     text = module.description,
                     style = MaterialTheme.typography.bodySmall,
                     textDecoration = decoration,
@@ -556,7 +555,7 @@ private fun ModuleItem(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp),
+                            .padding(bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (module.hasActionScript) {

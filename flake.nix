@@ -36,7 +36,7 @@
                   ];
                 }
               ))
-              gradle
+              gradle_9
               cargo
               rustc
               rustfmt

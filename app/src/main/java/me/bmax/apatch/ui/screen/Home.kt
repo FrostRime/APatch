@@ -734,13 +734,9 @@ private fun AStatusCard(apState: APApplication.State) {
                                         APApplication.installApatch()
                                     }
 
-                                    APApplication.State.ANDROIDPATCH_UNINSTALLING -> {
-                                        // Do nothing
-                                    }
+                                    APApplication.State.ANDROIDPATCH_UNINSTALLING -> {}
 
-                                    else -> {
-                                        // APApplication.uninstallApatch()
-                                    }
+                                    else -> {}
                                 }
                             },
                             content = {
@@ -771,8 +767,7 @@ private fun AStatusCard(apState: APApplication.State) {
                                         Icon(Tabler.Outline.Refresh, contentDescription = "busy")
                                     }
 
-                                    else -> {
-                                    }
+                                    else -> {}
                                 }
                             }
                         )
