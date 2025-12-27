@@ -597,7 +597,7 @@ private fun KPModuleItem(
 
                     Row(
                         modifier = Modifier
-                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 0.dp)
+                            .padding(top = 8.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
