@@ -428,7 +428,8 @@ private fun KStatusCard(
             Box(
                 modifier = Modifier
                     .aspectRatio(1f)
-                    .weight(1f), propagateMinConstraints = true
+                    .weight(1f),
+                propagateMinConstraints = true
             ) {
                 when (kpState) {
                     APApplication.State.KERNELPATCH_INSTALLED -> {
@@ -461,7 +462,7 @@ private fun KStatusCard(
                 Column(
                     Modifier
                         .padding(start = 16.dp)
-                        .fillMaxSize()
+                        .fillMaxWidth()
                 ) {
                     Spacer(Modifier.weight(1f))
 
