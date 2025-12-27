@@ -181,23 +181,6 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            FilledTonalButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(all = 8.dp),
-                onClick = { showUninstallDialog.value = true }
-            ) {
-                Icon(
-                    imageVector = Tabler.Outline.Trash,
-                    contentDescription = null,
-                )
-                Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                Text(
-                    color = MaterialTheme.colorScheme.error,
-                    text = stringResource(id = R.string.home_ap_cando_uninstall)
-                )
-            }
-
             OutlinedCard(
                 modifier = Modifier.padding(vertical = 30.dp, horizontal = 20.dp),
                 shape = RoundedCornerShape(15.dp)
@@ -212,6 +195,24 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    TextButton(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        onClick = { showUninstallDialog.value = true }
+                    ) {
+                        Icon(
+                            imageVector = Tabler.Outline.Trash,
+                            contentDescription = null,
+                        )
+                        Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(
+                            color = MaterialTheme.colorScheme.error,
+                            text = stringResource(id = R.string.home_ap_cando_uninstall)
+                        )
+                    }
                 }
             }
         }
