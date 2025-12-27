@@ -7,6 +7,8 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -520,6 +522,7 @@ private fun KPModuleItem(
     val moduleAuthor = stringResource(id = R.string.kpm_author)
     val moduleArgs = stringResource(id = R.string.kpm_args)
     val decoration = TextDecoration.None
+    var showActions by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier,
@@ -527,15 +530,18 @@ private fun KPModuleItem(
         tonalElevation = 1.dp,
         shape = RoundedCornerShape(20.dp)
     ) {
-
         Box(
-            modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(all = 16.dp)
+                .clickable {
+                    showActions = !showActions
+                }, contentAlignment = Alignment.Center
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(all = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
@@ -579,38 +585,44 @@ private fun KPModuleItem(
                     color = MaterialTheme.colorScheme.outline
                 )
 
-                HorizontalDivider(
-                    thickness = 1.5.dp,
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-
-                Row(
+                AnimatedVisibility(
+                    visible = showActions,
                     modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Spacer(modifier = Modifier.weight(1f))
+                    HorizontalDivider(
+                        thickness = 1.5.dp,
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
 
-                    FilledTonalButton(
-                        onClick = { onControl(module) },
-                        enabled = true,
-                        contentPadding = PaddingValues(12.dp)
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Tabler.Filled.Settings,
-                            contentDescription = stringResource(id = R.string.kpm_control)
-                        )
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        FilledTonalButton(
+                            onClick = { onControl(module) },
+                            enabled = true,
+                            contentPadding = PaddingValues(12.dp)
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                imageVector = Tabler.Filled.Settings,
+                                contentDescription = stringResource(id = R.string.kpm_control)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        KPModuleRemoveButton(enabled = true, onClick = { onUninstall(module) })
                     }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    KPModuleRemoveButton(enabled = true, onClick = { onUninstall(module) })
                 }
             }
-
         }
     }
 }

@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui.screen
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -114,6 +115,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Destination<RootGraph>
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -540,7 +542,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                                                 trim = LineHeightStyle.Trim.None
                                             )
                                         }
-
                                     )
                                 }
 

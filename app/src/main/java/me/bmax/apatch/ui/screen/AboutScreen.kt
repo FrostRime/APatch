@@ -182,21 +182,21 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            Row(
-                modifier = Modifier.padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FilledTonalButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                onClick = { showUninstallDialog.value = true }
             ) {
-                FilledTonalButton(
-                    onClick = { showUninstallDialog.value = true }
-                ) {
-                    Icon(
-                        imageVector = Tabler.Outline.Trash,
-                        contentDescription = null,
-                    )
-                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(text = stringResource(id = R.string.home_ap_cando_uninstall))
-                }
+                Icon(
+                    imageVector = Tabler.Outline.Trash,
+                    contentDescription = null,
+                )
+                Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                Text(
+                    color = MaterialTheme.colorScheme.error,
+                    text = stringResource(id = R.string.home_ap_cando_uninstall)
+                )
             }
 
             OutlinedCard(
