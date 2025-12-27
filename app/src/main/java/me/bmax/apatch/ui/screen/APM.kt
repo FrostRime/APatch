@@ -482,7 +482,7 @@ private fun ModuleItem(
     val viewModel = viewModel<APModuleViewModel>()
     var showActions by remember { mutableStateOf(false) }
     Surface(
-        modifier = modifier.padding(all = 16.dp),
+        modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
         shape = RoundedCornerShape(20.dp)
@@ -492,7 +492,8 @@ private fun ModuleItem(
                 .fillMaxWidth()
                 .clickable {
                     showActions = !showActions
-                },
+                }
+                .padding(all = 16.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -545,12 +546,12 @@ private fun ModuleItem(
                     visible = showActions,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                        .padding(all = 16.dp)
                 ) {
                     HorizontalDivider(
                         thickness = 1.5.dp,
                         color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier.padding(vertical = 16.dp)
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
 
                     Row(

@@ -645,7 +645,10 @@ private fun AStatusCard(apState: APApplication.State) {
                     }
 
                     APApplication.State.ANDROIDPATCH_INSTALLING -> {
-                        Icon(Tabler.Outline.ArrowAutofitDown, stringResource(R.string.home_installing))
+                        Icon(
+                            Tabler.Outline.ArrowAutofitDown,
+                            stringResource(R.string.home_installing)
+                        )
                     }
 
                     APApplication.State.ANDROIDPATCH_INSTALLED -> {
@@ -653,7 +656,10 @@ private fun AStatusCard(apState: APApplication.State) {
                     }
 
                     APApplication.State.ANDROIDPATCH_NEED_UPDATE -> {
-                        Icon(Tabler.Outline.ArrowAutofitDown, stringResource(R.string.home_need_update))
+                        Icon(
+                            Tabler.Outline.ArrowAutofitDown,
+                            stringResource(R.string.home_need_update)
+                        )
                     }
 
                     else -> {

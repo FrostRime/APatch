@@ -184,7 +184,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
             FilledTonalButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(all = 8.dp),
                 onClick = { showUninstallDialog.value = true }
             ) {
                 Icon(
