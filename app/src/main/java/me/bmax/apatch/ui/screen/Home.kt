@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -385,7 +387,6 @@ private fun KStatusCard(
     apState: APApplication.State,
     navigator: DestinationsNavigator
 ) {
-
     val showAuthFailedTipDialog = remember { mutableStateOf(false) }
     if (showAuthFailedTipDialog.value) {
         AuthFailedTipDialog(showDialog = showAuthFailedTipDialog)
@@ -412,6 +413,31 @@ private fun KStatusCard(
             }
         }
 
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.aspectRatio(1f)) {
+            when (kpState) {
+                APApplication.State.KERNELPATCH_INSTALLED -> {
+                    Icon(Tabler.Outline.Checks, stringResource(R.string.home_working))
+                }
+
+                APApplication.State.KERNELPATCH_NEED_UPDATE,
+                APApplication.State.KERNELPATCH_NEED_REBOOT -> {
+                    Icon(
+                        Tabler.Outline.ArrowAutofitDown,
+                        stringResource(R.string.home_need_update)
+                    )
+                }
+
+                else -> {
+                    Icon(Tabler.Outline.DeviceUnknown, "Unknown")
+                }
+            }
+            Column() {
+                Spacer(Modifier.weight(1f))
+
+            }
+        }
+    }
     ElevatedCard(
         onClick = {
             if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
