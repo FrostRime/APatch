@@ -554,6 +554,8 @@ private fun ModuleItem(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    Spacer(Modifier.weight(1f))
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
