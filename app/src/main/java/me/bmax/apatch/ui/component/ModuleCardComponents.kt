@@ -1,6 +1,5 @@
 package me.bmax.apatch.ui.component
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.requiredSize
@@ -13,13 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.Trash
 import com.composables.icons.tabler.outline.ArrowAutofitDown
-import com.composables.icons.tabler.outline.Trash
 import me.bmax.apatch.R
 
 @Composable
@@ -63,7 +60,7 @@ fun KPModuleRemoveButton(
 
 @Composable
 fun ModuleStateIndicator(
-    @DrawableRes icon: ImageVector, color: Color = MaterialTheme.colorScheme.outline
+    icon: ImageVector, color: Color = MaterialTheme.colorScheme.outline
 ) {
     Image(
         modifier = Modifier.requiredSize(150.dp),

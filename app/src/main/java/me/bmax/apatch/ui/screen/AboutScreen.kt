@@ -17,8 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -50,6 +48,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.outline.ArrowLeft
 import com.composables.icons.tabler.outline.BrandGithub
 import com.composables.icons.tabler.outline.BrandTelegram
 import com.composables.icons.tabler.outline.BrandWebflow
@@ -227,7 +226,7 @@ private fun TopBar(onBack: () -> Unit = {}) {
         navigationIcon = {
             IconButton(
                 onClick = onBack
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+            ) { Icon(Tabler.Outline.ArrowLeft, contentDescription = null) }
         },
     )
 }

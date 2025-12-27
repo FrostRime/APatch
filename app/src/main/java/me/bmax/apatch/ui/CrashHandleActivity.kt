@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -38,6 +36,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.outline.Copy
 import kotlinx.coroutines.launch
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
@@ -116,7 +116,7 @@ private fun CrashHandleScreen(
             }
         }, text = { Text(text = stringResource(R.string.crash_handle_copy)) }, icon = {
             Icon(
-                imageVector = Icons.Outlined.ContentCopy, contentDescription = null
+                imageVector = Tabler.Outline.Copy, contentDescription = null
             )
         }, modifier = Modifier.windowInsetsPadding(
             WindowInsets.safeDrawing.only(WindowInsetsSides.End)

@@ -25,16 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.Cached
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.InstallMobile
-import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -77,9 +67,15 @@ import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.AlertTriangle
+import com.composables.icons.tabler.filled.Eye
 import com.composables.icons.tabler.outline.ArrowAutofitDown
 import com.composables.icons.tabler.outline.Checks
+import com.composables.icons.tabler.outline.CircleDashedX
 import com.composables.icons.tabler.outline.DeviceUnknown
+import com.composables.icons.tabler.outline.EyeOff
+import com.composables.icons.tabler.outline.Forbid2
+import com.composables.icons.tabler.outline.HelpCircle
+import com.composables.icons.tabler.outline.Refresh
 import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
 import com.ramcosta.composedestinations.annotation.Destination
@@ -289,8 +285,8 @@ fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableSta
                     ) {
                         Icon(
                             imageVector =
-                                if (keyVisible) Icons.Default.Visibility
-                                else Icons.Default.VisibilityOff,
+                                if (keyVisible) Tabler.Filled.Eye
+                                else Tabler.Outline.EyeOff,
                             contentDescription = null,
                             tint = Color.Gray
                         )
@@ -602,7 +598,7 @@ private fun KStatusCard(
                                     }
 
                                     APApplication.State.KERNELPATCH_UNINSTALLING -> {
-                                        Icon(Icons.Outlined.Cached, contentDescription = "busy")
+                                        Icon(Tabler.Outline.Refresh, contentDescription = "busy")
                                     }
 
                                     else -> {
@@ -645,24 +641,24 @@ private fun AStatusCard(apState: APApplication.State) {
             ) {
                 when (apState) {
                     APApplication.State.ANDROIDPATCH_NOT_INSTALLED -> {
-                        Icon(Icons.Outlined.Block, stringResource(R.string.home_not_installed))
+                        Icon(Tabler.Outline.Forbid2, stringResource(R.string.home_not_installed))
                     }
 
                     APApplication.State.ANDROIDPATCH_INSTALLING -> {
-                        Icon(Icons.Outlined.InstallMobile, stringResource(R.string.home_installing))
+                        Icon(Tabler.Outline.ArrowAutofitDown, stringResource(R.string.home_installing))
                     }
 
                     APApplication.State.ANDROIDPATCH_INSTALLED -> {
-                        Icon(Icons.Outlined.CheckCircle, stringResource(R.string.home_working))
+                        Icon(Tabler.Outline.Checks, stringResource(R.string.home_working))
                     }
 
                     APApplication.State.ANDROIDPATCH_NEED_UPDATE -> {
-                        Icon(Icons.Outlined.SystemUpdate, stringResource(R.string.home_need_update))
+                        Icon(Tabler.Outline.ArrowAutofitDown, stringResource(R.string.home_need_update))
                     }
 
                     else -> {
                         Icon(
-                            Icons.AutoMirrored.Outlined.HelpOutline,
+                            Tabler.Outline.HelpCircle,
                             stringResource(R.string.home_install_unknown)
                         )
                     }
@@ -766,7 +762,7 @@ private fun AStatusCard(apState: APApplication.State) {
                                     }
 
                                     APApplication.State.ANDROIDPATCH_UNINSTALLING -> {
-                                        Icon(Icons.Outlined.Cached, contentDescription = "busy")
+                                        Icon(Tabler.Outline.Refresh, contentDescription = "busy")
                                     }
 
                                     else -> {
@@ -820,7 +816,7 @@ fun WarningCard() {
                         Spacer(Modifier.width(12.dp))
 
                         Icon(
-                            Icons.Outlined.Clear,
+                            Tabler.Outline.CircleDashedX,
                             contentDescription = "",
                             modifier =
                                 Modifier.clickable {

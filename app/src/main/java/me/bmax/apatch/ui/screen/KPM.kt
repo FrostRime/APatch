@@ -525,7 +525,9 @@ private fun KPModuleItem(
     var showActions by remember { mutableStateOf(false) }
 
     Surface(
-        modifier = modifier,
+        modifier = modifier.clickable {
+            showActions = !showActions
+        },
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
         shape = RoundedCornerShape(20.dp)
@@ -533,10 +535,7 @@ private fun KPModuleItem(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(all = 16.dp)
-                .clickable {
-                    showActions = !showActions
-                }, contentAlignment = Alignment.Center
+                .padding(all = 16.dp), contentAlignment = Alignment.Center
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -599,7 +598,7 @@ private fun KPModuleItem(
 
                     Row(
                         modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 0.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
