@@ -4,16 +4,13 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,18 +25,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -56,7 +50,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -77,21 +70,16 @@ import com.composables.icons.tabler.filled.Moon
 import com.composables.icons.tabler.filled.Paint
 import com.composables.icons.tabler.filled.Palette
 import com.composables.icons.tabler.outline.DeviceFloppy
-import com.composables.icons.tabler.outline.InfoCircle
 import com.composables.icons.tabler.outline.Language
 import com.composables.icons.tabler.outline.ReportAnalytics
 import com.composables.icons.tabler.outline.Share
-import com.composables.icons.tabler.outline.Tournament
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
-import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.SwitchItem
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -104,7 +92,6 @@ import me.bmax.apatch.util.isGlobalNamespaceEnabled
 import me.bmax.apatch.util.isLiteModeEnabled
 import me.bmax.apatch.util.outputStream
 import me.bmax.apatch.util.overlayFsAvailable
-import me.bmax.apatch.util.rootShellForResult
 import me.bmax.apatch.util.setForceUsingOverlayFS
 import me.bmax.apatch.util.setGlobalNamespaceEnabled
 import me.bmax.apatch.util.setLiteMode
@@ -119,7 +106,7 @@ import java.util.Locale
 @Destination<RootGraph>
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SettingScreen(navigator: DestinationsNavigator) {
+fun SettingScreen() {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
@@ -166,11 +153,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
         val showLanguageDialog = rememberSaveable { mutableStateOf(false) }
         LanguageDialog(showLanguageDialog)
-
-        val showResetSuPathDialog = remember { mutableStateOf(false) }
-        if (showResetSuPathDialog.value) {
-            ResetSUPathDialog(showResetSuPathDialog)
-        }
 
         val showThemeChooseDialog = remember { mutableStateOf(false) }
         if (showThemeChooseDialog.value) {
@@ -409,22 +391,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
             }
 
-            // su path
-            if (kPatchReady) {
-                ListItem(
-                    leadingContent = {
-                        Icon(
-                            Tabler.Outline.Tournament,
-                            stringResource(id = R.string.setting_reset_su_path)
-                        )
-                    },
-                    supportingContent = {},
-                    headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
-                    modifier = Modifier.clickable {
-                        showResetSuPathDialog.value = true
-                    })
-            }
-
             // language
             ListItem(headlineContent = {
                 Text(text = stringResource(id = R.string.settings_app_language))
@@ -550,19 +516,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         NavigationBarsSpacer()
                     })
             }
-
-            //About
-            ListItem(
-                leadingContent = {
-                    Icon(
-                        Tabler.Outline.InfoCircle, stringResource(id = R.string.about)
-                    )
-                },
-                supportingContent = {},
-                headlineContent = { Text(stringResource(id = R.string.about)) },
-                modifier = Modifier.clickable {
-                    navigator.navigate(AboutScreenDestination)
-                })
         }
     }
 }
@@ -642,81 +595,6 @@ private fun colorNameToString(colorName: String): Int {
 val suPathChecked: (path: String) -> Boolean = {
     it.startsWith("/") && it.trim().length > 1
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
-    val context = LocalContext.current
-    var suPath by remember { mutableStateOf(Natives.suPath()) }
-    BasicAlertDialog(
-        onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
-            decorFitsSystemWindows = true,
-            usePlatformDefaultWidth = false,
-        )
-    ) {
-        Surface(
-            modifier = Modifier
-                .width(310.dp)
-                .wrapContentHeight(),
-            shape = RoundedCornerShape(30.dp),
-            tonalElevation = AlertDialogDefaults.TonalElevation,
-            color = AlertDialogDefaults.containerColor,
-        ) {
-            Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
-                Box(
-                    Modifier
-                        .padding(PaddingValues(bottom = 16.dp))
-                        .align(Alignment.Start)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.setting_reset_su_path),
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
-                Box(
-                    Modifier
-                        .weight(weight = 1f, fill = false)
-                        .padding(PaddingValues(bottom = 12.dp))
-                        .align(Alignment.Start)
-                ) {
-                    OutlinedTextField(
-                        value = suPath,
-                        onValueChange = {
-                            suPath = it
-                        },
-                        label = { Text(stringResource(id = R.string.setting_reset_su_new_path)) },
-                        visualTransformation = VisualTransformation.None,
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = { showDialog.value = false }) {
-
-                        Text(stringResource(id = android.R.string.cancel))
-                    }
-
-                    Button(enabled = suPathChecked(suPath), onClick = {
-                        showDialog.value = false
-                        val success = Natives.resetSuPath(suPath)
-                        Toast.makeText(
-                            context,
-                            if (success) R.string.success else R.string.failure,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        rootShellForResult("echo $suPath > ${APApplication.SU_PATH_FILE}")
-                    }) {
-                        Text(stringResource(id = android.R.string.ok))
-                    }
-                }
-            }
-            val dialogWindowProvider = LocalView.current.parent as DialogWindowProvider
-            APDialogBlurBehindUtils.setupWindowBlurListener(dialogWindowProvider.window)
-        }
-    }
-}
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

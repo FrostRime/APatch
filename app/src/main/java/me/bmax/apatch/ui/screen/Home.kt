@@ -2,6 +2,7 @@ package me.bmax.apatch.ui.screen
 
 import android.os.Build
 import android.system.Os
+import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -57,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -83,6 +85,7 @@ import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
@@ -99,6 +102,7 @@ import me.bmax.apatch.util.Version.getManagerVersion
 import me.bmax.apatch.util.checkNewVersion
 import me.bmax.apatch.util.getSELinuxStatus
 import me.bmax.apatch.util.reboot
+import me.bmax.apatch.util.rootShellForResult
 import me.bmax.apatch.util.ui.APDialogBlurBehindUtils
 
 private val managerVersion = getManagerVersion()
@@ -329,6 +333,80 @@ fun RebootDropdownItem(@StringRes id: Int, reason: String = "") {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
+    val context = LocalContext.current
+    var suPath by remember { mutableStateOf(Natives.suPath()) }
+    BasicAlertDialog(
+        onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
+            decorFitsSystemWindows = true,
+            usePlatformDefaultWidth = false,
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .width(310.dp)
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(30.dp),
+            tonalElevation = AlertDialogDefaults.TonalElevation,
+            color = AlertDialogDefaults.containerColor,
+        ) {
+            Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
+                Box(
+                    Modifier
+                        .padding(PaddingValues(bottom = 16.dp))
+                        .align(Alignment.Start)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.setting_reset_su_path),
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+                Box(
+                    Modifier
+                        .weight(weight = 1f, fill = false)
+                        .padding(PaddingValues(bottom = 12.dp))
+                        .align(Alignment.Start)
+                ) {
+                    OutlinedTextField(
+                        value = suPath,
+                        onValueChange = {
+                            suPath = it
+                        },
+                        label = { Text(stringResource(id = R.string.setting_reset_su_new_path)) },
+                        visualTransformation = VisualTransformation.None,
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { showDialog.value = false }) {
+
+                        Text(stringResource(id = android.R.string.cancel))
+                    }
+
+                    Button(enabled = suPathChecked(suPath), onClick = {
+                        showDialog.value = false
+                        val success = Natives.resetSuPath(suPath)
+                        Toast.makeText(
+                            context,
+                            if (success) R.string.success else R.string.failure,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        rootShellForResult("echo $suPath > ${APApplication.SU_PATH_FILE}")
+                    }) {
+                        Text(stringResource(id = android.R.string.ok))
+                    }
+                }
+            }
+            val dialogWindowProvider = LocalView.current.parent as DialogWindowProvider
+            APDialogBlurBehindUtils.setupWindowBlurListener(dialogWindowProvider.window)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun TopBar(
     onInstallClick: () -> Unit,
     kpState: APApplication.State
@@ -396,6 +474,11 @@ private fun KStatusCard(
         AuthSuperKey(showDialog = showAuthKeyDialog, showFailedDialog = showAuthFailedTipDialog)
     }
 
+    val showResetSuPathDialog = remember { mutableStateOf(false) }
+    if (showResetSuPathDialog.value) {
+        ResetSUPathDialog(showResetSuPathDialog)
+    }
+
     val cardBackgroundColor =
         when (kpState) {
             APApplication.State.KERNELPATCH_INSTALLED -> {
@@ -415,7 +498,8 @@ private fun KStatusCard(
     Row(modifier = Modifier.fillMaxWidth()) {
         ElevatedCard(
             modifier = Modifier
-                .aspectRatio(1f).weight(1f),
+                .aspectRatio(1f)
+                .weight(1f),
             onClick = {
                 if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
                     navigator.navigate(InstallModeSelectScreenDestination)
@@ -527,15 +611,21 @@ private fun KStatusCard(
         Spacer(Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                val unknown = kpState == APApplication.State.UNKNOWN_STATE
+            val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
+            ElevatedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clickable {
+                        showResetSuPathDialog.value = true
+                    }) {
                 Column(Modifier.padding(12.dp)) {
                     Text(
                         text = stringResource(R.string.home_su_path),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        text = if (unknown) "Unknown" else Natives.suPath(),
+                        text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -543,21 +633,29 @@ private fun KStatusCard(
 
             Spacer(Modifier.height(16.dp))
 
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                val unknown =
-                    apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
+            val managerUnknown =
+                apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
+            ElevatedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clickable {
+                        if (managerUnknown) {
+                            showAuthKeyDialog.value = true
+                        } else {
+                            navigator.navigate(AboutScreenDestination)
+                        }
+                    }) {
                 Column(
                     Modifier
                         .padding(12.dp)
-                        .clickable(enabled = unknown) {
-                            showAuthKeyDialog.value = true
-                        }) {
+                ) {
                     Text(
                         text = stringResource(R.string.home_apatch_version),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        text = if (unknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.first + " (" + managerVersion.second + ")",
+                        text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.first + " (" + managerVersion.second + ")",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
