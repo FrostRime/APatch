@@ -198,20 +198,23 @@ fun AboutScreen(navigator: DestinationsNavigator) {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    TextButton(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        onClick = { showUninstallDialog.value = true }
+                    Row(
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            imageVector = Tabler.Outline.Trash,
-                            contentDescription = null,
-                        )
-                        Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(
-                            color = MaterialTheme.colorScheme.error,
-                            text = stringResource(id = R.string.home_ap_cando_uninstall)
-                        )
+                        TextButton(
+                            modifier = Modifier,
+                            onClick = { showUninstallDialog.value = true }
+                        ) {
+                            Icon(
+                                imageVector = Tabler.Outline.Trash,
+                                contentDescription = null,
+                            )
+                            Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                            Text(
+                                color = MaterialTheme.colorScheme.error,
+                                text = stringResource(id = R.string.home_ap_cando_uninstall)
+                            )
+                        }
                     }
                 }
             }

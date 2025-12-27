@@ -91,6 +91,7 @@ import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.KPModuleRemoveButton
 import me.bmax.apatch.ui.component.LoadingDialogHandle
+import me.bmax.apatch.ui.component.ModuleSettingsButton
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -603,17 +604,7 @@ private fun KPModuleItem(
                     ) {
                         Spacer(modifier = Modifier.weight(1f))
 
-                        FilledTonalButton(
-                            onClick = { onControl(module) },
-                            enabled = true,
-                            contentPadding = PaddingValues(12.dp)
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Tabler.Filled.Settings,
-                                contentDescription = stringResource(id = R.string.kpm_control)
-                            )
-                        }
+                        ModuleSettingsButton(onClick = {onControl(module)})
 
                         Spacer(modifier = Modifier.width(12.dp))
 

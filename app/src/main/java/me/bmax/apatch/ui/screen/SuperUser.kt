@@ -175,7 +175,6 @@ private fun AppItem(
             )
         },
         supportingContent = {
-
             Column {
                 Text(app.packageName)
                 FlowRow {

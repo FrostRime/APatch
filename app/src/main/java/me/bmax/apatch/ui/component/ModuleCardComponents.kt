@@ -15,8 +15,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.filled.ArrowAutofitDown
+import com.composables.icons.tabler.filled.Settings
 import com.composables.icons.tabler.filled.Trash
-import com.composables.icons.tabler.outline.ArrowAutofitDown
 import me.bmax.apatch.R
 
 @Composable
@@ -27,8 +28,21 @@ fun ModuleUpdateButton(
 ) {
     Icon(
         modifier = Modifier.size(20.dp),
-        imageVector = Tabler.Outline.ArrowAutofitDown,
+        imageVector = Tabler.Filled.ArrowAutofitDown,
         contentDescription = stringResource(id = R.string.apm_update)
+    )
+}
+
+@Composable
+fun ModuleSettingsButton(
+    onClick: () -> Unit
+) = FilledTonalButton(
+    onClick = onClick, enabled = true, contentPadding = PaddingValues(12.dp)
+) {
+    Icon(
+        modifier = Modifier.size(20.dp),
+        imageVector = Tabler.Filled.Settings,
+        contentDescription = stringResource(id = R.string.settings)
     )
 }
 

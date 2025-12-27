@@ -68,7 +68,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.ArrowAutofitDown
 import com.composables.icons.tabler.filled.PlayerPlay
-import com.composables.icons.tabler.filled.Settings
 import com.composables.icons.tabler.filled.Trash
 import com.composables.icons.tabler.outline.PackageImport
 import com.ramcosta.composedestinations.annotation.Destination
@@ -85,6 +84,7 @@ import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.WebUIActivity
 import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.ModuleRemoveButton
+import me.bmax.apatch.ui.component.ModuleSettingsButton
 import me.bmax.apatch.ui.component.ModuleStateIndicator
 import me.bmax.apatch.ui.component.ModuleUpdateButton
 import me.bmax.apatch.ui.component.SearchAppBar
@@ -225,7 +225,7 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                     },
                     snackBarHost = snackBarHost,
                     context = context,
-                    onWebuiModule = { id, name ->
+                    onSettingsModule = { id, name ->
                         webUILauncher.launch(
                             Intent(
                                 context, WebUIActivity::class.java
@@ -248,7 +248,7 @@ private fun ModuleList(
     modifier: Modifier = Modifier,
     state: LazyListState,
     onInstallModule: (Uri) -> Unit,
-    onWebuiModule: (id: String, name: String) -> Unit,
+    onSettingsModule: (id: String, name: String) -> Unit,
     snackBarHost: SnackbarHostState,
     context: Context
 ) {
@@ -450,8 +450,8 @@ private fun ModuleList(
                                     )
                                 }
                             },
-                            onWebui = {
-                                onWebuiModule(it.id, it.name)
+                            onSettings = {
+                                onSettingsModule(it.id, it.name)
                             })
                         // fix last item shadow incomplete in LazyColumn
                         Spacer(Modifier.height(1.dp))
@@ -473,7 +473,7 @@ private fun ModuleItem(
     onUninstall: (APModuleViewModel.ModuleInfo) -> Unit,
     onCheckChanged: (Boolean) -> Unit,
     onUpdate: (APModuleViewModel.ModuleInfo) -> Unit,
-    onWebui: (APModuleViewModel.ModuleInfo) -> Unit,
+    onSettings: (APModuleViewModel.ModuleInfo) -> Unit,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
 ) {
@@ -578,19 +578,7 @@ private fun ModuleItem(
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         if (module.hasWebUi) {
-                            FilledTonalButton(
-                                onClick = {
-                                    onWebui(module)
-                                },
-                                enabled = true,
-                                contentPadding = PaddingValues(12.dp)
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(20.dp),
-                                    imageVector = Tabler.Filled.Settings,
-                                    contentDescription = stringResource(id = R.string.apm_webui_open)
-                                )
-                            }
+                            ModuleSettingsButton(onClick = { onSettings(module) })
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         if (updateUrl.isNotEmpty()) {
