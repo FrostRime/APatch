@@ -614,7 +614,7 @@ private fun KStatusCard(
             val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
             ElevatedCard(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth().weight(1f)
                     .clickable {
                         showResetSuPathDialog.value = true
                     }) {
@@ -637,7 +637,7 @@ private fun KStatusCard(
                 apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
             ElevatedCard(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth().weight(1f)
                     .clickable {
                         if (managerUnknown) {
                             showAuthKeyDialog.value = true

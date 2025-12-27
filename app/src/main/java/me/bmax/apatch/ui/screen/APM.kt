@@ -541,6 +541,8 @@ private fun ModuleItem(
                     color = MaterialTheme.colorScheme.outline
                 )
 
+                Spacer(Modifier.weight(1f))
+
                 AnimatedVisibility(
                     visible = showActions,
                     modifier = Modifier
@@ -553,8 +555,6 @@ private fun ModuleItem(
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    Spacer(Modifier.weight(1f))
 
                     Row(
                         modifier = Modifier
