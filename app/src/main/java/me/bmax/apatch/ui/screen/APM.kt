@@ -494,7 +494,7 @@ private fun ModuleItem(
                     showActions = !showActions
                 }
                 .padding(all = 16.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopCenter
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
