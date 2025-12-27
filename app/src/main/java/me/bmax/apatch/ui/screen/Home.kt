@@ -427,8 +427,7 @@ private fun KStatusCard(
         ) {
             Box(
                 modifier = Modifier
-                    .aspectRatio(1f)
-                    .weight(1f),
+                    .aspectRatio(1f),
                 propagateMinConstraints = true
             ) {
                 when (kpState) {
@@ -526,8 +525,8 @@ private fun KStatusCard(
 
         Spacer(Modifier.width(16.dp))
 
-        Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            ElevatedCard {
+        Column(modifier = Modifier.weight(1f)) {
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 val unknown = kpState == APApplication.State.UNKNOWN_STATE
                 Column(Modifier.padding(12.dp)) {
                     Text(
@@ -543,7 +542,7 @@ private fun KStatusCard(
 
             Spacer(Modifier.height(16.dp))
 
-            ElevatedCard {
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 val unknown =
                     apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
                 Column(
