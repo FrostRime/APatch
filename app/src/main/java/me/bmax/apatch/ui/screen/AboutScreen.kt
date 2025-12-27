@@ -208,6 +208,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                         ) {
                             Icon(
                                 imageVector = Tabler.Outline.Trash,
+                                tint = MaterialTheme.colorScheme.error,
                                 contentDescription = null,
                             )
                             Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
