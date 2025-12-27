@@ -414,6 +414,8 @@ private fun KStatusCard(
 
     Row(modifier = Modifier.fillMaxWidth()) {
         ElevatedCard(
+            modifier = Modifier
+                .aspectRatio(1f).weight(1f),
             onClick = {
                 if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
                     navigator.navigate(InstallModeSelectScreenDestination)
@@ -427,8 +429,6 @@ private fun KStatusCard(
                 )
         ) {
             Box(
-                modifier = Modifier
-                    .aspectRatio(1f),
                 propagateMinConstraints = true
             ) {
                 when (kpState) {
