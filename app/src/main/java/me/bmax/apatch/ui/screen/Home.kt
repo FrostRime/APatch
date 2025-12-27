@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -461,7 +462,7 @@ private fun KStatusCard(
                 Column(
                     Modifier
                         .padding(start = 16.dp)
-                        .fillMaxWidth()
+                        .fillMaxHeight()
                 ) {
                     Spacer(Modifier.weight(1f))
 
