@@ -549,7 +549,7 @@ private fun ModuleItem(
                     HorizontalDivider(
                         thickness = 1.5.dp,
                         color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        modifier = Modifier.padding(vertical = 16.dp)
                     )
 
                     Row(
