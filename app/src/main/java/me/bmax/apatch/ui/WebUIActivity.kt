@@ -49,7 +49,9 @@ class WebUIActivity : ComponentActivity() {
         setContent {
             APatchTheme {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
@@ -72,7 +74,8 @@ class WebUIActivity : ComponentActivity() {
             @Suppress("DEPRECATION")
             setTaskDescription(ActivityManager.TaskDescription("APatch - $name"))
         } else {
-            val taskDescription = ActivityManager.TaskDescription.Builder().setLabel("APatch - $name").build()
+            val taskDescription =
+                ActivityManager.TaskDescription.Builder().setLabel("APatch - $name").build()
             setTaskDescription(taskDescription)
         }
 
@@ -96,7 +99,11 @@ class WebUIActivity : ComponentActivity() {
                 val url = request.url
 
                 // Handle ksu://icon/[packageName] to serve app icon via WebView
-                if (url.scheme.equals("ksu", ignoreCase = true) && url.host.equals("icon", ignoreCase = true)) {
+                if (url.scheme.equals("ksu", ignoreCase = true) && url.host.equals(
+                        "icon",
+                        ignoreCase = true
+                    )
+                ) {
                     val packageName = url.path?.substring(1)
                     if (!packageName.isNullOrEmpty()) {
                         val icon = AppIconUtil.loadAppIconSync(this@WebUIActivity, packageName, 512)

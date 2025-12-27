@@ -109,18 +109,18 @@ private fun CrashHandleScreen(
     }, floatingActionButton = {
         ExtendedFloatingActionButton(
             onClick = {
-            scope.launch {
-                clipboard.setClipEntry(
-                    ClipEntry(ClipData.newPlainText("CrashLog", message)),
+                scope.launch {
+                    clipboard.setClipEntry(
+                        ClipEntry(ClipData.newPlainText("CrashLog", message)),
+                    )
+                }
+            }, text = { Text(text = stringResource(R.string.crash_handle_copy)) }, icon = {
+                Icon(
+                    imageVector = Tabler.Outline.Copy, contentDescription = null
                 )
-            }
-        }, text = { Text(text = stringResource(R.string.crash_handle_copy)) }, icon = {
-            Icon(
-                imageVector = Tabler.Outline.Copy, contentDescription = null
+            }, modifier = Modifier.windowInsetsPadding(
+                WindowInsets.safeDrawing.only(WindowInsetsSides.End)
             )
-        }, modifier = Modifier.windowInsetsPadding(
-            WindowInsets.safeDrawing.only(WindowInsetsSides.End)
-        )
         )
     }) {
         SelectionContainer(

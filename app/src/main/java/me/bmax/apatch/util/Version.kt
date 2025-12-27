@@ -1,21 +1,20 @@
 package me.bmax.apatch.util
 
+import android.system.Os
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.pm.PackageInfoCompat
+import com.topjohnwu.superuser.Shell
+import com.topjohnwu.superuser.nio.ExtendedFile
+import com.topjohnwu.superuser.nio.FileSystemManager
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.Natives
 import me.bmax.apatch.apApp
-import me.bmax.apatch.util.shellForResult
-import org.ini4j.Ini
-import java.io.StringReader
 import me.bmax.apatch.ui.viewmodel.KPModel
-import com.topjohnwu.superuser.nio.ExtendedFile
-import com.topjohnwu.superuser.nio.FileSystemManager
-import com.topjohnwu.superuser.Shell
-import androidx.compose.runtime.mutableStateOf
+import org.ini4j.Ini
 import java.io.File
-import android.system.Os
+import java.io.StringReader
 
 
 /**
@@ -33,9 +32,10 @@ object Version {
 
     fun getKpImg(): String {
         var shell: Shell = createRootShell()
-        var kimgInfo = mutableStateOf(KPModel.KImgInfo("", false))
+        mutableStateOf(KPModel.KImgInfo("", false))
         var kpimgInfo = mutableStateOf(KPModel.KPImgInfo("", "", "", "", ""))
-        val patchDir: ExtendedFile = FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "check")
+        val patchDir: ExtendedFile =
+            FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "check")
         patchDir.deleteRecursively()
         patchDir.mkdirs()
         val execs = listOf(
@@ -74,8 +74,8 @@ object Version {
                     kpimg["root_superkey"].toString()      // possibly empty
                 )
                 return kpimg["compile_time"].toString()
-            } 
-        } 
+            }
+        }
 
         return "unknown"
     }
@@ -87,7 +87,7 @@ object Version {
             ver.and(0xffu).toInt()
         )
     }
-    
+
     fun installedKPTime(): String {
         val time = Natives.kernelPatchBuildTime()
         return if (time.startsWith("ERROR_")) "读取失败" else time

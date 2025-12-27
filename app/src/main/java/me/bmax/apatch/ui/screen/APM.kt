@@ -546,7 +546,6 @@ private fun ModuleItem(
                     visible = showActions,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(all = 16.dp)
                 ) {
                     HorizontalDivider(
                         thickness = 1.5.dp,
@@ -556,7 +555,6 @@ private fun ModuleItem(
 
                     Row(
                         modifier = Modifier
-                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 0.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

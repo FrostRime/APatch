@@ -270,7 +270,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         // TODO: We can't totally protect superkey from be stolen by root or LSPosed-like injection tools in user space, the only way is don't use superkey,
         // TODO: 1. make me root by kernel
         // TODO: 2. remove all usage of superkey
-        sharedPreferences = getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
+        sharedPreferences = getSharedPreferences(SP_NAME, MODE_PRIVATE)
         APatchKeyHelper.setSharedPreferences(sharedPreferences)
         superKey = APatchKeyHelper.readSPSuperKey()
 

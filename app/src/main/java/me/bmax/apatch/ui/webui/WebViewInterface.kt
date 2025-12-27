@@ -202,7 +202,10 @@ class WebViewInterface(val context: Context, private val webView: WebView) {
                 obj.put("versionName", pkg.versionName ?: "")
                 obj.put("versionCode", PackageInfoCompat.getLongVersionCode(pkg))
                 obj.put("appLabel", appInfo.label)
-                obj.put("isSystem", if (app != null) ((app.flags and ApplicationInfo.FLAG_SYSTEM) != 0) else JSONObject.NULL)
+                obj.put(
+                    "isSystem",
+                    if (app != null) ((app.flags and ApplicationInfo.FLAG_SYSTEM) != 0) else JSONObject.NULL
+                )
                 obj.put("uid", app?.uid ?: JSONObject.NULL)
                 jsonArray.put(obj)
             } else {
@@ -219,9 +222,13 @@ class WebViewInterface(val context: Context, private val webView: WebView) {
 fun hideSystemUI(window: Window) {
     WindowInsetsControllerCompat(window, window.decorView).let { controller ->
         controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 }
 
 fun showSystemUI(window: Window) =
-    WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
+    WindowInsetsControllerCompat(
+        window,
+        window.decorView
+    ).show(WindowInsetsCompat.Type.systemBars())

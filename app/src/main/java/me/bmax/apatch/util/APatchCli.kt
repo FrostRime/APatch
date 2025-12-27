@@ -51,11 +51,20 @@ fun createRootShell(globalMnt: Boolean = false): Shell {
             Log.e(TAG, "retry compat kpatch su")
             if (globalMnt) {
                 builder.build(
-                    getKPatchPath(), APApplication.superKey, "su", "-Z", APApplication.MAGISK_SCONTEXT, "--mount-master"
+                    getKPatchPath(),
+                    APApplication.superKey,
+                    "su",
+                    "-Z",
+                    APApplication.MAGISK_SCONTEXT,
+                    "--mount-master"
                 )
-            }else{
+            } else {
                 builder.build(
-                    getKPatchPath(), APApplication.superKey, "su", "-Z", APApplication.MAGISK_SCONTEXT
+                    getKPatchPath(),
+                    APApplication.superKey,
+                    "su",
+                    "-Z",
+                    APApplication.MAGISK_SCONTEXT
                 )
             }
         } catch (e: Throwable) {
@@ -63,8 +72,8 @@ fun createRootShell(globalMnt: Boolean = false): Shell {
             return try {
                 Log.e(TAG, "retry su: ", e)
                 if (globalMnt) {
-                    builder.build("su","-mm")
-                }else{
+                    builder.build("su", "-mm")
+                } else {
                     builder.build("su")
                 }
             } catch (e: Throwable) {
@@ -157,10 +166,10 @@ fun listModules(): String {
     val shell = getRootShell()
     val out =
         shell.newJob().add("${APApplication.APD_PATH} module list").to(ArrayList(), null).exec().out
-    withNewRootShell{
-       newJob().add("cp /data/user/*/me.bmax.apatch/patch/ori.img /data/adb/ap/ && rm /data/user/*/me.bmax.apatch/patch/ori.img")
-       .to(ArrayList(),null).exec()
-   }
+    withNewRootShell {
+        newJob().add("cp /data/user/*/me.bmax.apatch/patch/ori.img /data/adb/ap/ && rm /data/user/*/me.bmax.apatch/patch/ori.img")
+            .to(ArrayList(), null).exec()
+    }
     return out.joinToString("\n").ifBlank { "[]" }
 }
 
@@ -170,20 +179,24 @@ fun toggleModule(id: String, enable: Boolean): Boolean {
     } else {
         "module disable $id"
     }
-    val result = execApd(cmd,true)
+    val result = execApd(cmd, true)
     Log.i(TAG, "$cmd result: $result")
     return result
 }
 
 fun uninstallModule(id: String): Boolean {
     val cmd = "module uninstall $id"
-    val result = execApd(cmd,true)
+    val result = execApd(cmd, true)
     Log.i(TAG, "uninstall module $id result: $result")
     return result
 }
 
 fun installModule(
-    uri: Uri, type: MODULE_TYPE, onFinish: (Boolean) -> Unit, onStdout: (String) -> Unit, onStderr: (String) -> Unit
+    uri: Uri,
+    type: MODULE_TYPE,
+    onFinish: (Boolean) -> Unit,
+    onStdout: (String) -> Unit,
+    onStderr: (String) -> Unit
 ): Boolean {
     val resolver = apApp.contentResolver
     with(resolver.openInputStream(uri)) {
@@ -207,10 +220,10 @@ fun installModule(
         val shell = getRootShell()
 
         var result = false
-        if(type == MODULE_TYPE.APM) {
+        if (type == MODULE_TYPE.APM) {
             val cmd = "${APApplication.APD_PATH} module install ${file.absolutePath}"
             result = shell.newJob().add(cmd).to(stdoutCallback, stderrCallback)
-                    .exec().isSuccess
+                .exec().isSuccess
         } else {
 //            ZipUtils.
         }
@@ -239,9 +252,9 @@ fun runAPModuleAction(
         }
     }
 
-    val result = withNewRootShell{ 
+    val result = withNewRootShell {
         newJob().add("${APApplication.APD_PATH} module action $moduleId")
-        .to(stdoutCallback, stderrCallback).exec()
+            .to(stdoutCallback, stderrCallback).exec()
     }
     Log.i(TAG, "APModule runAction result: $result")
 
@@ -290,7 +303,8 @@ fun isLiteModeEnabled(): Boolean {
 }
 
 fun setLiteMode(enable: Boolean) {
-    getRootShell().newJob().add("${if (enable) "touch" else "rm -rf"} ${APApplication.LITE_MODE_FILE}")
+    getRootShell().newJob()
+        .add("${if (enable) "touch" else "rm -rf"} ${APApplication.LITE_MODE_FILE}")
         .submit { result ->
             Log.i(TAG, "setLiteMode result: ${result.isSuccess} [${result.out}]")
         }
@@ -303,7 +317,8 @@ fun isForceUsingOverlayFS(): Boolean {
 }
 
 fun setForceUsingOverlayFS(enable: Boolean) {
-    getRootShell().newJob().add("${if (enable) "touch" else "rm -rf"} ${APApplication.FORCE_OVERLAYFS_FILE}")
+    getRootShell().newJob()
+        .add("${if (enable) "touch" else "rm -rf"} ${APApplication.FORCE_OVERLAYFS_FILE}")
         .submit { result ->
             Log.i(TAG, "setForceUsingOverlayFS result: ${result.isSuccess} [${result.out}]")
         }
@@ -380,7 +395,7 @@ private fun validateSignature(signatureBytes: ByteArray?, validSignature: String
 }
 
 fun verifyAppSignature(validSignature: String): Boolean {
-    return true;
+    return true
     //val context = apApp.applicationContext
     //val apkSignature = signatureFromAPK(context)
     //val apiSignature = signatureFromAPI(context)

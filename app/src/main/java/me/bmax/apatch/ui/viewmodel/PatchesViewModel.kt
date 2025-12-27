@@ -69,7 +69,8 @@ class PatchesViewModel : ViewModel() {
     var error by mutableStateOf("")
     var patchLog by mutableStateOf("")
 
-    private val patchDir: ExtendedFile = FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "patch")
+    private val patchDir: ExtendedFile =
+        FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "patch")
     private var srcBoot: ExtendedFile = patchDir.getChildFile("boot.img")
     private var shell: Shell = createRootShell()
     private var prepared: Boolean = false
@@ -345,10 +346,12 @@ class PatchesViewModel : ViewModel() {
             patching = false
         }
     }
+
     fun isSuExecutable(): Boolean {
         val suFile = File("/system/bin/su")
         return suFile.exists() && suFile.canExecute()
     }
+
     fun doPatch(mode: PatchMode) {
         viewModelScope.launch(Dispatchers.IO) {
             patching = true
@@ -374,10 +377,20 @@ class PatchesViewModel : ViewModel() {
 
             if (mode == PatchMode.PATCH_AND_INSTALL || mode == PatchMode.INSTALL_TO_NEXT_SLOT) {
 
-                val KPCheck = shell.newJob().add("truncate $superkey -Z u:r:magisk:s0 -c whoami").exec()
+                val KPCheck =
+                    shell.newJob().add("truncate $superkey -Z u:r:magisk:s0 -c whoami").exec()
 
                 if (KPCheck.isSuccess && !isSuExecutable()) {
-                    patchCommand.addAll(0, listOf("truncate", APApplication.superKey, "-Z", APApplication.MAGISK_SCONTEXT, "-c"))
+                    patchCommand.addAll(
+                        0,
+                        listOf(
+                            "truncate",
+                            APApplication.superKey,
+                            "-Z",
+                            APApplication.MAGISK_SCONTEXT,
+                            "-c"
+                        )
+                    )
                     patchCommand.addAll(listOf(superkey, srcBoot.path, "true"))
                 } else {
                     patchCommand = mutableListOf("./busybox", "sh", "boot_patch.sh")
@@ -508,7 +521,8 @@ class PatchesViewModel : ViewModel() {
                 APApplication.markNeedReboot()
             } else if (mode == PatchMode.PATCH_ONLY) {
                 val newBootFile = patchDir.getChildFile("new-boot.img")
-                val outDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val outDir =
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 if (!outDir.exists()) outDir.mkdirs()
                 val outPath = File(outDir, outFilename)
                 val inputUri = newBootFile.getUri(apApp)

@@ -577,8 +577,7 @@ private fun KPModuleItem(
 
                 Text(
                     modifier = Modifier
-                        .alpha(alpha = alpha)
-                        .padding(horizontal = 16.dp),
+                        .alpha(alpha = alpha),
                     text = module.description,
                     style = MaterialTheme.typography.bodySmall,
                     textDecoration = decoration,
@@ -589,7 +588,6 @@ private fun KPModuleItem(
                     visible = showActions,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
                 ) {
                     HorizontalDivider(
                         thickness = 1.5.dp,

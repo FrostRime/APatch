@@ -177,7 +177,8 @@ private fun BottomBar(navController: NavHostController) {
             BottomBarDestination.entries.forEach { destination ->
                 val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(destination.direction)
 
-                val hideDestination = (destination.kPatchRequired && !kPatchReady) || (destination.aPatchRequired && !aPatchReady)
+                val hideDestination =
+                    (destination.kPatchRequired && !kPatchReady) || (destination.aPatchRequired && !aPatchReady)
                 if (hideDestination) return@forEach
 
                 NavigationBarItem(

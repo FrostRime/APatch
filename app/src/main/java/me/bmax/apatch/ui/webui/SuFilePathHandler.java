@@ -55,7 +55,7 @@ public final class SuFilePathHandler implements WebViewAssetLoader.PathHandler {
      * Note: Any future addition to this list will be considered breaking changes to the API.
      */
     private static final String[] FORBIDDEN_DATA_DIRS =
-            new String[] {"/data/data", "/data/system"};
+            new String[]{"/data/data", "/data/system"};
 
     @NonNull
     private final File mDirectory;
@@ -79,7 +79,7 @@ public final class SuFilePathHandler implements WebViewAssetLoader.PathHandler {
      * The application should typically use a dedicated subdirectory for the files it intends to
      * expose and keep them separate from other files.
      *
-     * @param context {@link Context} that is used to access app's internal storage.
+     * @param context   {@link Context} that is used to access app's internal storage.
      * @param directory the absolute path of the exposed app internal storage directory from
      *                  which files can be loaded.
      * @throws IllegalArgumentException if the directory is not allowed.
@@ -172,7 +172,7 @@ public final class SuFilePathHandler implements WebViewAssetLoader.PathHandler {
         return path.endsWith(".svgz") ? new GZIPInputStream(stream) : stream;
     }
 
-    public static InputStream openFile(@NonNull File file, @NonNull Shell shell) throws FileNotFoundException,
+    public static InputStream openFile(@NonNull File file, @NonNull Shell shell) throws
             IOException {
         SuFile suFile = new SuFile(file.getAbsolutePath());
         suFile.setShell(shell);
