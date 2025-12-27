@@ -615,7 +615,6 @@ private fun KStatusCard(
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
                     .clickable {
                         showResetSuPathDialog.value = true
                     }) {
@@ -628,6 +627,7 @@ private fun KStatusCard(
                         text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    Spacer(Modifier.weight(1f))
                 }
             }
 
@@ -638,7 +638,6 @@ private fun KStatusCard(
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
                     .clickable {
                         if (managerUnknown) {
                             showAuthKeyDialog.value = true
@@ -658,6 +657,7 @@ private fun KStatusCard(
                         text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.first + " (" + managerVersion.second + ")",
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    Spacer(Modifier.weight(1f))
                 }
             }
         }
