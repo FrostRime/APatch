@@ -610,11 +610,11 @@ private fun KStatusCard(
 
         Spacer(Modifier.width(16.dp))
 
-        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+        Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Center) {
             val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
             ElevatedCard(
                 modifier = Modifier
-                    .fillMaxWidth().weight(1f)
+                    .fillMaxWidth()
                     .clickable {
                         showResetSuPathDialog.value = true
                     }) {
@@ -637,7 +637,7 @@ private fun KStatusCard(
                 apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
             ElevatedCard(
                 modifier = Modifier
-                    .fillMaxWidth().weight(1f)
+                    .fillMaxWidth()
                     .clickable {
                         if (managerUnknown) {
                             showAuthKeyDialog.value = true
