@@ -611,12 +611,12 @@ private fun KStatusCard(
 
         Spacer(Modifier.width(16.dp))
 
-        Column(modifier = Modifier.fillMaxHeight()) {
+        Column(modifier = Modifier.fillMaxHeight().weight(1f)) {
             val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
             ElevatedCard(
                 colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier
-                    .fillMaxWidth().weight(1f)
+                    .weight(1f)
                     .clickable {
                         showResetSuPathDialog.value = true
                     }) {
@@ -640,7 +640,7 @@ private fun KStatusCard(
             ElevatedCard(
                 colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier
-                    .fillMaxWidth().weight(1f)
+                    .weight(1f)
                     .clickable {
                         if (managerUnknown) {
                             showAuthKeyDialog.value = true
@@ -1107,7 +1107,7 @@ private fun InfoCard(kpState: APApplication.State, apState: APApplication.State)
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 16.dp)
+                    .padding(24.dp)
         ) {
             val contents = StringBuilder()
             val uname = Os.uname()
