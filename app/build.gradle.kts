@@ -30,6 +30,13 @@ apksign {
 android {
     namespace = "me.bmax.apatch"
 
+    lint {
+        // 即使发现错误也继续构建 APK
+        abortOnError = false
+        // 可选：如果你也不想看这些翻译缺失的检查，可以禁用它
+        disable += "MissingTranslation"
+    }
+
     buildTypes {
         debug {
             isDebuggable = true

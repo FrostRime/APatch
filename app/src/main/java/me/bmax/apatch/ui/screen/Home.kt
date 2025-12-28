@@ -40,6 +40,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -47,6 +48,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -88,7 +90,6 @@ import com.composables.icons.tabler.outline.Wand
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.HomeScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.EmptyDestinationsNavigator
@@ -99,7 +100,6 @@ import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.ProvideMenuShape
-import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.util.LatestVersionInfo
 import me.bmax.apatch.util.Version
@@ -140,6 +140,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                 Modifier
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState())
                     .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -506,11 +507,13 @@ private fun KStatusCard(
             }
         }
 
-    Row(modifier = Modifier.fillMaxWidth().height(intrinsicSize = IntrinsicSize.Min)) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .height(intrinsicSize = IntrinsicSize.Min)) {
         ElevatedCard(
             modifier = Modifier
-                .aspectRatio(1f)
-                .weight(1f),
+                .aspectRatio(1f, true)
+                .fillMaxHeight(),
             onClick = {
                 if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
                     navigator.navigate(InstallModeSelectScreenDestination)
@@ -531,6 +534,7 @@ private fun KStatusCard(
                         Icon(
                             Tabler.Outline.Checks,
                             modifier = Modifier.fillMaxSize(),
+                            tint = LocalContentColor.current.copy(alpha = 0.1f),
                             contentDescription = stringResource(R.string.home_working)
                         )
                     }
@@ -540,6 +544,7 @@ private fun KStatusCard(
                         Icon(
                             Tabler.Outline.ArrowAutofitDown,
                             modifier = Modifier.fillMaxSize(),
+                            tint = LocalContentColor.current.copy(alpha = 0.1f),
                             contentDescription =
                                 stringResource(R.string.home_need_update)
                         )
@@ -549,6 +554,7 @@ private fun KStatusCard(
                         Icon(
                             Tabler.Outline.DeviceUnknown,
                             modifier = Modifier.fillMaxSize(),
+                            tint = LocalContentColor.current.copy(alpha = 0.1f),
                             contentDescription = "Unknown"
                         )
                     }
@@ -556,8 +562,8 @@ private fun KStatusCard(
 
                 Column(
                     Modifier
-                        .padding(start = 16.dp)
-                        .fillMaxHeight()
+                        .padding(4.dp)
+                        .fillMaxSize()
                 ) {
                     Spacer(Modifier.weight(1f))
 
@@ -590,11 +596,13 @@ private fun KStatusCard(
                         else -> {
                             Text(
                                 text = stringResource(R.string.home_install_unknown),
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.titleMedium,
+                                color = contentColorFor(cardBackgroundColor)
                             )
                             Text(
                                 text = stringResource(R.string.home_install_unknown_summary),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = contentColorFor(cardBackgroundColor)
                             )
                         }
                     }
@@ -621,12 +629,13 @@ private fun KStatusCard(
 
         Spacer(Modifier.width(16.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(Modifier.fillMaxWidth()) {
             val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
             ElevatedCard(
                 colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier
                     .weight(1f)
+                    .fillMaxWidth()
                     .clickable {
                         showResetSuPathDialog.value = true
                     }) {
@@ -651,6 +660,7 @@ private fun KStatusCard(
                 colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier
                     .weight(1f)
+                    .fillMaxWidth()
                     .clickable {
                         if (managerUnknown) {
                             showAuthKeyDialog.value = true
@@ -675,205 +685,6 @@ private fun KStatusCard(
             }
         }
     }
-//    ElevatedCard(
-//        onClick = {
-//            if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
-//                navigator.navigate(InstallModeSelectScreenDestination)
-//            }
-//        },
-//        colors = CardDefaults.elevatedCardColors(containerColor = cardBackgroundColor),
-//        elevation =
-//            CardDefaults.cardElevation(
-//                defaultElevation =
-//                    if (kpState == APApplication.State.UNKNOWN_STATE) 0.dp else 6.dp
-//            )
-//    ) {
-//        Column(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .padding(12.dp),
-//            horizontalAlignment = Alignment.CenterHorizontally
-//        ) {
-//            if (kpState == APApplication.State.KERNELPATCH_NEED_UPDATE) {
-//                Row {
-//                    Text(
-//                        text = stringResource(R.string.kernel_patch),
-//                        style = MaterialTheme.typography.titleMedium
-//                    )
-//                }
-//            }
-//            Row(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(10.dp),
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                when (kpState) {
-//                    APApplication.State.KERNELPATCH_INSTALLED -> {
-//                        Icon(Tabler.Outline.Checks, stringResource(R.string.home_working))
-//                    }
-//
-//                    APApplication.State.KERNELPATCH_NEED_UPDATE,
-//                    APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-//                        Icon(
-//                            Tabler.Outline.ArrowAutofitDown,
-//                            stringResource(R.string.home_need_update)
-//                        )
-//                    }
-//
-//                    else -> {
-//                        Icon(Tabler.Outline.DeviceUnknown, "Unknown")
-//                    }
-//                }
-//                Column(
-//                    Modifier
-//                        .weight(2f)
-//                        .padding(start = 16.dp)
-//                ) {
-//                    when (kpState) {
-//                        APApplication.State.KERNELPATCH_INSTALLED -> {
-//                            Text(
-//                                text = stringResource(R.string.home_working),
-//                                style = MaterialTheme.typography.titleMedium
-//                            )
-//                        }
-//
-//                        APApplication.State.KERNELPATCH_NEED_UPDATE,
-//                        APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-//                            Text(
-//                                text = stringResource(R.string.home_need_update),
-//                                style = MaterialTheme.typography.titleMedium
-//                            )
-//                            Spacer(Modifier.height(6.dp))
-//                            Text(
-//                                text =
-//                                    stringResource(
-//                                        R.string.kpatch_version_update,
-//                                        Version.installedKPVString(),
-//                                        Version.buildKPVString()
-//                                    ),
-//                                style = MaterialTheme.typography.bodyMedium
-//                            )
-//                        }
-//
-//                        else -> {
-//                            Text(
-//                                text = stringResource(R.string.home_install_unknown),
-//                                style = MaterialTheme.typography.titleMedium
-//                            )
-//                            Text(
-//                                text = stringResource(R.string.home_install_unknown_summary),
-//                                style = MaterialTheme.typography.bodyMedium
-//                            )
-//                        }
-//                    }
-//                    if (kpState != APApplication.State.UNKNOWN_STATE &&
-//                        kpState != APApplication.State.KERNELPATCH_NEED_UPDATE &&
-//                        kpState != APApplication.State.KERNELPATCH_NEED_REBOOT
-//                    ) {
-//                        Spacer(Modifier.height(4.dp))
-//                        Text(
-//                            text =
-//                                "${Version.installedKPVString()} - ${managerVersion.first} " +
-//                                        if (apState !=
-//                                            APApplication.State
-//                                                .ANDROIDPATCH_NOT_INSTALLED
-//                                        )
-//                                            "[😁]"
-//                                        else "[😡]",
-//                            style = MaterialTheme.typography.bodyMedium
-//                        )
-//                    }
-//                }
-//
-//                Column(modifier = Modifier.align(Alignment.CenterVertically)) {
-//                    if (kpState != APApplication.State.KERNELPATCH_UNINSTALLING) {
-//                        Button(
-//                            onClick = {
-//                                when (kpState) {
-//                                    APApplication.State.UNKNOWN_STATE -> {
-//                                        showAuthKeyDialog.value = true
-//                                    }
-//
-//                                    APApplication.State.KERNELPATCH_NEED_UPDATE -> {
-//                                        // todo: remove legacy compact for kp < 0.9.0
-//                                        if (Version.installedKPVUInt() < 0x900u) {
-//                                            navigator.navigate(
-//                                                PatchesDestination(
-//                                                    PatchesViewModel.PatchMode
-//                                                        .PATCH_ONLY
-//                                                )
-//                                            )
-//                                        } else {
-//                                            navigator.navigate(
-//                                                InstallModeSelectScreenDestination
-//                                            )
-//                                        }
-//                                    }
-//
-//                                    APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-//                                        reboot()
-//                                    }
-//
-//                                    else -> {
-//                                        if (!(apState ==
-//                                                    APApplication.State
-//                                                        .ANDROIDPATCH_INSTALLED ||
-//                                                    apState ==
-//                                                    APApplication.State
-//                                                        .ANDROIDPATCH_NEED_UPDATE)
-//                                        ) {
-//                                            navigator.navigate(
-//                                                PatchesDestination(
-//                                                    PatchesViewModel.PatchMode.UNPATCH
-//                                                )
-//                                            )
-//                                        }
-//                                    }
-//                                }
-//                            },
-//                            content = {
-//                                when (kpState) {
-//                                    APApplication.State.UNKNOWN_STATE -> {
-//                                        Text(text = stringResource(id = R.string.super_key))
-//                                    }
-//
-//                                    APApplication.State.KERNELPATCH_NEED_UPDATE -> {
-//                                        Text(
-//                                            text =
-//                                                stringResource(
-//                                                    id =
-//                                                        R.string
-//                                                            .home_ap_cando_update
-//                                                )
-//                                        )
-//                                    }
-//
-//                                    APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-//                                        Text(
-//                                            text =
-//                                                stringResource(
-//                                                    id =
-//                                                        R.string
-//                                                            .home_ap_cando_reboot
-//                                                )
-//                                        )
-//                                    }
-//
-//                                    APApplication.State.KERNELPATCH_UNINSTALLING -> {
-//                                        Icon(Tabler.Outline.Refresh, contentDescription = "busy")
-//                                    }
-//
-//                                    else -> {
-//                                    }
-//                                }
-//                            }
-//                        )
-//                    }
-//                }
-//            }
-//        }
-//    }
 }
 
 @Composable
@@ -1116,7 +927,6 @@ private fun InfoCard(kpState: APApplication.State, apState: APApplication.State)
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
                     .padding(24.dp)
         ) {
             val contents = StringBuilder()
