@@ -130,7 +130,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                 Modifier
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(Modifier.height(0.dp))
@@ -611,11 +611,12 @@ private fun KStatusCard(
 
         Spacer(Modifier.width(16.dp))
 
-        Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Center) {
+        Column(modifier = Modifier.fillMaxHeight()) {
             val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
             ElevatedCard(
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth().weight(1f)
                     .clickable {
                         showResetSuPathDialog.value = true
                     }) {
@@ -637,8 +638,9 @@ private fun KStatusCard(
             val managerUnknown =
                 apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
             ElevatedCard(
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth().weight(1f)
                     .clickable {
                         if (managerUnknown) {
                             showAuthKeyDialog.value = true
@@ -1103,7 +1105,8 @@ private fun InfoCard(kpState: APApplication.State, apState: APApplication.State)
         Column(
             modifier =
                 Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 16.dp)
         ) {
             val contents = StringBuilder()
@@ -1116,28 +1119,6 @@ private fun InfoCard(kpState: APApplication.State, apState: APApplication.State)
                 Text(text = content, style = MaterialTheme.typography.bodyMedium)
             }
 
-//            if (kpState != APApplication.State.UNKNOWN_STATE) {
-//                InfoCardItem(
-//                    stringResource(R.string.home_kpatch_version),
-//                    Version.installedKPVString()
-//                )
-//
-//                Spacer(Modifier.height(16.dp))
-//                InfoCardItem(stringResource(R.string.home_su_path), Natives.suPath())
-//
-//                Spacer(Modifier.height(16.dp))
-//            }
-//
-//            if (apState != APApplication.State.UNKNOWN_STATE &&
-//                apState != APApplication.State.ANDROIDPATCH_NOT_INSTALLED
-//            ) {
-//                InfoCardItem(
-//                    stringResource(R.string.home_apatch_version),
-//                    managerVersion.first + " (" + managerVersion.second + ")"
-//                )
-//                Spacer(Modifier.height(16.dp))
-//            }
-//
             InfoCardItem(stringResource(R.string.home_device_info), getDeviceInfo())
 
             Spacer(Modifier.height(16.dp))
