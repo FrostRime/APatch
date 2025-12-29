@@ -507,9 +507,11 @@ private fun KStatusCard(
             }
         }
 
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .height(intrinsicSize = IntrinsicSize.Min)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(intrinsicSize = IntrinsicSize.Min)
+    ) {
         ElevatedCard(
             modifier = Modifier
                 .aspectRatio(1f, true)

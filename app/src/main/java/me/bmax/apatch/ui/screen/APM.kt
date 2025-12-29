@@ -493,7 +493,8 @@ private fun ModuleItem(
                 .fillMaxWidth()
                 .clickable {
                     showActions = !showActions
-                }.height(intrinsicSize = IntrinsicSize.Max)
+                }
+                .height(intrinsicSize = IntrinsicSize.Max)
                 .padding(all = 16.dp),
             contentAlignment = Alignment.TopCenter
         ) {
