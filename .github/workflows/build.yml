@@ -61,7 +61,19 @@ jobs:
       - name: Replace package_id
         if: github.event_name == 'workflow_dispatch'
         run: |
-          sed -i 's/com.frost.rime/${{ github.event.inputs.package_id }}/g' app/build.gradle.kts
+          # 替换 namespace
+          sed -i 's/namespace[[:space:]]*=[[:space:]]*".*"/namespace = "${{ github.event.inputs.package_id }}"/g' app/build.gradle.kts
+          
+          # 替换 applicationId
+          sed -i 's/applicationId[[:space:]]*=[[:space:]]*".*"/applicationId = "${{ github.event.inputs.package_id }}"/g' app/build.gradle.kts
+          
+          mkdir -p app/src/main/java/$(echo ${{ github.event.inputs.package_id }} | tr '.' '/')
+          
+          mv app/src/main/java/me/bmax/apatch/* app/src/main/java/${{ github.event.inputs.package_id }}/
+          
+          rm -rf app/src/main/java/me/bmax/apatch
+          
+          find app/src/main/java/${{ github.event.inputs.package_id }}/ -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i "s/me.bmax.apatch/${{ github.event.inputs.package_id }}/g" {} +
 
       - name: Build with Gradle
         run: |
