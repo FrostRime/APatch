@@ -18,6 +18,7 @@ plugins {
 val managerVersionCode: Int by rootProject.extra
 val managerVersionName: String by rootProject.extra
 val branchName: String by rootProject.extra
+val managerBuildTime: String by rootProject.extra
 val kernelPatchVersion: String by rootProject.extra
 
 apksign {
@@ -76,7 +77,7 @@ android {
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
         applicationId = "com.frost.rime"
 
-        base.archivesName = "APatch_${managerVersionCode}_${managerVersionName}_${branchName}"
+        base.archivesName = "APatch_${managerBuildTime}_${managerVersionName}_${branchName}"
     }
 
     compileOptions {

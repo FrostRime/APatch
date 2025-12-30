@@ -14,7 +14,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -59,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -67,9 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
-import com.composables.icons.tabler.filled.ArrowAutofitDown
 import com.composables.icons.tabler.filled.PlayerPlay
-import com.composables.icons.tabler.filled.Trash
 import com.composables.icons.tabler.outline.PackageImport
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -86,7 +84,6 @@ import me.bmax.apatch.ui.WebUIActivity
 import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.ModuleRemoveButton
 import me.bmax.apatch.ui.component.ModuleSettingsButton
-import me.bmax.apatch.ui.component.ModuleStateIndicator
 import me.bmax.apatch.ui.component.ModuleUpdateButton
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -478,7 +475,8 @@ private fun ModuleItem(
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
 ) {
-    val decoration = if (!module.remove) TextDecoration.None else TextDecoration.LineThrough
+    val decoration = if (module.remove) TextDecoration.LineThrough else if (module.update) TextDecoration.Underline else TextDecoration.None
+    val fontStyle = if (module.remove || module.update) FontStyle.Italic else FontStyle.Normal
     val moduleAuthor = stringResource(id = R.string.apm_author)
     val viewModel = viewModel<APModuleViewModel>()
     var showActions by remember { mutableStateOf(false) }
@@ -488,120 +486,108 @@ private fun ModuleItem(
         tonalElevation = 1.dp,
         shape = RoundedCornerShape(20.dp)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
                     showActions = !showActions
                 }
-                .height(intrinsicSize = IntrinsicSize.Max)
                 .padding(all = 16.dp),
-            contentAlignment = Alignment.TopCenter
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier
+                        .alpha(alpha = alpha)
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .alpha(alpha = alpha)
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = module.name,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            maxLines = 2,
-                            textDecoration = decoration,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    Text(
+                        text = module.name,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 2,
+                        textDecoration = decoration,
+                        fontStyle = fontStyle,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-                        Text(
-                            text = "${module.version}, $moduleAuthor ${module.author}",
-                            style = MaterialTheme.typography.bodySmall,
-                            textDecoration = decoration,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Switch(
-                        enabled = !module.update,
-                        checked = isChecked,
-                        onCheckedChange = onCheckChanged
+                    Text(
+                        text = "${module.version}, $moduleAuthor ${module.author}",
+                        style = MaterialTheme.typography.bodySmall,
+                        textDecoration = decoration,
+                        fontStyle = fontStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                Text(
+                Switch(
+                    enabled = !module.update && !module.remove,
+                    checked = isChecked,
+                    onCheckedChange = onCheckChanged
+                )
+            }
+
+            Text(
+                modifier = Modifier
+                    .alpha(alpha = alpha),
+                text = module.description,
+                style = MaterialTheme.typography.bodySmall,
+                textDecoration = decoration,
+                fontStyle = fontStyle,
+                color = MaterialTheme.colorScheme.outline
+            )
+
+            AnimatedVisibility(
+                visible = showActions,
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                HorizontalDivider(
+                    thickness = 1.5.dp,
+                    color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier
-                        .alpha(alpha = alpha),
-                    text = module.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    textDecoration = decoration,
-                    color = MaterialTheme.colorScheme.outline
                 )
 
-                Spacer(Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                AnimatedVisibility(
-                    visible = showActions,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HorizontalDivider(
-                        thickness = 1.5.dp,
-                        color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (module.hasActionScript) {
-                            FilledTonalButton(
-                                onClick = {
-                                    navigator.navigate(ExecuteAPMActionScreenDestination(module.id))
-                                    viewModel.markNeedRefresh()
-                                }, enabled = true, contentPadding = PaddingValues(12.dp)
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(20.dp),
-                                    imageVector = Tabler.Filled.PlayerPlay,
-                                    contentDescription = stringResource(id = R.string.apm_action)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
+                    if (module.hasActionScript) {
+                        FilledTonalButton(
+                            onClick = {
+                                navigator.navigate(ExecuteAPMActionScreenDestination(module.id))
+                                viewModel.markNeedRefresh()
+                            }, enabled = true, contentPadding = PaddingValues(12.dp)
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                imageVector = Tabler.Filled.PlayerPlay,
+                                contentDescription = stringResource(id = R.string.apm_action)
+                            )
                         }
-                        Spacer(modifier = Modifier.weight(1f))
-                        if (module.hasWebUi) {
-                            ModuleSettingsButton(onClick = { onSettings(module) })
-                        }
+
                         Spacer(modifier = Modifier.width(12.dp))
-                        if (updateUrl.isNotEmpty()) {
-                            ModuleUpdateButton(onClick = { onUpdate(module) })
-
-                            Spacer(modifier = Modifier.width(12.dp))
-                        }
-                        ModuleRemoveButton(
-                            enabled = !module.remove,
-                            onClick = { onUninstall(module) })
                     }
-                }
-            }
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (module.hasWebUi) {
+                        ModuleSettingsButton(onClick = { onSettings(module) })
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    if (updateUrl.isNotEmpty()) {
+                        ModuleUpdateButton(onClick = { onUpdate(module) })
 
-            if (module.remove) {
-                ModuleStateIndicator(Tabler.Filled.Trash)
-            }
-            if (module.update) {
-                ModuleStateIndicator(Tabler.Filled.ArrowAutofitDown)
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                    ModuleRemoveButton(
+                        enabled = !module.remove,
+                        onClick = { onUninstall(module) })
+                }
             }
         }
     }
