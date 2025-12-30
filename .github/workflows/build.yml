@@ -63,7 +63,7 @@ jobs:
           NEW_PKG: ${{ inputs.package_id || github.event.inputs.package_id || 'com.frost.rime' }}
           OLD_DIR: app/src/main/java/me/bmax/apatch
         run: |
-          NEW_DIR: app/src/main/java/$(echo $NEW_PKG | tr '.' '/')
+          NEW_DIR=app/src/main/java/$(echo $NEW_PKG | tr '.' '/')
           
           sed -i "s/namespace[[:space:]]*=[[:space:]]*\".*\"/namespace = \"$NEW_PKG\"/g" app/build.gradle.kts
           sed -i "s/applicationId[[:space:]]*=[[:space:]]*\".*\"/applicationId = \"$NEW_PKG\"/g" app/build.gradle.kts
