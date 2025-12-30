@@ -59,21 +59,26 @@ jobs:
           cache-targets: false
 
       - name: Replace package_id
-        if: github.event_name == 'workflow_dispatch'
+        env:
+          NEW_PKG: ${{ inputs.package_id || github.event.inputs.package_id || 'com.frost.rime' }}
+          OLD_DIR: app/src/main/java/me/bmax/apatch
         run: |
-          # 替换 namespace
-          sed -i 's/namespace[[:space:]]*=[[:space:]]*".*"/namespace = "${{ github.event.inputs.package_id }}"/g' app/build.gradle.kts
+          NEW_DIR: app/src/main/java/$(echo $NEW_PKG | tr '.' '/')
           
-          # 替换 applicationId
-          sed -i 's/applicationId[[:space:]]*=[[:space:]]*".*"/applicationId = "${{ github.event.inputs.package_id }}"/g' app/build.gradle.kts
+          sed -i "s/namespace[[:space:]]*=[[:space:]]*\".*\"/namespace = \"$NEW_PKG\"/g" app/build.gradle.kts
+          sed -i "s/applicationId[[:space:]]*=[[:space:]]*\".*\"/applicationId = \"$NEW_PKG\"/g" app/build.gradle.kts
           
-          mkdir -p app/src/main/java/$(echo ${{ github.event.inputs.package_id }} | tr '.' '/')
+          if [ -d "$OLD_DIR" ]; then
+            mkdir -p "$NEW_DIR"
+            # 使用 / . 确保移动所有隐藏和普通文件，且不会因为目录非空报错
+            cp -r "$OLD_DIR"/. "$NEW_DIR/"
+            rm -rf "app/src/main/java/me" # 彻底清理旧的顶层目录 me
+            echo "Files moved successfully."
+          else
+            echo "Warning: OLD_DIR $OLD_DIR not found."
+          fi
           
-          mv app/src/main/java/me/bmax/apatch/* app/src/main/java/${{ github.event.inputs.package_id }}/
-          
-          rm -rf app/src/main/java/me/bmax/apatch
-          
-          find app/src/main/java/${{ github.event.inputs.package_id }}/ -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i "s/me.bmax.apatch/${{ github.event.inputs.package_id }}/g" {} +
+          find "$NEW_DIR" -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i "s/me\.bmax\.apatch/$NEW_PKG/g" {} +
 
       - name: Build with Gradle
         run: |
