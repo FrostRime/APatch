@@ -72,13 +72,17 @@ jobs:
             mkdir -p "$NEW_DIR"
             # 使用 / . 确保移动所有隐藏和普通文件，且不会因为目录非空报错
             cp -r "$OLD_DIR"/. "$NEW_DIR/"
-            rm -rf "app/src/main/java/me" # 彻底清理旧的顶层目录 me
-            echo "Files moved successfully."
-          else
-            echo "Warning: OLD_DIR $OLD_DIR not found."
+            rm -rf "app/src/main/java/me"
           fi
           
-          find "$NEW_DIR" -type f \( -name "*.kt" -o -name "*.java" \) -exec sed -i "s/me\.bmax\.apatch/$NEW_PKG/g" {} +
+          if [ -d "app/src/main/aidl/me/bmax/apatch" ]; then
+            mkdir -p "app/src/main/aidl/$(echo $NEW_PKG | tr '.' '/')"
+            cp -r app/src/main/aidl/me/bmax/apatch/. "app/src/main/aidl/$(echo $NEW_PKG | tr '.' '/')/"
+            rm -rf "app/src/main/aidl/me"
+          fi
+          echo "Files moved successfully."
+          
+          find app/src/main -type f \( -name "*.kt" -o -name "*.java" -o -name "*.aidl" -o -name "*.xml" \) -exec sed -i "s/me\.bmax\.apatch/$NEW_PKG/g" {} +
 
       - name: Build with Gradle
         run: |
