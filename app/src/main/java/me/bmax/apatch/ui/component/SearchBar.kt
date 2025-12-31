@@ -156,6 +156,7 @@ fun SearchAppBar(
     )
 }
 
+@Suppress("AssignedValueIsNeverRead")
 @Preview
 @Composable
 private fun SearchAppBarPreview() {

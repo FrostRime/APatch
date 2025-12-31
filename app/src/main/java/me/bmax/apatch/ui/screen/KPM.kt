@@ -51,7 +51,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,23 +135,14 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
 
     val kpModuleListState = rememberLazyListState()
 
-    var searchText by rememberSaveable { mutableStateOf("") }
-    val modules = if (searchText.isEmpty()) {
-        viewModel.moduleList
-    } else {
-        viewModel.moduleList.filter {
-            it.name.contains(searchText, ignoreCase = true) ||
-                    it.description.contains(searchText, ignoreCase = true) ||
-                    it.author.contains(searchText, ignoreCase = true)
-        }
-    }
+    val modules = viewModel.filteredModuleList
 
     Scaffold(topBar = {
         SearchAppBar(
             title = { Text(stringResource(R.string.kpm)) },
-            searchText = searchText,
-            onSearchTextChange = { searchText = it },
-            onClearClick = { searchText = "" }
+            searchText = viewModel.searchText,
+            onSearchTextChange = { viewModel.searchText = it },
+            onClearClick = { viewModel.searchText = "" }
         )
     }, floatingActionButton = run {
         {
@@ -177,7 +167,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
 
                 Log.i(TAG, "select zip result: $uri")
 
-                navigator.navigate(InstallScreenDestination(uri, MODULE_TYPE.KPM))
+                navigator.navigate(InstallScreenDestination(uri, ModuleType.KPM))
             }
 
             val selectKpmLauncher = rememberLauncherForActivityResult(
@@ -589,8 +579,7 @@ private fun KPModuleItem(
                 ) {
                     HorizontalDivider(
                         thickness = 1.5.dp,
-                        color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        color = MaterialTheme.colorScheme.surface
                     )
 
                     Row(

@@ -2,6 +2,10 @@ package me.bmax.apatch.ui
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
 import android.view.ViewGroup.MarginLayoutParams
@@ -19,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.graphics.createBitmap
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -28,9 +33,10 @@ import kotlinx.coroutines.launch
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.ui.theme.APatchTheme
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
-import me.bmax.apatch.ui.webui.AppIconUtil
 import me.bmax.apatch.ui.webui.SuFilePathHandler
 import me.bmax.apatch.ui.webui.WebViewInterface
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -106,12 +112,9 @@ class WebUIActivity : ComponentActivity() {
                 ) {
                     val packageName = url.path?.substring(1)
                     if (!packageName.isNullOrEmpty()) {
-                        val icon = AppIconUtil.loadAppIconSync(this@WebUIActivity, packageName, 512)
+                        val icon = handleIconRequest(packageName)
                         if (icon != null) {
-                            val stream = java.io.ByteArrayOutputStream()
-                            icon.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
-                            val inputStream = java.io.ByteArrayInputStream(stream.toByteArray())
-                            return WebResourceResponse("image/png", null, inputStream)
+                            return icon
                         }
                     }
                 }
@@ -141,5 +144,43 @@ class WebUIActivity : ComponentActivity() {
         }
 
         setContentView(webView)
+    }
+
+    private fun handleIconRequest(packageName: String): WebResourceResponse? {
+        try {
+            val appInfo =
+                SuperUserViewModel.apps.find { it.packageName == packageName } ?: return null
+
+            val pm = packageManager
+            val drawable = appInfo.packageInfo.applicationInfo?.loadIcon(pm)
+
+            val inputStream = drawable?.let { drawableToPngStream(it) }
+
+            return WebResourceResponse("image/png", null, inputStream)
+        } catch (_: Exception) {
+            return null
+        }
+    }
+
+    private fun drawableToPngStream(drawable: Drawable): ByteArrayInputStream {
+        val bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            drawable.bitmap
+        } else {
+            val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 96
+            val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 96
+            val bmp = createBitmap(width, height)
+            val canvas = Canvas(bmp)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            bmp
+        }
+
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        if (!bitmap.isRecycled) {
+            bitmap.recycle()
+        }
+
+        return ByteArrayInputStream(stream.toByteArray())
     }
 }

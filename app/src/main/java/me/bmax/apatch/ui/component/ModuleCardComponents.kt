@@ -72,6 +72,7 @@ fun KPModuleRemoveButton(
     )
 }
 
+@Suppress("unused")
 @Composable
 fun ModuleStateIndicator(
     icon: ImageVector, color: Color = MaterialTheme.colorScheme.outline

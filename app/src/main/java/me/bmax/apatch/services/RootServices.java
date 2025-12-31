@@ -28,6 +28,7 @@ public class RootServices extends RootService {
         return new Stub();
     }
 
+    @SuppressWarnings("unused")
     List<Integer> getUserIds() {
         List<Integer> result = new ArrayList<>();
         UserManager um = (UserManager) getSystemService(Context.USER_SERVICE);
@@ -48,6 +49,7 @@ public class RootServices extends RootService {
         return packages;
     }
 
+    @SuppressWarnings("unchecked")
     List<PackageInfo> getInstalledPackagesAsUser(int flags, int userId) {
         try {
             PackageManager pm = getPackageManager();

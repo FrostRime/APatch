@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.bmax.apatch.apApp
+import me.bmax.apatch.util.HanziToPinyin
 import me.bmax.apatch.util.listModules
 import org.json.JSONArray
 import org.json.JSONObject
@@ -38,12 +39,15 @@ class APModuleViewModel : ViewModel() {
         val hasActionScript: Boolean,
     )
 
+    @Suppress("unused")
     data class ModuleUpdateInfo(
         val version: String,
         val versionCode: Int,
         val zipUrl: String,
         val changelog: String,
     )
+
+    var searchText by mutableStateOf("")
 
     var isRefreshing by mutableStateOf(false)
         private set
@@ -52,6 +56,19 @@ class APModuleViewModel : ViewModel() {
         val comparator = compareBy(Collator.getInstance(Locale.getDefault()), ModuleInfo::id)
         modules.sortedWith(comparator).also {
             isRefreshing = false
+        }
+    }
+
+    val filteredModuleList by derivedStateOf {
+        moduleList.filter {
+            it.name.lowercase().contains(searchText.lowercase()) || it.name.lowercase()
+                .contains(searchText.lowercase()) || HanziToPinyin.getInstance()
+                .toPinyinString(it.name).contains(searchText.lowercase()) || it.name.contains(
+                searchText,
+                ignoreCase = true
+            ) ||
+                    it.description.contains(searchText, ignoreCase = true) ||
+                    it.author.contains(searchText, ignoreCase = true)
         }
     }
 

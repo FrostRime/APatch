@@ -13,6 +13,9 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -81,10 +84,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                fun getRouteIndex(route: String?): Int {
-                    return bottomBarRoutes.indexOf(route).takeIf { it != -1 } ?: 0
-                }
-
                 Scaffold(
                     bottomBar = { BottomBar(navController) }
                 ) { _ ->
@@ -99,103 +98,47 @@ class MainActivity : AppCompatActivity() {
                             defaultTransitions = object : NavHostAnimatedDestinationStyle() {
                                 override val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
                                     {
-                                        val initialIdx =
-                                            getRouteIndex(initialState.destination.route)
-                                        val targetIdx = getRouteIndex(targetState.destination.route)
-
-                                        // 如果目标页在当前页右边，则向左滑入 (Start)；反之向右滑入 (End)
-                                        val direction = if (targetIdx > initialIdx) {
-                                            AnimatedContentTransitionScope.SlideDirection.Start
+                                        // If the target is a detail page (not a bottom navigation page), slide in from the right
+                                        if (targetState.destination.route !in bottomBarRoutes) {
+                                            slideInHorizontally(initialOffsetX = { it })
                                         } else {
-                                            AnimatedContentTransitionScope.SlideDirection.End
+                                            // Otherwise (switching between bottom navigation pages), use fade in
+                                            fadeIn(animationSpec = tween(340))
                                         }
-
-                                        slideIntoContainer(
-                                            towards = direction,
-                                            animationSpec = tween(400)
-                                        ) + fadeIn()
                                     }
 
                                 override val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
                                     {
-                                        val initialIdx =
-                                            getRouteIndex(initialState.destination.route)
-                                        val targetIdx = getRouteIndex(targetState.destination.route)
-
-                                        val direction = if (targetIdx > initialIdx) {
-                                            AnimatedContentTransitionScope.SlideDirection.Start
+                                        // If navigating from the home page (bottom navigation page) to a detail page, slide out to the left
+                                        if (initialState.destination.route in bottomBarRoutes && targetState.destination.route !in bottomBarRoutes) {
+                                            slideOutHorizontally(targetOffsetX = { -it / 4 }) + fadeOut()
                                         } else {
-                                            AnimatedContentTransitionScope.SlideDirection.End
+                                            // Otherwise (switching between bottom navigation pages), use fade out
+                                            fadeOut(animationSpec = tween(340))
                                         }
-
-                                        slideOutOfContainer(
-                                            towards = direction,
-                                            animationSpec = tween(400)
-                                        ) + fadeOut()
                                     }
 
-                                // 物理返回键的 pop 逻辑保持经典的“向右滑出”
                                 override val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
                                     {
-                                        slideIntoContainer(
-                                            towards = AnimatedContentTransitionScope.SlideDirection.End,
-                                            animationSpec = tween(400)
-                                        )
+                                        // If returning to the home page (bottom navigation page), slide in from the left
+                                        if (targetState.destination.route in bottomBarRoutes) {
+                                            slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
+                                        } else {
+                                            // Otherwise (e.g., returning between multiple detail pages), use default fade in
+                                            fadeIn(animationSpec = tween(340))
+                                        }
                                     }
 
                                 override val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
                                     {
-                                        slideOutOfContainer(
-                                            towards = AnimatedContentTransitionScope.SlideDirection.End,
-                                            animationSpec = tween(400)
-                                        )
+                                        // If returning from a detail page (not a bottom navigation page), scale down and fade out
+                                        if (initialState.destination.route !in bottomBarRoutes) {
+                                            scaleOut(targetScale = 0.9f) + fadeOut()
+                                        } else {
+                                            // Otherwise, use default fade out
+                                            fadeOut(animationSpec = tween(340))
+                                        }
                                     }
-
-
-//                            defaultTransitions = object : NavHostAnimatedDestinationStyle() {
-//                                override val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
-//                                    {
-//                                        // If the target is a detail page (not a bottom navigation page), slide in from the right
-//                                        if (targetState.destination.route !in bottomBarRoutes) {
-//                                            slideInHorizontally(initialOffsetX = { it })
-//                                        } else {
-//                                            // Otherwise (switching between bottom navigation pages), use fade in
-//                                            fadeIn(animationSpec = tween(340))
-//                                        }
-//                                    }
-//
-//                                override val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
-//                                    {
-//                                        // If navigating from the home page (bottom navigation page) to a detail page, slide out to the left
-//                                        if (initialState.destination.route in bottomBarRoutes && targetState.destination.route !in bottomBarRoutes) {
-//                                            slideOutHorizontally(targetOffsetX = { -it / 4 }) + fadeOut()
-//                                        } else {
-//                                            // Otherwise (switching between bottom navigation pages), use fade out
-//                                            fadeOut(animationSpec = tween(340))
-//                                        }
-//                                    }
-//
-//                                override val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
-//                                    {
-//                                        // If returning to the home page (bottom navigation page), slide in from the left
-//                                        if (targetState.destination.route in bottomBarRoutes) {
-//                                            slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
-//                                        } else {
-//                                            // Otherwise (e.g., returning between multiple detail pages), use default fade in
-//                                            fadeIn(animationSpec = tween(340))
-//                                        }
-//                                    }
-//
-//                                override val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
-//                                    {
-//                                        // If returning from a detail page (not a bottom navigation page), scale down and fade out
-//                                        if (initialState.destination.route !in bottomBarRoutes) {
-//                                            scaleOut(targetScale = 0.9f) + fadeOut()
-//                                        } else {
-//                                            // Otherwise, use default fade out
-//                                            fadeOut(animationSpec = tween(340))
-//                                        }
-//                                    }
                             }
                         )
                     }

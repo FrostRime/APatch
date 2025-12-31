@@ -66,6 +66,7 @@ fun SwitchItem(
     )
 }
 
+@Suppress("unused")
 @Composable
 fun RadioItem(
     title: String,

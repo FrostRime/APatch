@@ -1,8 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.tasks.PackageAndroidArtifact
-import java.net.URI
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.net.URI
 
 plugins {
     alias(libs.plugins.agp.app)
@@ -44,8 +44,8 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
             )
         }
         release {
@@ -55,8 +55,8 @@ android {
             multiDexEnabled = true
             vcsInfo.include = false
             proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
             )
         }
     }
@@ -145,28 +145,28 @@ fun downloadFile(url: String, destFile: File) {
 }
 
 registerDownloadTask(
-        taskName = "downloadKpimg",
-        srcUrl =
-                "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kpimg-android",
-        destPath = "${project.projectDir}/src/main/assets/kpimg",
-        project = project
+    taskName = "downloadKpimg",
+    srcUrl =
+        "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kpimg-android",
+    destPath = "${project.projectDir}/src/main/assets/kpimg",
+    project = project
 )
 
 registerDownloadTask(
-        taskName = "downloadKptools",
-        srcUrl =
-                "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kptools-android",
-        destPath = "${project.projectDir}/libs/arm64-v8a/libkptools.so",
-        project = project
+    taskName = "downloadKptools",
+    srcUrl =
+        "https://github.com/bmax121/KernelPatch/releases/download/$kernelPatchVersion/kptools-android",
+    destPath = "${project.projectDir}/libs/arm64-v8a/libkptools.so",
+    project = project
 )
 
 // Compat kp version less than 0.10.7
 // TODO: Remove in future
 registerDownloadTask(
-        taskName = "downloadCompatKpatch",
-        srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/0.10.7/kpatch-android",
-        destPath = "${project.projectDir}/libs/arm64-v8a/libkpatch.so",
-        project = project
+    taskName = "downloadCompatKpatch",
+    srcUrl = "https://github.com/bmax121/KernelPatch/releases/download/0.10.7/kpatch-android",
+    destPath = "${project.projectDir}/libs/arm64-v8a/libkpatch.so",
+    project = project
 )
 
 tasks.register<Copy>("mergeScripts") {
@@ -180,12 +180,12 @@ tasks.register<Copy>("mergeScripts") {
 }
 
 tasks.getByName("preBuild")
-        .dependsOn(
-                "downloadKpimg",
-                "downloadKptools",
-                "downloadCompatKpatch",
-                "mergeScripts",
-        )
+    .dependsOn(
+        "downloadKpimg",
+        "downloadKptools",
+        "downloadCompatKpatch",
+        "mergeScripts",
+    )
 
 // https://github.com/bbqsrc/cargo-ndk
 // cargo ndk -t arm64-v8a build --release
@@ -264,7 +264,7 @@ dependencies {
     implementation(libs.sheet.compose.dialogs.input)
 
     implementation(libs.markdown)
-    
+
     implementation(libs.icons.tabler.outline.cmp)
     implementation(libs.icons.tabler.filled.cmp)
 

@@ -51,13 +51,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class MODULE_TYPE {
+enum class ModuleType {
     KPM, APM
 }
 
 @Composable
 @Destination<RootGraph>
-fun InstallScreen(navigator: DestinationsNavigator, uri: Uri, type: MODULE_TYPE) {
+fun InstallScreen(navigator: DestinationsNavigator, uri: Uri, type: ModuleType) {
     var text by remember { mutableStateOf("") }
     var tempText: String
     val logContent = remember { StringBuilder() }

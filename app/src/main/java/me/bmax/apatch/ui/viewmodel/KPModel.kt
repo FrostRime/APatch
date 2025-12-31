@@ -7,6 +7,7 @@ import kotlinx.parcelize.Parcelize
 
 object KPModel {
 
+    @Suppress("unused")
     enum class TriggerEvent(val event: String) {
         PAGING_INIT("paging-init"),
         PRE_KERNEL_INIT("pre-kernel-init"),

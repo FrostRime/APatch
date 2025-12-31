@@ -352,6 +352,7 @@ class PatchesViewModel : ViewModel() {
         return suFile.exists() && suFile.canExecute()
     }
 
+    @Suppress("LocalVariableName")
     fun doPatch(mode: PatchMode) {
         viewModelScope.launch(Dispatchers.IO) {
             patching = true
@@ -430,7 +431,7 @@ class PatchesViewModel : ViewModel() {
 
             Log.i(TAG, "patchCommand: $patchCommand")
 
-            var succ = false
+            var succ: Boolean
 
             if (isKpOld) {
                 val resultString = "\"" + patchCommand.joinToString(separator = "\" \"") + "\""
@@ -441,7 +442,7 @@ class PatchesViewModel : ViewModel() {
                 ).to(logs, logs).exec()
                 succ = result.isSuccess
             } else {
-                builder.environment().put("ASH_STANDALONE", "1")
+                builder.environment()["ASH_STANDALONE"] = "1"
                 builder.directory(patchDir)
                 builder.redirectErrorStream(true)
 

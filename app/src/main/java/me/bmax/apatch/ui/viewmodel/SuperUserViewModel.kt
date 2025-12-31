@@ -1,23 +1,27 @@
 package me.bmax.apatch.ui.viewmodel
 
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
-import android.graphics.drawable.Drawable
 import android.os.IBinder
 import android.os.Parcelable
 import android.util.Log
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import me.bmax.apatch.IAPRootService
 import me.bmax.apatch.Natives
@@ -28,7 +32,6 @@ import me.bmax.apatch.util.HanziToPinyin
 import me.bmax.apatch.util.PkgConfig
 import java.text.Collator
 import java.util.Locale
-import kotlin.concurrent.thread
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -36,16 +39,10 @@ import kotlin.coroutines.suspendCoroutine
 class SuperUserViewModel : ViewModel() {
     companion object {
         private const val TAG = "SuperUserViewModel"
-        private val appsLock = Any()
         var apps by mutableStateOf<List<AppInfo>>(emptyList())
-
-        fun getAppIconDrawable(context: Context, packageName: String): Drawable? {
-            val appList = synchronized(appsLock) { apps }
-            val appDetail = appList.find { it.packageName == packageName }
-            return appDetail?.packageInfo?.applicationInfo?.loadIcon(context.packageManager)
-        }
     }
 
+    @Immutable
     @Parcelize
     data class AppInfo(
         val label: String, val packageInfo: PackageInfo, val config: PkgConfig.Config
@@ -54,6 +51,16 @@ class SuperUserViewModel : ViewModel() {
             get() = packageInfo.packageName
         val uid: Int
             get() = packageInfo.applicationInfo!!.uid
+
+
+        @IgnoredOnParcel
+        var showEditProfile by mutableStateOf(false)
+
+        @IgnoredOnParcel
+        var rootGranted by mutableStateOf(config.allow != 0)
+
+        @IgnoredOnParcel
+        var excludeApp by mutableIntStateOf(config.exclude)
     }
 
     var search by mutableStateOf("")
@@ -112,6 +119,7 @@ class SuperUserViewModel : ViewModel() {
         RootServices.stop(intent)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     suspend fun fetchAppList() {
         isRefreshing = true
 
@@ -129,11 +137,12 @@ class SuperUserViewModel : ViewModel() {
             val uids = Natives.suUids().toList()
             Log.d(TAG, "all allows: $uids")
 
-            var configs: HashMap<Int, PkgConfig.Config> = HashMap()
-            thread {
-                Natives.su()
-                configs = PkgConfig.readConfigs()
-            }.join()
+            val configs = newSingleThreadContext("SuWorker").use { isolatedDispatcher ->
+                withContext(isolatedDispatcher) {
+                    Natives.su()
+                    PkgConfig.readConfigs()
+                }
+            }
 
             Log.d(TAG, "all configs: $configs")
 
@@ -164,7 +173,7 @@ class SuperUserViewModel : ViewModel() {
                 )
             }
 
-            synchronized(appsLock) {
+            withContext(Dispatchers.Main) {
                 apps = newApps
             }
         }

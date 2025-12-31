@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialogDefaults
@@ -148,7 +146,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
             if (checkUpdate) {
                 UpdateCard()
             }
-            InfoCard(kpState, apState)
+            InfoCard()
             Spacer(Modifier)
         }
     }
@@ -170,15 +168,15 @@ fun AuthFailedTipDialog(showDialog: MutableState<Boolean>) {
             modifier = Modifier
                 .width(320.dp)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = AlertDialogDefaults.TonalElevation,
             color = AlertDialogDefaults.containerColor,
         ) {
-            Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
+            Column(modifier = Modifier.padding(all = 24.dp)) {
                 // Title
                 Box(
                     Modifier
-                        .padding(PaddingValues(bottom = 16.dp))
+                        .padding(bottom = 16.dp)
                         .align(Alignment.Start)
                 ) {
                     Text(
@@ -191,7 +189,7 @@ fun AuthFailedTipDialog(showDialog: MutableState<Boolean>) {
                 Box(
                     Modifier
                         .weight(weight = 1f, fill = false)
-                        .padding(PaddingValues(bottom = 24.dp))
+                        .padding(bottom = 24.dp)
                         .align(Alignment.Start)
                 ) {
                     Text(
@@ -237,15 +235,15 @@ fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableSta
             modifier = Modifier
                 .width(310.dp)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(30.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = AlertDialogDefaults.TonalElevation,
             color = AlertDialogDefaults.containerColor,
         ) {
-            Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
+            Column(modifier = Modifier.padding(all = 24.dp)) {
                 // Title
                 Box(
                     Modifier
-                        .padding(PaddingValues(bottom = 16.dp))
+                        .padding(bottom = 16.dp)
                         .align(Alignment.Start)
                 ) {
                     Text(
@@ -279,7 +277,7 @@ fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableSta
                             key = it
                             enable = checkSuperKeyValidation(key)
                         },
-                        shape = RoundedCornerShape(50.0f),
+                        shape = MaterialTheme.shapes.extraLarge,
                         label = { Text(stringResource(id = R.string.super_key)) },
                         visualTransformation =
                             if (keyVisible) VisualTransformation.None
@@ -350,14 +348,14 @@ fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
             modifier = Modifier
                 .width(310.dp)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(30.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = AlertDialogDefaults.TonalElevation,
             color = AlertDialogDefaults.containerColor,
         ) {
-            Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
+            Column(modifier = Modifier.padding(all = 24.dp)) {
                 Box(
                     Modifier
-                        .padding(PaddingValues(bottom = 16.dp))
+                        .padding(bottom = 16.dp)
                         .align(Alignment.Start)
                 ) {
                     Text(
@@ -368,7 +366,7 @@ fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
                 Box(
                     Modifier
                         .weight(weight = 1f, fill = false)
-                        .padding(PaddingValues(bottom = 12.dp))
+                        .padding(bottom = 12.dp)
                         .align(Alignment.Start)
                 ) {
                     OutlinedTextField(
@@ -409,6 +407,7 @@ fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
     }
 }
 
+@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(
@@ -435,7 +434,7 @@ private fun TopBar(
                         contentDescription = stringResource(id = R.string.reboot)
                     )
 
-                    ProvideMenuShape(RoundedCornerShape(10.dp)) {
+                    ProvideMenuShape(MaterialTheme.shapes.medium) {
                         DropdownMenu(
                             expanded = showDropdownReboot,
                             onDismissRequest = { showDropdownReboot = false }
@@ -528,7 +527,7 @@ private fun KStatusCard(
                         Icon(
                             Tabler.Outline.Checks,
                             modifier = Modifier.fillMaxSize(),
-                            tint = LocalContentColor.current.copy(alpha = 0.1f),
+                            tint = LocalContentColor.current.copy(alpha = 0.4f),
                             contentDescription = stringResource(R.string.home_working)
                         )
                     }
@@ -538,7 +537,7 @@ private fun KStatusCard(
                         Icon(
                             Tabler.Outline.ArrowAutofitDown,
                             modifier = Modifier.fillMaxSize(),
-                            tint = LocalContentColor.current.copy(alpha = 0.1f),
+                            tint = LocalContentColor.current.copy(alpha = 0.4f),
                             contentDescription =
                                 stringResource(R.string.home_need_update)
                         )
@@ -548,7 +547,7 @@ private fun KStatusCard(
                         Icon(
                             Tabler.Outline.DeviceUnknown,
                             modifier = Modifier.fillMaxSize(),
-                            tint = LocalContentColor.current.copy(alpha = 0.1f),
+                            tint = LocalContentColor.current.copy(alpha = 0.4f),
                             contentDescription = "Unknown"
                         )
                     }
@@ -846,6 +845,7 @@ private fun AStatusCard(apState: APApplication.State) {
     }
 }
 
+@Suppress("AssignedValueIsNeverRead")
 @Composable
 fun WarningCard() {
     var show by rememberSaveable { mutableStateOf(apApp.getBackupWarningState()) }
@@ -915,7 +915,7 @@ private fun getDeviceInfo(): String {
 }
 
 @Composable
-private fun InfoCard(kpState: APApplication.State, apState: APApplication.State) {
+private fun InfoCard() {
     ElevatedCard {
         Column(
             modifier =

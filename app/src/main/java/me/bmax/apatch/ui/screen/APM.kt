@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
@@ -139,24 +138,15 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
 
     val moduleListState = rememberLazyListState()
 
-    var searchText by rememberSaveable { mutableStateOf("") }
-    val modules = if (searchText.isEmpty()) {
-        viewModel.moduleList
-    } else {
-        viewModel.moduleList.filter {
-            it.name.contains(searchText, ignoreCase = true) ||
-                    it.description.contains(searchText, ignoreCase = true) ||
-                    it.author.contains(searchText, ignoreCase = true)
-        }
-    }
+    val modules = viewModel.filteredModuleList
 
     Scaffold(
         topBar = {
             SearchAppBar(
                 title = { Text(stringResource(R.string.apm)) },
-                searchText = searchText,
-                onSearchTextChange = { searchText = it },
-                onClearClick = { searchText = "" }
+                searchText = viewModel.searchText,
+                onSearchTextChange = { viewModel.searchText = it },
+                onClearClick = { viewModel.searchText = "" }
             )
         }, floatingActionButton = if (hideInstallButton) {
             { /* Empty */ }
@@ -173,7 +163,7 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
 
                     Log.i("ModuleScreen", "select zip result: $uri")
 
-                    navigator.navigate(InstallScreenDestination(uri, MODULE_TYPE.APM))
+                    navigator.navigate(InstallScreenDestination(uri, ModuleType.APM))
 
                     viewModel.markNeedRefresh()
                 }
@@ -219,7 +209,7 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                         .fillMaxSize(),
                     state = moduleListState,
                     onInstallModule = {
-                        navigator.navigate(InstallScreenDestination(it, MODULE_TYPE.APM))
+                        navigator.navigate(InstallScreenDestination(it, ModuleType.APM))
                     },
                     snackBarHost = snackBarHost,
                     context = context,
@@ -485,7 +475,7 @@ private fun ModuleItem(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
-        shape = RoundedCornerShape(20.dp)
+        shape = MaterialTheme.shapes.large
     ) {
         Column(
             modifier = Modifier

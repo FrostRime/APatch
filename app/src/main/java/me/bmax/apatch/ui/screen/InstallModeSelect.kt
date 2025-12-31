@@ -42,6 +42,7 @@ import me.bmax.apatch.util.rootAvailable
 
 var selectedBootImage: Uri? = null
 
+@Suppress("AssignedValueIsNeverRead", "VariableNeverRead")
 @Destination<RootGraph>
 @Composable
 fun InstallModeSelectScreen(navigator: DestinationsNavigator) {

@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package me.bmax.apatch.util
 
 import android.content.ContentResolver
@@ -18,7 +20,7 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.APApplication.Companion.SUPERCMD
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.apApp
-import me.bmax.apatch.ui.screen.MODULE_TYPE
+import me.bmax.apatch.ui.screen.ModuleType
 import java.io.File
 import java.security.MessageDigest
 import java.security.cert.CertificateFactory
@@ -33,7 +35,7 @@ private fun getKPatchPath(): String {
 
 class RootShellInitializer : Shell.Initializer() {
     override fun onInit(context: Context, shell: Shell): Boolean {
-        shell.newJob().add("export PATH=\$PATH:/system_ext/bin:/vendor/bin").exec()
+        shell.newJob().add($$"export PATH=$PATH:/system_ext/bin:/vendor/bin").exec()
         return true
     }
 }
@@ -193,7 +195,7 @@ fun uninstallModule(id: String): Boolean {
 
 fun installModule(
     uri: Uri,
-    type: MODULE_TYPE,
+    type: ModuleType,
     onFinish: (Boolean) -> Unit,
     onStdout: (String) -> Unit,
     onStderr: (String) -> Unit
@@ -220,7 +222,7 @@ fun installModule(
         val shell = getRootShell()
 
         var result = false
-        if (type == MODULE_TYPE.APM) {
+        if (type == ModuleType.APM) {
             val cmd = "${APApplication.APD_PATH} module install ${file.absolutePath}"
             result = shell.newJob().add(cmd).to(stdoutCallback, stderrCallback)
                 .exec().isSuccess

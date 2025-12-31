@@ -1,3 +1,5 @@
+@file:Suppress("AssignedValueIsNeverRead")
+
 package me.bmax.apatch.ui.screen
 
 import android.Manifest

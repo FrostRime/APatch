@@ -403,6 +403,7 @@ fun rememberConfirmDialog(callback: ConfirmCallback): ConfirmDialogHandle {
     return rememberConfirmDialog(ConfirmDialogVisualsImpl.Empty, callback)
 }
 
+@Suppress("unused")
 @Composable
 fun rememberCustomDialog(composable: @Composable (dismiss: () -> Unit) -> Unit): DialogHandle {
     val visible = rememberSaveable {

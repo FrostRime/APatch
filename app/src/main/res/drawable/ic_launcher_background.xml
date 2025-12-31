@@ -10,9 +10,9 @@
         android:translateX="2.88"
         android:translateY="2.88">
         <path
-            android:pathData="M0 0L192 0L192 192L0 192L0 0Z"
             android:fillColor="#FFFFFF"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="1" />
+            android:pathData="M0 0L192 0L192 192L0 192L0 0Z"
+            android:strokeWidth="1"
+            android:strokeColor="#FFFFFF" />
     </group>
 </vector>

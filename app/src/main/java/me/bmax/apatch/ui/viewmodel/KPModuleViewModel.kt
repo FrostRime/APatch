@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.bmax.apatch.Natives
+import me.bmax.apatch.util.HanziToPinyin
 import java.text.Collator
 import java.util.Locale
 
@@ -27,6 +28,21 @@ class KPModuleViewModel : ViewModel() {
         val comparator = compareBy(Collator.getInstance(Locale.getDefault()), KPModel.KPMInfo::name)
         modules.sortedWith(comparator).also {
             isRefreshing = false
+        }
+    }
+
+    var searchText by mutableStateOf("")
+
+    val filteredModuleList by derivedStateOf {
+        moduleList.filter {
+            it.name.lowercase().contains(searchText.lowercase()) || it.name.lowercase()
+                .contains(searchText.lowercase()) || HanziToPinyin.getInstance()
+                .toPinyinString(it.name).contains(searchText.lowercase()) || it.name.contains(
+                searchText,
+                ignoreCase = true
+            ) ||
+                    it.description.contains(searchText, ignoreCase = true) ||
+                    it.author.contains(searchText, ignoreCase = true)
         }
     }
 
@@ -49,7 +65,7 @@ class KPModuleViewModel : ViewModel() {
                     names = ""
                 val nameList = names.split('\n').toList()
                 Log.d(TAG, "kpm list: $nameList")
-                modules = nameList.filter { it.isNotEmpty() }.map {
+                modules = nameList.filter { it.isNotEmpty() }.map { it ->
                     val infoline = Natives.kernelPatchModuleInfo(it)
                     val spi = infoline.split('\n')
                     val name = spi.find { it.startsWith("name=") }?.removePrefix("name=")

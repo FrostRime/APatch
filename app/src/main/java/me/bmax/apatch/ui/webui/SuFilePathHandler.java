@@ -139,7 +139,7 @@ public final class SuFilePathHandler implements WebViewAssetLoader.PathHandler {
         return mimeType == null ? DEFAULT_MIME_TYPE : mimeType;
     }
 
-    private boolean isAllowedInternalStorageDir(@NonNull Context context) throws IOException {
+    private boolean isAllowedInternalStorageDir(@NonNull Context ignoredContext) throws IOException {
         String dir = getCanonicalDirPath(mDirectory);
 
         for (String forbiddenPath : FORBIDDEN_DATA_DIRS) {
