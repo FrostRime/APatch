@@ -475,7 +475,8 @@ private fun ModuleItem(
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
 ) {
-    val decoration = if (module.remove) TextDecoration.LineThrough else if (module.update) TextDecoration.Underline else TextDecoration.None
+    val decoration =
+        if (module.remove) TextDecoration.LineThrough else if (module.update) TextDecoration.Underline else TextDecoration.None
     val fontStyle = if (module.remove || module.update) FontStyle.Italic else FontStyle.Normal
     val moduleAuthor = stringResource(id = R.string.apm_author)
     val viewModel = viewModel<APModuleViewModel>()
