@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -90,7 +89,7 @@ fun SuperUserScreen() {
                             contentDescription = stringResource(id = R.string.settings)
                         )
 
-                        ProvideMenuShape(RoundedCornerShape(10.dp)) {
+                        ProvideMenuShape(MaterialTheme.shapes.medium) {
                             DropdownMenu(expanded = showDropdown, onDismissRequest = {
                                 showDropdown = false
                             }) {

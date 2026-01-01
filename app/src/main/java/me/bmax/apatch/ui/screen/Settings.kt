@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
@@ -535,7 +534,7 @@ fun ThemeChooseDialog(showDialog: MutableState<Boolean>) {
             modifier = Modifier
                 .width(310.dp)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(30.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = AlertDialogDefaults.TonalElevation,
             color = AlertDialogDefaults.containerColor,
         ) {
@@ -611,7 +610,7 @@ fun LanguageDialog(showLanguageDialog: MutableState<Boolean>) {
                 modifier = Modifier
                     .width(150.dp)
                     .wrapContentHeight(),
-                shape = RoundedCornerShape(28.dp),
+                shape = MaterialTheme.shapes.large,
                 tonalElevation = AlertDialogDefaults.TonalElevation,
                 color = AlertDialogDefaults.containerColor,
             ) {

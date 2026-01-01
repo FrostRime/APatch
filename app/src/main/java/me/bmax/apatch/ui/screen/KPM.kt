@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
@@ -210,7 +209,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                     )
                 }
 
-                ProvideMenuShape(RoundedCornerShape(10.dp)) {
+                ProvideMenuShape(MaterialTheme.shapes.medium) {
                     DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
@@ -332,7 +331,7 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
             modifier = Modifier
                 .width(310.dp)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(30.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = AlertDialogDefaults.TonalElevation,
             color = AlertDialogDefaults.containerColor,
         ) {
@@ -371,7 +370,7 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
                             controlParam = it
                             enable = controlParam.isNotBlank()
                         },
-                        shape = RoundedCornerShape(50.0f),
+                        shape = MaterialTheme.shapes.large,
                         label = { Text(stringResource(id = R.string.kpm_control_paramters)) },
                         visualTransformation = VisualTransformation.None,
                     )
@@ -516,7 +515,7 @@ private fun KPModuleItem(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
-        shape = RoundedCornerShape(20.dp)
+        shape = MaterialTheme.shapes.large
     ) {
         Box(
             modifier = Modifier

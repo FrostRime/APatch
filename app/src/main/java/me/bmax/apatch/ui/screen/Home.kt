@@ -277,7 +277,7 @@ fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableSta
                             key = it
                             enable = checkSuperKeyValidation(key)
                         },
-                        shape = MaterialTheme.shapes.extraLarge,
+                        shape = MaterialTheme.shapes.large,
                         label = { Text(stringResource(id = R.string.super_key)) },
                         visualTransformation =
                             if (keyVisible) VisualTransformation.None
@@ -374,6 +374,7 @@ fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
                         onValueChange = {
                             suPath = it
                         },
+                        shape = MaterialTheme.shapes.large,
                         label = { Text(stringResource(id = R.string.setting_reset_su_new_path)) },
                         visualTransformation = VisualTransformation.None,
                     )
