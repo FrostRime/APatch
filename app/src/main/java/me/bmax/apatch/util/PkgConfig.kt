@@ -43,11 +43,15 @@ object PkgConfig {
         val configs = HashMap<Int, Config>()
         val file = File(APApplication.PACKAGE_CONFIG_FILE)
         if (file.exists()) {
-            file.readLines().drop(1).filter { it.isNotEmpty() }.forEach {
-                Log.d(TAG, it)
-                val p = Config.fromLine(it)
-                if (!p.isDefault()) {
-                    configs[p.profile.uid] = p
+            file.useLines { lines ->
+                lines.drop(1).forEach { line ->
+                    if (line.isNotEmpty()) {
+                        Log.d(TAG, line)
+                        val p = Config.fromLine(line)
+                        if (!p.isDefault()) {
+                            configs[p.profile.uid] = p
+                        }
+                    }
                 }
             }
         }

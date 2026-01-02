@@ -4,15 +4,15 @@ project("apjni")
 find_program(CCACHE ccache)
 
 if (CCACHE)
-        set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
-        set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
 endif ()
 
 find_package(cxx REQUIRED CONFIG)
 link_libraries(cxx::cxx)
 
 macro(SET_OPTION option value)
-        set(${option} ${value} CACHE INTERNAL "" FORCE)
+    set(${option} ${value} CACHE INTERNAL "" FORCE)
 endmacro()
 
 set(CHERISH_POLLY_FLAGS "-mllvm -polly -mllvm -polly-run-dce -mllvm -polly-run-inliner -mllvm -polly-reschedule=1 -mllvm -polly-loopfusion-greedy=1 -mllvm -polly-postopts=1 -mllvm -polly-num-threads=0 -mllvm -polly-omp-backend=LLVM -mllvm -polly-scheduling=dynamic -mllvm -polly-scheduling-chunksize=1 -mllvm -polly-isl-arg=--no-schedule-serialize-sccs -mllvm -polly-ast-use-context -mllvm -polly-detect-keep-going -mllvm -polly-position=before-vectorizer -mllvm -polly-vectorizer=stripmine -mllvm -polly-detect-profitability-min-per-loop-insts=40 -mllvm -polly-invariant-load-hoisting")

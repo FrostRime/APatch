@@ -6,8 +6,7 @@
 #ifndef _KP_UAPI_SCDEF_H_
 #define _KP_UAPI_SCDEF_H_
 
-static inline long hash_key(const char *key)
-{
+static inline long hash_key(const char *key) {
     long hash = 1000000007;
     for (int i = 0; key[i]; i++) {
         hash = hash * 31 + key[i];
@@ -42,8 +41,7 @@ static inline long hash_key(const char *key)
 #define SUPERCALL_KPM_LIST 0x1031
 #define SUPERCALL_KPM_INFO 0x1032
 
-struct kernel_storage
-{
+struct kernel_storage {
     void *data;
     int len;
 };
@@ -67,8 +65,7 @@ struct kernel_storage
 #define SUPERCALL_KEY_MAX_LEN 0x40
 #define SUPERCALL_SCONTEXT_LEN 0x60
 
-struct su_profile
-{
+struct su_profile {
     uid_t uid;
     uid_t to_uid;
     char scontext[SUPERCALL_SCONTEXT_LEN];

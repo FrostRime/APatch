@@ -42,23 +42,27 @@ public class RootServices extends RootService {
 
     ArrayList<PackageInfo> getInstalledPackagesAll(int flags) {
         ArrayList<PackageInfo> packages = new ArrayList<>();
-        for (Integer userId : getUserIds()) {
-            Log.i(TAG, "getInstalledPackagesAll: " + userId);
-            packages.addAll(getInstalledPackagesAsUser(flags, userId));
+        try {
+            PackageManager pm = getPackageManager();
+            Method getInstalledPackagesAsUser = pm.getClass().getDeclaredMethod("getInstalledPackagesAsUser", int.class, int.class);
+            for (Integer userId : getUserIds()) {
+                Log.i(TAG, "getInstalledPackagesAll: " + userId);
+                packages.addAll(getInstalledPackagesAsUser(flags, userId, pm, getInstalledPackagesAsUser));
+            }
+        } catch (Throwable e) {
+            Log.e(TAG, "err", e);
         }
         return packages;
     }
 
     @SuppressWarnings("unchecked")
-    List<PackageInfo> getInstalledPackagesAsUser(int flags, int userId) {
+    List<PackageInfo> getInstalledPackagesAsUser(int flags, int userId, PackageManager pm, Method getInstalledPackagesAsUser) {
         try {
-            PackageManager pm = getPackageManager();
-            Method getInstalledPackagesAsUser = pm.getClass().getDeclaredMethod("getInstalledPackagesAsUser", int.class, int.class);
             return (List<PackageInfo>) getInstalledPackagesAsUser.invoke(pm, flags, userId);
+
         } catch (Throwable e) {
             Log.e(TAG, "err", e);
         }
-
         return new ArrayList<>();
     }
 
