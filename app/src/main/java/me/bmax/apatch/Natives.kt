@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import dalvik.annotation.optimization.FastNative
 import kotlinx.parcelize.Parcelize
 
+@Suppress("KotlinJniMissingFunction")
 object Natives {
     init {
         System.loadLibrary("apjni")
@@ -20,6 +21,7 @@ object Natives {
         var scontext: String = APApplication.DEFAULT_SCONTEXT,
     ) : Parcelable
 
+    @Suppress("unused")
     @Keep
     class KPMCtlRes {
         var rc: Long = 0

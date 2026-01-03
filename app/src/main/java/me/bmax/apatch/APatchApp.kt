@@ -56,6 +56,9 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         private const val APATCH_LOG_FOLDER = APATCH_FOLDER + "log/"
         private const val APD_LINK_PATH = APATCH_BIN_FOLDER + "apd"
         const val PACKAGE_CONFIG_FILE = APATCH_FOLDER + "package_config"
+
+        const val PACKAGES_LIST_PATH = "/data/system/packages.list"
+
         const val SU_PATH_FILE = APATCH_FOLDER + "su_path"
         const val SAFEMODE_FILE = "/dev/.safemode"
         private const val NEED_REBOOT_FILE = "/dev/.need_reboot"
