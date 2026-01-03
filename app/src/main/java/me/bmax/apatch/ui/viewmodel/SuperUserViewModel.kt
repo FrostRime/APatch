@@ -16,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -30,18 +29,9 @@ import java.util.Locale
 
 
 class SuperUserViewModel : ViewModel() {
-    @OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
-    private val workerDispatcher = newSingleThreadContext("SyncWorker")
-    private val refreshMutex = Mutex()
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    override fun onCleared() {
-        super.onCleared()
-        workerDispatcher.close()
-    }
-
     companion object {
         private const val TAG = "SuperUserViewModel"
+        private val appsLock = Any()
 
         var apps by mutableStateOf<List<AppInfo>>(emptyList())
     }
@@ -98,62 +88,53 @@ class SuperUserViewModel : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     suspend fun fetchAppList() {
-        if (!refreshMutex.tryLock()) return
-        try {
-            withContext(Dispatchers.Main) {
-                isRefreshing = true
+        isRefreshing = true
+
+        withContext(Dispatchers.IO) {
+            val uids = Natives.suUids().toList()
+            Log.d(TAG, "all allows: $uids")
+            val content = newSingleThreadContext("SyncWorker")
+            val nativeDataDeferred = async(content) {
+                Natives.su()
+                val configs = PkgConfig.readConfigs()
+                val packages = Pkg.readPackages()
+                Pair(configs, packages)
             }
+            val (configs, packages) = nativeDataDeferred.await()
 
-            withContext(Dispatchers.IO) {
-                val uids = Natives.suUids().toList()
-                Log.d(TAG, "all allows: $uids")
-                val nativeDataDeferred = async(workerDispatcher) {
-                    Natives.su()
-                    val configs = PkgConfig.readConfigs()
-                    val packages = Pkg.readPackages()
-                    Pair(configs, packages)
-                }
-                val (configs, packages) = nativeDataDeferred.await()
+            Log.d(TAG, "all configs: $configs")
 
-                Log.d(TAG, "all configs: $configs")
-
-                val newApps = packages.list.map {
-                    val appInfo = it.applicationInfo
-                    val uid = appInfo!!.uid
-                    val actProfile = if (uids.contains(uid)) Natives.suProfile(uid) else null
-                    val config = configs.getOrDefault(
-                        uid,
-                        PkgConfig.Config(
-                            appInfo.packageName,
-                            Natives.isUidExcluded(uid),
-                            0,
-                            Natives.Profile(uid = uid)
-                        )
+            val newApps = packages.list.map {
+                val appInfo = it.applicationInfo
+                val uid = appInfo!!.uid
+                val actProfile = if (uids.contains(uid)) Natives.suProfile(uid) else null
+                val config = configs.getOrDefault(
+                    uid,
+                    PkgConfig.Config(
+                        appInfo.packageName,
+                        Natives.isUidExcluded(uid),
+                        0,
+                        Natives.Profile(uid = uid)
                     )
-                    config.allow = 0
+                )
+                config.allow = 0
 
-                    // from kernel
-                    if (actProfile != null) {
-                        config.allow = 1
-                        config.profile = actProfile
-                    }
-                    AppInfo(
-                        label = appInfo.loadLabel(apApp.packageManager).toString(),
-                        packageInfo = it,
-                        config = config
-                    )
+                // from kernel
+                if (actProfile != null) {
+                    config.allow = 1
+                    config.profile = actProfile
                 }
+                AppInfo(
+                    label = appInfo.loadLabel(apApp.packageManager).toString(),
+                    packageInfo = it,
+                    config = config
+                )
+            }
 
-                withContext(Dispatchers.Main) {
-                    apps = newApps
-                }
+            synchronized(appsLock) {
+                apps = emptyList()
+                apps = newApps
             }
-        } finally {
-            // Ensure the UI state is reset and the lock is released, even if an error occurs
-            withContext(Dispatchers.Main) {
-                isRefreshing = false
-            }
-            refreshMutex.unlock()
         }
     }
 }
