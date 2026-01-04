@@ -1,6 +1,7 @@
 package me.bmax.apatch.util
 
 import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.util.Log
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.apApp
@@ -9,33 +10,33 @@ import java.io.File
 
 object Pkg {
     private const val TAG = "Pkg"
+    private val cache = HashMap<String, PackageInfo>()
 
     fun fromLine(line: String): PackageInfo? {
-        val sp = line.split(" ")
-        val packageName = sp[0]
+        cache[line]?.let { return it }
+        val packageName = line.substringBefore(" ")
         return try {
-            Log.d(TAG, packageName)
-            apApp.packageManager.getPackageInfo(packageName, 0)
+            cache[line] =
+                apApp.packageManager.getPackageInfo(packageName, PackageManager.GET_META_DATA)
+            cache[line]
         } catch (_: Exception) {
             null
         }
     }
 
     fun readPackages(): ParcelableListSlice<PackageInfo> {
-        val packages = ArrayList<PackageInfo>()
         val file = File(APApplication.PACKAGES_LIST_PATH)
-        if (file.exists()) {
-            file.useLines { lines ->
-                lines.forEach { line ->
-                    if (line.isNotEmpty()) {
-                        val p = fromLine(line)
-                        if (p != null) {
-                            packages.add(p)
-                        }
-                    }
-                }
+        if (!file.exists()) return ParcelableListSlice(emptyList())
+        return try {
+            val packages = file.bufferedReader().use { reader ->
+                reader.lineSequence()
+                    .filter { it.isNotEmpty() }
+                    .mapNotNull { fromLine(it) }.toList()
             }
+            ParcelableListSlice(packages)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading packages", e)
+            ParcelableListSlice(emptyList())
         }
-        return ParcelableListSlice(packages)
     }
 }

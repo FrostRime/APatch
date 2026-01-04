@@ -42,6 +42,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ShapeDefaults.Large
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,6 +59,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -115,6 +117,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopBar(
                 onInstallClick =
@@ -126,15 +129,15 @@ fun HomeScreen(navigator: DestinationsNavigator) {
         }
     ) { innerPadding ->
         Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier =
                 Modifier
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp)
                     .verticalScroll(rememberScrollState())
-                    .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxSize()
+                    .clip(Large),
         ) {
-            Spacer(Modifier.height(0.dp))
             WarningCard()
             KStatusCard(kpState, apState, navigator)
             if (kpState != APApplication.State.UNKNOWN_STATE &&
@@ -147,7 +150,6 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                 UpdateCard()
             }
             InfoCard()
-            Spacer(Modifier)
         }
     }
 }
@@ -502,12 +504,14 @@ private fun KStatusCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(intrinsicSize = IntrinsicSize.Min)
+            .height(intrinsicSize = IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         ElevatedCard(
             modifier = Modifier
                 .aspectRatio(1f, true)
                 .fillMaxHeight(),
+            shape = Large,
             onClick = {
                 if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
                     navigator.navigate(InstallModeSelectScreenDestination)
@@ -621,12 +625,14 @@ private fun KStatusCard(
             }
         }
 
-        Spacer(Modifier.width(16.dp))
-
-        Column(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
             ElevatedCard(
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                shape = Large,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -646,12 +652,11 @@ private fun KStatusCard(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-
             val managerUnknown =
                 apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
             ElevatedCard(
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                shape = Large,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -687,7 +692,8 @@ private fun AStatusCard(apState: APApplication.State) {
         colors =
             CardDefaults.elevatedCardColors(
                 containerColor = run { MaterialTheme.colorScheme.secondaryContainer }
-            )
+            ),
+        shape = Large
     ) {
         Column(
             modifier = Modifier
@@ -856,7 +862,8 @@ fun WarningCard() {
             colors =
                 CardDefaults.elevatedCardColors(
                     containerColor = run { MaterialTheme.colorScheme.error }
-                )
+                ),
+            shape = Large
         ) {
             Row(
                 modifier = Modifier
@@ -917,12 +924,12 @@ private fun getDeviceInfo(): String {
 
 @Composable
 private fun InfoCard() {
-    ElevatedCard {
+    ElevatedCard(shape = Large) {
         Column(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(24.dp)
+                    .padding(16.dp)
         ) {
             val contents = StringBuilder()
             val uname = Os.uname()
@@ -947,6 +954,7 @@ private fun InfoCard() {
 
             Spacer(Modifier.height(16.dp))
             InfoCardItem(stringResource(R.string.home_selinux_status), getSELinuxStatus())
+//                Spacer(Modifier.weight(1f))
         }
     }
 }

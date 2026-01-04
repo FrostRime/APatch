@@ -40,22 +40,28 @@ object PkgConfig {
     }
 
     fun readConfigs(): HashMap<Int, Config> {
-        val configs = HashMap<Int, Config>()
         val file = File(APApplication.PACKAGE_CONFIG_FILE)
-        if (file.exists()) {
-            file.useLines { lines ->
-                lines.drop(1).forEach { line ->
-                    if (line.isNotEmpty()) {
-                        Log.d(TAG, line)
-                        val p = Config.fromLine(line)
-                        if (!p.isDefault()) {
-                            configs[p.profile.uid] = p
-                        }
+        if (!file.exists()) return hashMapOf()
+
+        return try {
+            file.bufferedReader().use { reader ->
+                reader.readLine()
+                reader.lineSequence()
+                    .filter { it.isNotEmpty() }
+                    .map { line ->
+//                        if (BuildConfig.DEBUG) {
+//                            Log.d(TAG, line)
+//                        }
+                        Config.fromLine(line)
                     }
-                }
+                    .filter { !it.isDefault() }
+                    .associateBy { it.profile.uid }
+                    .toMutableMap() as HashMap<Int, Config>
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading configs", e)
+            hashMapOf()
         }
-        return configs
     }
 
     private fun writeConfigs(configs: HashMap<Int, Config>) {

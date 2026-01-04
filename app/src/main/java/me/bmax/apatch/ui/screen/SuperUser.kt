@@ -2,6 +2,7 @@ package me.bmax.apatch.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -20,6 +21,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ShapeDefaults.Large
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -31,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -52,7 +56,6 @@ import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
-import me.bmax.apatch.ui.component.SwitchItem
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
 import me.bmax.apatch.util.PkgConfig
 
@@ -123,11 +126,19 @@ fun SuperUserScreen() {
     ) { innerPadding ->
 
         PullToRefreshBox(
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
             onRefresh = { scope.launch { viewModel.fetchAppList() } },
             isRefreshing = viewModel.isRefreshing
         ) {
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(Large),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 items(
                     viewModel.appList.filter { it.packageName != apApp.packageName },
                     key = { it.packageName + it.uid }) { app ->
@@ -145,106 +156,125 @@ private fun AppItem(
 ) {
     val appInfo = app.packageInfo
 
-    ListItem(
-        modifier = Modifier.clickable(onClick = {
-            if (!app.rootGranted) {
-                app.showEditProfile = !app.showEditProfile
-            } else {
-                app.rootGranted = false
-                app.config.allow = 0
-                Natives.revokeSu(app.uid)
-                PkgConfig.changeConfig(app.config)
-            }
-        }),
-        headlineContent = { Text(app.label) },
-        leadingContent = {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(appInfo)
-                    .memoryCacheKey(app.packageName)
-                    .crossfade(true)
-                    .fetcherDispatcher(Dispatchers.IO)
-                    .decoderDispatcher(Dispatchers.IO)
-                    .interceptorDispatcher(Dispatchers.IO)
-                    .fetcherDispatcher(Dispatchers.IO)
-                    .build(),
-                contentDescription = app.label,
-                modifier = Modifier
-                    .padding(4.dp)
-                    .size(48.dp)
-            )
-        },
-        supportingContent = {
-            Column {
-                Text(app.packageName)
-
-                if (app.excludeApp == 1) {
-                    LabelText(label = stringResource(id = R.string.su_pkg_excluded_label))
-                }
-                if (app.rootGranted) {
-                    FlowRow {
-                        LabelText(label = app.config.profile.uid.toString())
-                        LabelText(label = app.config.profile.toUid.toString())
-                        LabelText(
-                            label = when {
-                                // todo: valid scontext ?
-                                app.config.profile.scontext.isNotEmpty() -> app.config.profile.scontext
-                                else -> stringResource(id = R.string.su_selinux_via_hook)
-                            }
-                        )
-                    }
-                }
-            }
-        },
-        trailingContent = {
-            Switch(checked = app.rootGranted, onCheckedChange = {
-                app.rootGranted = !app.rootGranted
-                if (app.rootGranted) {
-                    app.excludeApp = 0
-                    app.config.allow = 1
-                    app.config.exclude = 0
-                    app.config.profile.scontext = APApplication.MAGISK_SCONTEXT
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shape = Large
+    ) {
+        Column(
+            modifier = Modifier.clickable(onClick = {
+                if (!app.rootGranted) {
+                    app.showEditProfile = !app.showEditProfile
                 } else {
+                    app.rootGranted = false
                     app.config.allow = 0
-                }
-                app.config.profile.uid = app.uid
-                PkgConfig.changeConfig(app.config)
-                if (app.config.allow == 1) {
-                    Natives.grantSu(app.uid, 0, app.config.profile.scontext)
-                    Natives.setUidExclude(app.uid, 0)
-                } else {
                     Natives.revokeSu(app.uid)
+                    PkgConfig.changeConfig(app.config)
                 }
             })
-        },
-    )
+        ) {
+            ListItem(
+                headlineContent = { Text(app.label) },
+                leadingContent = {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(appInfo)
+                            .memoryCacheKey(app.packageName)
+                            .crossfade(true)
+                            .fetcherDispatcher(Dispatchers.IO)
+                            .decoderDispatcher(Dispatchers.IO)
+                            .interceptorDispatcher(Dispatchers.IO)
+                            .fetcherDispatcher(Dispatchers.IO)
+                            .build(),
+                        contentDescription = app.label,
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .size(48.dp)
+                    )
+                },
+                supportingContent = {
+                    Column {
+                        Text(app.packageName)
 
-    AnimatedVisibility(
-        visible = app.showEditProfile && !app.rootGranted,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-    ) {
-        SwitchItem(
-            icon = Tabler.Outline.UserX,
-            title = stringResource(id = R.string.su_pkg_excluded_setting_title),
-            summary = stringResource(id = R.string.su_pkg_excluded_setting_summary),
-            checked = app.excludeApp == 1,
-            onCheckedChange = {
-                if (it) {
-                    app.excludeApp = 1
-                    app.config.allow = 0
-                    app.config.profile.scontext = APApplication.DEFAULT_SCONTEXT
-                    Natives.revokeSu(app.uid)
-                } else {
-                    app.excludeApp = 0
-                }
-                app.config.exclude = app.excludeApp
-                app.config.profile.uid = app.uid
-                PkgConfig.changeConfig(app.config)
-                Natives.setUidExclude(app.uid, app.excludeApp)
-            },
-        )
+                        if (app.excludeApp == 1) {
+                            LabelText(label = stringResource(id = R.string.su_pkg_excluded_label))
+                        }
+                        if (app.rootGranted) {
+                            FlowRow {
+                                LabelText(label = app.config.profile.uid.toString())
+                                LabelText(label = app.config.profile.toUid.toString())
+                                LabelText(
+                                    label = when {
+                                        // todo: valid scontext ?
+                                        app.config.profile.scontext.isNotEmpty() -> app.config.profile.scontext
+                                        else -> stringResource(id = R.string.su_selinux_via_hook)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                },
+                trailingContent = {
+                    Switch(checked = app.rootGranted, onCheckedChange = {
+                        app.rootGranted = !app.rootGranted
+                        if (app.rootGranted) {
+                            app.excludeApp = 0
+                            app.config.allow = 1
+                            app.config.exclude = 0
+                            app.config.profile.scontext = APApplication.MAGISK_SCONTEXT
+                        } else {
+                            app.config.allow = 0
+                        }
+                        app.config.profile.uid = app.uid
+                        PkgConfig.changeConfig(app.config)
+                        if (app.config.allow == 1) {
+                            Natives.grantSu(app.uid, 0, app.config.profile.scontext)
+                            Natives.setUidExclude(app.uid, 0)
+                        } else {
+                            Natives.revokeSu(app.uid)
+                        }
+                    })
+                },
+            )
+
+            AnimatedVisibility(
+                visible = app.showEditProfile && !app.rootGranted,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+            ) {
+                ListItem(
+                    headlineContent = { Text(stringResource(id = R.string.su_pkg_excluded_setting_title)) },
+                    leadingContent = {
+                        Icon(
+                            Tabler.Outline.UserX,
+                            contentDescription = stringResource(id = R.string.su_pkg_excluded_setting_title)
+                        )
+                    },
+                    supportingContent = { Text(stringResource(id = R.string.su_pkg_excluded_setting_summary)) },
+                    trailingContent = {
+                        Switch(
+                            checked = app.excludeApp == 1,
+                            onCheckedChange = {
+                                if (it) {
+                                    app.excludeApp = 1
+                                    app.config.allow = 0
+                                    app.config.profile.scontext =
+                                        APApplication.DEFAULT_SCONTEXT
+                                    Natives.revokeSu(app.uid)
+                                } else {
+                                    app.excludeApp = 0
+                                }
+                                app.config.exclude = app.excludeApp
+                                app.config.profile.uid = app.uid
+                                PkgConfig.changeConfig(app.config)
+                                Natives.setUidExclude(app.uid, app.excludeApp)
+                            },
+                        )
+                    }
+                )
+            }
+        }
     }
 }
 

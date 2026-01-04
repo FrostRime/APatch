@@ -34,6 +34,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ShapeDefaults.Large
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -55,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -169,6 +171,7 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                 }
 
                 FloatingActionButton(
+                    modifier = Modifier.clip(Large),
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     containerColor = MaterialTheme.colorScheme.primary,
                     onClick = {
@@ -206,8 +209,8 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                     modules = modules,
                     modifier = Modifier
                         .padding(innerPadding)
-                        .fillMaxSize(),
-                    state = moduleListState,
+//                        .fillMaxSize()
+                    , state = moduleListState,
                     onInstallModule = {
                         navigator.navigate(InstallScreenDestination(it, ModuleType.APM))
                     },
@@ -354,20 +357,21 @@ private fun ModuleList(
     }
 
     PullToRefreshBox(
-        modifier = modifier,
+        modifier = modifier
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 16.dp),
         onRefresh = { viewModel.fetchModuleList() },
         isRefreshing = viewModel.isRefreshing
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(Large),
             state = state,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = remember {
                 PaddingValues(
-                    start = 16.dp,
-                    top = 16.dp,
-                    end = 16.dp,
-                    bottom = 16.dp + 16.dp + 56.dp /*  Scaffold Fab Spacing + Fab container height */
+                    bottom = 16.dp + 56.dp /*  Scaffold Fab Spacing + Fab container height */
                 )
             },
         ) {
@@ -475,7 +479,7 @@ private fun ModuleItem(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
-        shape = MaterialTheme.shapes.large
+        shape = Large
     ) {
         Column(
             modifier = Modifier

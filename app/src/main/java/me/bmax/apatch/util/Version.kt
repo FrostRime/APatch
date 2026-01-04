@@ -31,9 +31,9 @@ object Version {
     }
 
     fun getKpImg(): String {
-        var shell: Shell = createRootShell()
+        val shell: Shell = createRootShell()
         mutableStateOf(KPModel.KImgInfo("", false))
-        var kpimgInfo = mutableStateOf(KPModel.KPImgInfo("", "", "", "", ""))
+        val kpimgInfo = mutableStateOf(KPModel.KPImgInfo("", "", "", "", ""))
         val patchDir: ExtendedFile =
             FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "check")
         patchDir.deleteRecursively()

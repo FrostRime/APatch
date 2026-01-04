@@ -199,7 +199,7 @@ class WebViewInterface(val context: Context, private val webView: WebView) {
                 val pkg = appInfo.packageInfo
                 val app = pkg.applicationInfo
                 val obj = JSONObject()
-                obj.put("packageName", pkg.packageName)
+                obj.put("packageName", appInfo.packageName)
                 obj.put("versionName", pkg.versionName ?: "")
                 obj.put("versionCode", PackageInfoCompat.getLongVersionCode(pkg))
                 obj.put("appLabel", appInfo.label)

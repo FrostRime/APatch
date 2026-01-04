@@ -19,6 +19,7 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.Natives
 import me.bmax.apatch.apApp
 import me.bmax.apatch.util.HanziToPinyin
@@ -39,14 +40,12 @@ class SuperUserViewModel : ViewModel() {
     @Immutable
     @Parcelize
     data class AppInfo(
-        val label: String, val packageInfo: PackageInfo, val config: PkgConfig.Config
+        val label: String,
+        val packageName: String,
+        val uid: Int,
+        val packageInfo: PackageInfo,
+        val config: PkgConfig.Config
     ) : Parcelable {
-        val packageName: String
-            get() = packageInfo.packageName
-        val uid: Int
-            get() = packageInfo.applicationInfo!!.uid
-
-
         @IgnoredOnParcel
         var showEditProfile by mutableStateOf(false)
 
@@ -96,9 +95,37 @@ class SuperUserViewModel : ViewModel() {
             val content = newSingleThreadContext("SyncWorker")
             val nativeDataDeferred = async(content) {
                 Natives.su()
+                var startTime = if (BuildConfig.DEBUG) {
+                    System.currentTimeMillis()
+                } else {
+                    null
+                }
                 val configs = PkgConfig.readConfigs()
-                val packages = Pkg.readPackages()
-                Pair(configs, packages)
+
+                if (BuildConfig.DEBUG) {
+                    startTime?.let {
+                        Log.d(
+                            TAG,
+                            "read configs in ${System.currentTimeMillis() - it}ms"
+                        )
+                    }
+                }
+                startTime = if (BuildConfig.DEBUG) {
+                    System.currentTimeMillis()
+                } else {
+                    null
+                }
+                val apps = Pkg.readPackages()
+
+                if (BuildConfig.DEBUG) {
+                    startTime?.let {
+                        Log.d(
+                            TAG,
+                            "read packages in ${System.currentTimeMillis() - it}ms"
+                        )
+                    }
+                }
+                Pair(configs, apps)
             }
             val (configs, packages) = nativeDataDeferred.await()
 
@@ -108,10 +135,11 @@ class SuperUserViewModel : ViewModel() {
                 val appInfo = it.applicationInfo
                 val uid = appInfo!!.uid
                 val actProfile = if (uids.contains(uid)) Natives.suProfile(uid) else null
+                val packageName = it.packageName
                 val config = configs.getOrDefault(
                     uid,
                     PkgConfig.Config(
-                        appInfo.packageName,
+                        packageName,
                         Natives.isUidExcluded(uid),
                         0,
                         Natives.Profile(uid = uid)
@@ -127,6 +155,8 @@ class SuperUserViewModel : ViewModel() {
                 AppInfo(
                     label = appInfo.loadLabel(apApp.packageManager).toString(),
                     packageInfo = it,
+                    packageName = packageName,
+                    uid = uid,
                     config = config
                 )
             }
