@@ -447,8 +447,8 @@ private fun KPModuleList(
 
     PullToRefreshBox(
         modifier = modifier
-            .padding(horizontal = 16.dp)
-            .padding(bottom = 16.dp),
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 12.dp),
         onRefresh = { viewModel.fetchModuleList() },
         isRefreshing = viewModel.isRefreshing
     ) {

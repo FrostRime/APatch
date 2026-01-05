@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,7 +59,6 @@ import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
 import me.bmax.apatch.util.PkgConfig
-
 
 @Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
@@ -128,8 +128,8 @@ fun SuperUserScreen() {
         PullToRefreshBox(
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 12.dp),
             onRefresh = { scope.launch { viewModel.fetchAppList() } },
             isRefreshing = viewModel.isRefreshing
         ) {
@@ -215,7 +215,7 @@ private fun AppItem(
                     }
                 },
                 trailingContent = {
-                    Switch(checked = app.rootGranted, onCheckedChange = {
+                    Checkbox(checked = app.rootGranted, onCheckedChange = {
                         app.rootGranted = !app.rootGranted
                         if (app.rootGranted) {
                             app.excludeApp = 0
