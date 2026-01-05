@@ -808,8 +808,6 @@ private fun AStatusCard(apState: APApplication.State) {
                                         APApplication.installApatch()
                                     }
 
-                                    APApplication.State.ANDROIDPATCH_UNINSTALLING -> {}
-
                                     else -> {}
                                 }
                             },

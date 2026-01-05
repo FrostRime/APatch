@@ -158,18 +158,13 @@ private fun AppItem(
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        tonalElevation = if (app.rootGranted) 3.dp else 1.dp,
         shape = Large
     ) {
         Column(
             modifier = Modifier.clickable(onClick = {
                 if (!app.rootGranted) {
                     app.showEditProfile = !app.showEditProfile
-                } else {
-                    app.rootGranted = false
-                    app.config.allow = 0
-                    Natives.revokeSu(app.uid)
-                    PkgConfig.changeConfig(app.config)
                 }
             })
         ) {
