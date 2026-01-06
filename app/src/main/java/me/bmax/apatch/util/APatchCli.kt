@@ -312,6 +312,20 @@ fun setLiteMode(enable: Boolean) {
         }
 }
 
+fun isWhiteListEnabled(): Boolean {
+    val mode = SuFile(APApplication.WHITELIST_FILE)
+    mode.shell = getRootShell()
+    return mode.exists()
+}
+
+fun setWhiteListMode(enable: Boolean) {
+    getRootShell().newJob()
+        .add("${if (enable) "touch" else "rm -rf"} ${APApplication.WHITELIST_FILE}")
+        .submit { result ->
+            Log.i(TAG, "setWhiteList result: ${result.isSuccess} [${result.out}]")
+        }
+}
+
 fun isForceUsingOverlayFS(): Boolean {
     val forceOverlayFS = SuFile(APApplication.FORCE_OVERLAYFS_FILE)
     forceOverlayFS.shell = getRootShell()

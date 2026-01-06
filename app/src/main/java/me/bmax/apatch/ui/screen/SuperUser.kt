@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,12 +18,16 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults.Large
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -30,9 +35,11 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +52,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.filled.ClipboardList
+import com.composables.icons.tabler.outline.ClipboardList
 import com.composables.icons.tabler.outline.DotsVertical
 import com.composables.icons.tabler.outline.UserX
 import com.ramcosta.composedestinations.annotation.Destination
@@ -59,6 +68,10 @@ import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
 import me.bmax.apatch.util.PkgConfig
+import me.bmax.apatch.util.isWhiteListEnabled
+import me.bmax.apatch.util.reboot
+import me.bmax.apatch.util.setWhiteListMode
+import me.bmax.apatch.util.ui.LocalSnackbarHost
 
 @Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
@@ -67,6 +80,10 @@ import me.bmax.apatch.util.PkgConfig
 fun SuperUserScreen() {
     val viewModel = viewModel<SuperUserViewModel>()
     val scope = rememberCoroutineScope()
+    val snackBarHost = LocalSnackbarHost.current
+    val reboot = stringResource(id = R.string.reboot)
+    val rebootToApply = stringResource(id = R.string.apm_reboot_to_apply)
+    var isWhiteListEnabled by rememberSaveable { mutableStateOf(isWhiteListEnabled()) }
 
     LaunchedEffect(Unit) {
         if (viewModel.appList.isEmpty()) {
@@ -75,6 +92,7 @@ fun SuperUserScreen() {
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackBarHost) },
         topBar = {
             SearchAppBar(
                 title = { Text(stringResource(R.string.su_title)) },
@@ -123,8 +141,38 @@ fun SuperUserScreen() {
                 },
             )
         },
+        floatingActionButton = {
+            val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
+            val kPatchReady = state != APApplication.State.UNKNOWN_STATE
+            val aPatchReady =
+                (state == APApplication.State.ANDROIDPATCH_INSTALLING || state == APApplication.State.ANDROIDPATCH_INSTALLED || state == APApplication.State.ANDROIDPATCH_NEED_UPDATE)
+            if (kPatchReady && aPatchReady) {
+                FloatingActionButton(
+                    modifier = Modifier.clip(Large),
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        setWhiteListMode(!isWhiteListEnabled)
+                        isWhiteListEnabled = !isWhiteListEnabled
+                        scope.launch {
+                            val result = snackBarHost.showSnackbar(
+                                message = rebootToApply,
+                                actionLabel = reboot,
+                                duration = SnackbarDuration.Long
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                reboot()
+                            }
+                        }
+                    }) {
+                    Icon(
+                        imageVector = if (isWhiteListEnabled) Tabler.Filled.ClipboardList else Tabler.Outline.ClipboardList,
+                        contentDescription = null
+                    )
+                }
+            }
+        }
     ) { innerPadding ->
-
         PullToRefreshBox(
             modifier = Modifier
                 .padding(innerPadding)
@@ -137,7 +185,8 @@ fun SuperUserScreen() {
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(Large),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = remember { PaddingValues(bottom = 16.dp + 56.dp) }
             ) {
                 items(
                     viewModel.appList.filter { it.packageName != apApp.packageName },
@@ -158,7 +207,7 @@ private fun AppItem(
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = if (app.rootGranted) 3.dp else 1.dp,
+        tonalElevation = if (app.rootGranted) 4.dp else 1.dp,
         shape = Large
     ) {
         Column(
@@ -227,6 +276,9 @@ private fun AppItem(
                             Natives.setUidExclude(app.uid, 0)
                         } else {
                             Natives.revokeSu(app.uid)
+                            if (isWhiteListEnabled()) {
+                                Natives.setUidExclude(app.uid, 1)
+                            }
                         }
                     })
                 },

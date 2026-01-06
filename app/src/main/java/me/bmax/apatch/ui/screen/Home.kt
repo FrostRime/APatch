@@ -25,9 +25,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -128,28 +127,37 @@ fun HomeScreen(navigator: DestinationsNavigator) {
             )
         }
     ) { innerPadding ->
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        LazyColumn(
             modifier =
                 Modifier
                     .padding(innerPadding)
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp)
+                    .padding(bottom = 12.dp)
                     .fillMaxSize()
                     .clip(Large),
         ) {
-            WarningCard()
-            KStatusCard(kpState, apState, navigator)
+            item {
+                WarningCard()
+            }
+            item {
+                KStatusCard(kpState, apState, navigator)
+            }
             if (kpState != APApplication.State.UNKNOWN_STATE &&
                 apState != APApplication.State.ANDROIDPATCH_INSTALLED
             ) {
-                AStatusCard(apState)
+                item {
+                    AStatusCard(apState)
+                }
             }
             val checkUpdate = APApplication.sharedPreferences.getBoolean("check_update", true)
             if (checkUpdate) {
-                UpdateCard()
+                item {
+                    UpdateCard()
+                }
             }
-            InfoCard()
+            item {
+                InfoCard()
+            }
         }
     }
 }
@@ -501,188 +509,197 @@ private fun KStatusCard(
             }
         }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(intrinsicSize = IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        ElevatedCard(
+    Column {
+        Row(
             modifier = Modifier
-                .aspectRatio(1f, true)
-                .fillMaxHeight(),
-            shape = Large,
-            onClick = {
-                if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
-                    navigator.navigate(InstallModeSelectScreenDestination)
-                }
-            },
-            colors = CardDefaults.elevatedCardColors(containerColor = cardBackgroundColor),
-            elevation =
-                CardDefaults.cardElevation(
-                    defaultElevation =
-                        if (kpState == APApplication.State.UNKNOWN_STATE) 0.dp else 6.dp
-                )
+                .fillMaxWidth()
+                .height(intrinsicSize = IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                propagateMinConstraints = true
+            ElevatedCard(
+                modifier = Modifier
+                    .aspectRatio(1f, true)
+                    .fillMaxHeight(),
+                shape = Large,
+                onClick = {
+                    if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
+                        navigator.navigate(InstallModeSelectScreenDestination)
+                    }
+                },
+                colors = CardDefaults.elevatedCardColors(containerColor = cardBackgroundColor),
+                elevation =
+                    CardDefaults.cardElevation(
+                        defaultElevation =
+                            if (kpState == APApplication.State.UNKNOWN_STATE) 0.dp else 6.dp
+                    )
             ) {
-                when (kpState) {
-                    APApplication.State.KERNELPATCH_INSTALLED -> {
-                        Icon(
-                            Tabler.Outline.Checks,
-                            modifier = Modifier.fillMaxSize(),
-                            tint = LocalContentColor.current.copy(alpha = 0.4f),
-                            contentDescription = stringResource(R.string.home_working)
-                        )
-                    }
-
-                    APApplication.State.KERNELPATCH_NEED_UPDATE,
-                    APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-                        Icon(
-                            Tabler.Outline.ArrowAutofitDown,
-                            modifier = Modifier.fillMaxSize(),
-                            tint = LocalContentColor.current.copy(alpha = 0.4f),
-                            contentDescription =
-                                stringResource(R.string.home_need_update)
-                        )
-                    }
-
-                    else -> {
-                        Icon(
-                            Tabler.Outline.DeviceUnknown,
-                            modifier = Modifier.fillMaxSize(),
-                            tint = LocalContentColor.current.copy(alpha = 0.4f),
-                            contentDescription = "Unknown"
-                        )
-                    }
-                }
-
-                Column(
-                    Modifier
-                        .padding(4.dp)
-                        .fillMaxSize()
+                Box(
+                    propagateMinConstraints = true
                 ) {
-                    Spacer(Modifier.weight(1f))
-
                     when (kpState) {
                         APApplication.State.KERNELPATCH_INSTALLED -> {
-                            Text(
-                                text = stringResource(R.string.home_working),
-                                style = MaterialTheme.typography.titleMedium
+                            Icon(
+                                Tabler.Outline.Checks,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                tint = LocalContentColor.current.copy(alpha = 0.4f),
+                                contentDescription = stringResource(R.string.home_working)
                             )
                         }
 
                         APApplication.State.KERNELPATCH_NEED_UPDATE,
                         APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-                            Text(
-                                text = stringResource(R.string.home_need_update),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text =
-                                    stringResource(
-                                        R.string.kpatch_version_update,
-                                        Version.installedKPVString(),
-                                        Version.buildKPVString()
-                                    ),
-                                style = MaterialTheme.typography.bodyMedium
+                            Icon(
+                                Tabler.Outline.ArrowAutofitDown,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                tint = LocalContentColor.current.copy(alpha = 0.4f),
+                                contentDescription =
+                                    stringResource(R.string.home_need_update)
                             )
                         }
 
                         else -> {
-                            Text(
-                                text = stringResource(R.string.home_install_unknown),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = contentColorFor(cardBackgroundColor)
-                            )
-                            Text(
-                                text = stringResource(R.string.home_install_unknown_summary),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = contentColorFor(cardBackgroundColor)
+                            Icon(
+                                Tabler.Outline.DeviceUnknown,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                tint = LocalContentColor.current.copy(alpha = 0.4f),
+                                contentDescription = "Unknown"
                             )
                         }
                     }
-                    if (kpState != APApplication.State.UNKNOWN_STATE &&
-                        kpState != APApplication.State.KERNELPATCH_NEED_UPDATE &&
-                        kpState != APApplication.State.KERNELPATCH_NEED_REBOOT
+
+                    Column(
+                        Modifier
+                            .padding(12.dp)
+                            .fillMaxSize()
                     ) {
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.weight(1f))
+
+                        when (kpState) {
+                            APApplication.State.KERNELPATCH_INSTALLED -> {
+                                Text(
+                                    text = stringResource(R.string.home_working),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+
+                            APApplication.State.KERNELPATCH_NEED_UPDATE,
+                            APApplication.State.KERNELPATCH_NEED_REBOOT -> {
+                                Text(
+                                    text = stringResource(R.string.home_need_update),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text =
+                                        stringResource(
+                                            R.string.kpatch_version_update,
+                                            Version.installedKPVString(),
+                                            Version.buildKPVString()
+                                        ),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+
+                            else -> {
+                                Text(
+                                    text = stringResource(R.string.home_install_unknown),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = contentColorFor(cardBackgroundColor)
+                                )
+                                Text(
+                                    text = stringResource(R.string.home_install_unknown_summary),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = contentColorFor(cardBackgroundColor)
+                                )
+                            }
+                        }
+                        if (kpState != APApplication.State.UNKNOWN_STATE &&
+                            kpState != APApplication.State.KERNELPATCH_NEED_UPDATE &&
+                            kpState != APApplication.State.KERNELPATCH_NEED_REBOOT
+                        ) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text =
+                                    "${Version.installedKPVString()} " +
+                                            if (apState !=
+                                                APApplication.State
+                                                    .ANDROIDPATCH_NOT_INSTALLED
+                                            )
+                                                "[FULL]"
+                                            else "[HALF]",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(
+                Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
+                ElevatedCard(
+                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                    shape = Large,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .clickable {
+                            showResetSuPathDialog.value = true
+                        }) {
+                    Column(Modifier.padding(12.dp)) {
                         Text(
-                            text =
-                                "${Version.installedKPVString()} " +
-                                        if (apState !=
-                                            APApplication.State
-                                                .ANDROIDPATCH_NOT_INSTALLED
-                                        )
-                                            "[FULL]"
-                                        else "[HALF]",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = stringResource(R.string.home_su_path),
+                            style = MaterialTheme.typography.titleMedium
                         )
+                        Text(
+                            text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+
+                val managerUnknown =
+                    apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
+                ElevatedCard(
+                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                    shape = Large,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .clickable {
+                            if (managerUnknown) {
+                                showAuthKeyDialog.value = true
+                            } else {
+                                navigator.navigate(AboutScreenDestination)
+                            }
+                        }) {
+                    Column(
+                        Modifier
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.home_apatch_version),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Spacer(Modifier.weight(1f))
                     }
                 }
             }
         }
-
-        Column(
-            Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
-            ElevatedCard(
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-                shape = Large,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .clickable {
-                        showResetSuPathDialog.value = true
-                    }) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(
-                        text = stringResource(R.string.home_su_path),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(Modifier.weight(1f))
-                }
-            }
-
-            val managerUnknown =
-                apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
-            ElevatedCard(
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-                shape = Large,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .clickable {
-                        if (managerUnknown) {
-                            showAuthKeyDialog.value = true
-                        } else {
-                            navigator.navigate(AboutScreenDestination)
-                        }
-                    }) {
-                Column(
-                    Modifier
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_apatch_version),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.first + " (" + managerVersion.second + ")",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(Modifier.weight(1f))
-                }
-            }
-        }
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -725,10 +742,6 @@ private fun AStatusCard(apState: APApplication.State) {
                         )
                     }
 
-                    APApplication.State.ANDROIDPATCH_INSTALLED -> {
-                        Icon(Tabler.Outline.Checks, stringResource(R.string.home_working))
-                    }
-
                     APApplication.State.ANDROIDPATCH_NEED_UPDATE -> {
                         Icon(
                             Tabler.Outline.ArrowAutofitDown,
@@ -759,13 +772,6 @@ private fun AStatusCard(apState: APApplication.State) {
                         APApplication.State.ANDROIDPATCH_INSTALLING -> {
                             Text(
                                 text = stringResource(R.string.home_installing),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-
-                        APApplication.State.ANDROIDPATCH_INSTALLED -> {
-                            Text(
-                                text = stringResource(R.string.home_working),
                                 style = MaterialTheme.typography.titleMedium
                             )
                         }
@@ -846,6 +852,7 @@ private fun AStatusCard(apState: APApplication.State) {
                     }
                 }
             }
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
@@ -902,6 +909,7 @@ fun WarningCard() {
                     }
                 }
             }
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
@@ -971,6 +979,7 @@ fun WarningCard(
                     .then(onClick?.let { Modifier.clickable { it() } } ?: Modifier)
                     .padding(24.dp)
         ) { Text(text = message, style = MaterialTheme.typography.bodyMedium) }
+        Spacer(Modifier.height(8.dp))
     }
 }
 

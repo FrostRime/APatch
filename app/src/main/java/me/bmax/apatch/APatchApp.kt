@@ -60,6 +60,8 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         const val PACKAGES_LIST_PATH = "/data/system/packages.list"
 
         const val SU_PATH_FILE = APATCH_FOLDER + "su_path"
+        const val AP_INFO_FILE = APATCH_FOLDER + "ap_info"
+        const val WHITELIST_FILE = APATCH_FOLDER + ".whitelist_enable"
         const val SAFEMODE_FILE = "/dev/.safemode"
         private const val NEED_REBOOT_FILE = "/dev/.need_reboot"
         const val GLOBAL_NAMESPACE_FILE = "/data/adb/.global_namespace_enable"
@@ -156,6 +158,9 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                 "[ -s $SU_PATH_FILE ] || echo $LEGACY_SU_PATH > $SU_PATH_FILE",
                 "echo ${Version.getManagerVersion().second} > $APATCH_VERSION_PATH",
                 "restorecon -R $APATCH_FOLDER",
+
+                "touch $AP_INFO_FILE",
+                "echo ${BuildConfig.APPLICATION_ID} > $AP_INFO_FILE",
 
                 "${nativeDir}/libmagiskpolicy.so --magisk --live",
             )

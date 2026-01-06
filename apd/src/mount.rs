@@ -28,7 +28,6 @@ pub struct AutoMountExt4 {
 
 impl AutoMountExt4 {
     #[cfg(any(target_os = "linux", target_os = "android"))]
-
     pub fn try_new(source: &str, target: &str, auto_umount: bool) -> Result<Self> {
         let path = Path::new(source);
         if !path.exists() {

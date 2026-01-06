@@ -1,6 +1,7 @@
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::collections::HashSet;
+use std::fs::{self, File};
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::thread;
@@ -49,6 +50,35 @@ pub fn read_ap_package_config() -> Vec<PackageConfig> {
         thread::sleep(Duration::from_secs(1));
     }
     Vec::new()
+}
+
+pub fn is_whitelist() -> bool {
+    let max_retry = 5;
+    for _ in 0..max_retry {
+        return match fs::exists("/data/adb/ap/.whitelist_enable") {
+            Ok(exists) => exists,
+            Err(e) => {
+                warn!("Error opening file: {}", e);
+                thread::sleep(Duration::from_secs(1));
+                continue;
+            }
+        };
+    }
+    false
+}
+
+pub fn manager_package_id() -> String {
+    let max_retry = 5;
+    for i in 0..max_retry {
+        match fs::read_to_string("/data/adb/ap/ap_info") {
+            Ok(content) => return content.trim().to_string(),
+            Err(e) => {
+                warn!("读取 ap_info 失败 (第 {} 次): {}", i + 1, e);
+                thread::sleep(Duration::from_secs(1));
+            }
+        }
+    }
+    "me.bmax.apatch".to_string()
 }
 
 pub fn write_ap_package_config(package_configs: &[PackageConfig]) -> io::Result<()> {
@@ -106,25 +136,36 @@ where
     File::open(filename).map(|file| io::BufReader::new(file).lines())
 }
 
-pub fn synchronize_package_uid() -> io::Result<()> {
+pub fn synchronize_package_config() -> io::Result<Vec<PackageConfig>> {
     info!("[synchronize_package_uid] Start synchronizing root list with system packages...");
 
     let max_retry = 5;
     for _ in 0..max_retry {
         match read_lines("/data/system/packages.list") {
             Ok(lines) => {
-                let lines: Vec<_> = lines.filter_map(|line| line.ok()).collect();
+                let system_packages_map: HashSet<(String, String, bool)> = lines
+                    .filter_map(|line| line.ok())
+                    .filter_map(|line| {
+                        let mut parts = line.split_whitespace();
+                        let pkg = parts.next()?.to_string();
+                        let uid = parts.next()?.to_string();
+                        let is_system_app = parts.last()?.to_string() == "@system";
+                        Some((pkg, uid, is_system_app))
+                    })
+                    .collect();
 
                 let mut package_configs = read_ap_package_config();
 
-                let system_packages: Vec<String> = lines
+                let system_packages: HashSet<String> = system_packages_map
                     .iter()
-                    .filter_map(|line| line.split_whitespace().next())
-                    .map(|pkg| pkg.to_string())
+                    .map(|(pkg, _, _)| pkg.clone())
                     .collect();
 
                 let original_len = package_configs.len();
                 package_configs.retain(|config| system_packages.contains(&config.pkg));
+                let mut seen = HashSet::new();
+                package_configs.retain(|config| seen.insert(config.pkg.clone()));
+                drop(seen);
                 let removed_count = original_len - package_configs.len();
 
                 if removed_count > 0 {
@@ -136,27 +177,38 @@ pub fn synchronize_package_uid() -> io::Result<()> {
 
                 let mut updated = false;
 
-                for line in &lines {
-                    let words: Vec<&str> = line.split_whitespace().collect();
-                    if words.len() >= 2 {
-                        let pkg_name = words[0];
-                        if let Ok(uid) = words[1].parse::<i32>() {
-                            for config in package_configs
-                                .iter_mut()
-                                .filter(|config| config.pkg == pkg_name)
-                            {
-                                if config.uid % 100000 != uid % 100000 {  
-                                    let new_uid = config.uid / 100000 * 100000 + uid % 100000;
-                                    info!(
-                                        "Updating uid for package {}: {} -> {}",
-                                        pkg_name, config.uid, new_uid
-                                    );
-                                    config.uid = new_uid;
-                                    updated = true;
-                                }
+                let mut config_map: std::collections::HashMap<String, &mut PackageConfig> =
+                    package_configs
+                        .iter_mut()
+                        .map(|c| (c.pkg.clone(), c))
+                        .collect();
+
+                let is_whitelist = is_whitelist();
+                let mut extra_configs = Vec::new();
+                let manager_package_id = manager_package_id();
+
+                for (pkg, uid, is_system_app) in system_packages_map {
+                    if let Ok(uid) = uid.parse::<i32>() {
+                        if let Some(config) = config_map.get_mut(&pkg) {
+                            if config.uid % 100000 != uid % 100000 {
+                                let new_uid = config.uid / 100000 * 100000 + uid % 100000;
+                                info!(
+                                    "Updating uid for package {}: {} -> {}",
+                                    pkg, config.uid, new_uid
+                                );
+                                config.uid = new_uid;
+                                updated = true;
                             }
-                        } else {
-                            warn!("Error parsing uid: {}", words[1]);
+                        } else if manager_package_id != pkg && !is_system_app && is_whitelist {
+                            let config = PackageConfig {
+                                pkg,
+                                exclude: 1,
+                                allow: 0,
+                                uid,
+                                to_uid: 0,
+                                sctx: "u:r:untrusted_app:s0".to_string(),
+                            };
+                            extra_configs.push(config);
                         }
                     }
                 }
@@ -164,7 +216,7 @@ pub fn synchronize_package_uid() -> io::Result<()> {
                 if updated || removed_count > 0 {
                     write_ap_package_config(&package_configs)?;
                 }
-                return Ok(());
+                return Ok([extra_configs, package_configs].concat());
             }
             Err(e) => {
                 warn!("Error reading packages.list: {}", e);

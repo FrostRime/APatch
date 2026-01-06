@@ -249,7 +249,6 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
             }
         }
     }) { innerPadding ->
-
         KPModuleList(
             viewModel = viewModel,
             modules = modules,
