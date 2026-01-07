@@ -312,15 +312,22 @@ fun setLiteMode(enable: Boolean) {
         }
 }
 
-fun isWhiteListEnabled(): Boolean {
+fun getWhiteListMode(): Int {
+    val shell = getRootShell()
     val mode = SuFile(APApplication.WHITELIST_FILE)
-    mode.shell = getRootShell()
-    return mode.exists()
+    mode.shell = shell
+    if (!mode.exists()) {
+        return -1
+    }
+
+    val result = ShellUtils.fastCmd(shell, "cat ${APApplication.WHITELIST_FILE}").toIntOrNull()
+    return result ?: -1
 }
 
-fun setWhiteListMode(enable: Boolean) {
+fun setWhiteListMode(mode: Int) {
     getRootShell().newJob()
-        .add("${if (enable) "touch" else "rm -rf"} ${APApplication.WHITELIST_FILE}")
+        .add("touch ${APApplication.WHITELIST_FILE}")
+        .add("echo $mode > ${APApplication.WHITELIST_FILE}")
         .submit { result ->
             Log.i(TAG, "setWhiteList result: ${result.isSuccess} [${result.out}]")
         }

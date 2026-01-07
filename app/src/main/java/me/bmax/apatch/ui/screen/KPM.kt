@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,6 +37,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults.Large
@@ -57,7 +59,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
@@ -66,7 +67,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
@@ -97,7 +97,6 @@ import me.bmax.apatch.ui.viewmodel.KPModel
 import me.bmax.apatch.ui.viewmodel.KPModuleViewModel
 import me.bmax.apatch.ui.viewmodel.PatchesViewModel
 import me.bmax.apatch.util.inputStream
-import me.bmax.apatch.util.ui.APDialogBlurBehindUtils
 import me.bmax.apatch.util.writeTo
 import java.io.IOException
 
@@ -293,10 +292,11 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
     var enable by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val loadingDialog = rememberLoadingDialog()
-    val context = LocalContext.current
     val outMsgStringRes = stringResource(id = R.string.kpm_control_outMsg)
     val okStringRes = stringResource(id = R.string.kpm_control_ok)
     val failedStringRes = stringResource(id = R.string.kpm_control_failed)
+
+    var bottomSheetText by remember { mutableStateOf(Pair("", "")) }
 
     lateinit var controlResult: Natives.KPMCtlRes
 
@@ -307,97 +307,106 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
             }
         }
 
-        if (controlResult.rc >= 0) {
-            Toast.makeText(
-                context,
-                "$okStringRes\n${outMsgStringRes}: ${controlResult.outMsg}",
-                Toast.LENGTH_SHORT
-            ).show()
+        bottomSheetText = if (controlResult.rc >= 0) {
+            Pair(okStringRes, "${outMsgStringRes}: ${controlResult.outMsg}")
         } else {
-            Toast.makeText(
-                context,
-                "$failedStringRes\n${outMsgStringRes}: ${controlResult.outMsg}",
-                Toast.LENGTH_SHORT
-            ).show()
+            Pair(failedStringRes, "${outMsgStringRes}: ${controlResult.outMsg}")
         }
     }
 
-    BasicAlertDialog(
-        onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
-            decorFitsSystemWindows = true,
-            usePlatformDefaultWidth = false,
-        )
-    ) {
-        Surface(
-            modifier = Modifier
-                .width(310.dp)
-                .wrapContentHeight(),
-            shape = MaterialTheme.shapes.extraLarge,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
-            color = AlertDialogDefaults.containerColor,
+
+    if (showDialog.value) {
+        BasicAlertDialog(
+            onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
+                decorFitsSystemWindows = true,
+                usePlatformDefaultWidth = false,
+            )
         ) {
-            Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
-                Box(
-                    Modifier
-                        .padding(PaddingValues(bottom = 16.dp))
-                        .align(Alignment.Start)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.kpm_control_dialog_title),
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
-
-                Box(
-                    Modifier
-                        .weight(weight = 1f, fill = false)
-                        .align(Alignment.Start)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.kpm_control_dialog_content),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                Box(
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    OutlinedTextField(
-                        value = controlParam,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp),
-                        onValueChange = {
-                            controlParam = it
-                            enable = controlParam.isNotBlank()
-                        },
-                        shape = MaterialTheme.shapes.large,
-                        label = { Text(stringResource(id = R.string.kpm_control_paramters)) },
-                        visualTransformation = VisualTransformation.None,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = { showDialog.value = false }) {
-                        Text(stringResource(id = android.R.string.cancel))
+            Surface(
+                modifier = Modifier
+                    .width(310.dp)
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.extraLarge,
+                tonalElevation = AlertDialogDefaults.TonalElevation,
+                color = AlertDialogDefaults.containerColor,
+            ) {
+                Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
+                    Box(
+                        Modifier
+                            .padding(PaddingValues(bottom = 16.dp))
+                            .align(Alignment.Start)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.kpm_control_dialog_title),
+                            style = MaterialTheme.typography.headlineSmall
+                        )
                     }
 
-                    Button(onClick = {
-                        showDialog.value = false
+                    Box(
+                        Modifier
+                            .weight(weight = 1f, fill = false)
+                            .align(Alignment.Start)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.kpm_control_dialog_content),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
 
-                        scope.launch { onModuleControl(targetKPMToControl) }
+                    Box(
+                        contentAlignment = Alignment.CenterEnd,
+                    ) {
+                        OutlinedTextField(
+                            value = controlParam,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp),
+                            onValueChange = {
+                                controlParam = it
+                                enable = controlParam.isNotBlank()
+                            },
+                            shape = MaterialTheme.shapes.large,
+                            label = { Text(stringResource(id = R.string.kpm_control_paramters)) },
+                            visualTransformation = VisualTransformation.None,
+                        )
+                    }
 
-                    }, enabled = enable) {
-                        Text(stringResource(id = android.R.string.ok))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showDialog.value = false }) {
+                            Text(stringResource(id = android.R.string.cancel))
+                        }
+
+                        Button(onClick = {
+                            showDialog.value = false
+
+                            scope.launch { onModuleControl(targetKPMToControl) }
+
+                        }, enabled = enable) {
+                            Text(stringResource(id = android.R.string.ok))
+                        }
                     }
                 }
             }
         }
-        val dialogWindowProvider = LocalView.current.parent as DialogWindowProvider
-        APDialogBlurBehindUtils.setupWindowBlurListener(dialogWindowProvider.window)
+    }
+
+    if (bottomSheetText.second.isNotEmpty()) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                @Suppress("AssignedValueIsNeverRead")
+                bottomSheetText = Pair("", "")
+            },
+            contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+            content = {
+                Column(Modifier.padding(24.dp)) {
+                    Text(bottomSheetText.first, style = MaterialTheme.typography.titleLarge)
+                    Text(bottomSheetText.second, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        )
     }
 }
 
@@ -418,9 +427,7 @@ private fun KPModuleList(
     val loadingDialog = rememberLoadingDialog()
 
     val showKPMControlDialog = remember { mutableStateOf(false) }
-    if (showKPMControlDialog.value) {
-        KPMControlDialog(showDialog = showKPMControlDialog)
-    }
+    KPMControlDialog(showDialog = showKPMControlDialog)
 
     suspend fun onModuleUninstall(module: KPModel.KPMInfo) {
         val confirmResult = confirmDialog.awaitConfirm(

@@ -52,11 +52,11 @@ pub fn read_ap_package_config() -> Vec<PackageConfig> {
     Vec::new()
 }
 
-pub fn is_whitelist() -> bool {
+pub fn whitelist_mode() -> i32 {
     let max_retry = 5;
     for _ in 0..max_retry {
-        return match fs::exists("/data/adb/ap/.whitelist_enable") {
-            Ok(exists) => exists,
+        return match fs::read_to_string("/data/adb/ap/.whitelist_config") {
+            Ok(s) => s.trim().parse::<i32>().unwrap_or(-1),
             Err(e) => {
                 warn!("Error opening file: {}", e);
                 thread::sleep(Duration::from_secs(1));
@@ -64,7 +64,7 @@ pub fn is_whitelist() -> bool {
             }
         };
     }
-    false
+    -1
 }
 
 pub fn manager_package_id() -> String {
@@ -183,9 +183,14 @@ pub fn synchronize_package_config() -> io::Result<Vec<PackageConfig>> {
                         .map(|c| (c.pkg.clone(), c))
                         .collect();
 
-                let is_whitelist = is_whitelist();
+                let whitelist_mode = whitelist_mode();
                 let mut extra_configs = Vec::new();
                 let manager_package_id = manager_package_id();
+                let manager_package_id = if system_packages.contains(&manager_package_id) {
+                    manager_package_id
+                } else {
+                    "com.bmax.apatch".to_string()
+                };
 
                 for (pkg, uid, is_system_app) in system_packages_map {
                     if let Ok(uid) = uid.parse::<i32>() {
@@ -199,7 +204,15 @@ pub fn synchronize_package_config() -> io::Result<Vec<PackageConfig>> {
                                 config.uid = new_uid;
                                 updated = true;
                             }
-                        } else if manager_package_id != pkg && !is_system_app && is_whitelist {
+                        } else if manager_package_id != pkg
+                            && match whitelist_mode {
+                                -1 => false,
+                                0 => !is_system_app,
+                                1 => is_system_app,
+                                2 => true,
+                                _ => false,
+                            }
+                        {
                             let config = PackageConfig {
                                 pkg,
                                 exclude: 1,

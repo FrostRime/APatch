@@ -61,7 +61,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
 
         const val SU_PATH_FILE = APATCH_FOLDER + "su_path"
         const val AP_INFO_FILE = APATCH_FOLDER + "ap_info"
-        const val WHITELIST_FILE = APATCH_FOLDER + ".whitelist_enable"
+        const val WHITELIST_FILE = APATCH_FOLDER + ".whitelist_config"
         const val SAFEMODE_FILE = "/dev/.safemode"
         private const val NEED_REBOOT_FILE = "/dev/.need_reboot"
         const val GLOBAL_NAMESPACE_FILE = "/data/adb/.global_namespace_enable"

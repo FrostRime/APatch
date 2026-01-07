@@ -40,13 +40,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.window.SecureFlagPolicy
 import io.noties.markwon.Markwon
 import io.noties.markwon.utils.NoCopySpannableFactory
@@ -61,7 +59,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.parcelize.Parcelize
-import me.bmax.apatch.util.ui.APDialogBlurBehindUtils.Companion.setupWindowBlurListener
 import kotlin.coroutines.resume
 
 private const val TAG = "DialogComponent"
@@ -437,8 +434,6 @@ private fun LoadingDialog() {
                 CircularProgressIndicator()
             }
         }
-        val dialogWindowProvider = LocalView.current.parent as DialogWindowProvider
-        setupWindowBlurListener(dialogWindowProvider.window)
     }
 }
 
@@ -497,8 +492,6 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
                     }
                 }
             }
-            val dialogWindowProvider = LocalView.current.parent as DialogWindowProvider
-            setupWindowBlurListener(dialogWindowProvider.window)
         }
     }
 

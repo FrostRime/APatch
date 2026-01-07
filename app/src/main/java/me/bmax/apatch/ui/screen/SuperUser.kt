@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui.screen
 
+import android.content.pm.ApplicationInfo
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,13 +19,15 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.ShapeDefaults.Large
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarResult
@@ -39,7 +42,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,9 +54,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.composables.icons.tabler.Tabler
-import com.composables.icons.tabler.filled.ClipboardList
-import com.composables.icons.tabler.outline.ClipboardList
+import com.composables.icons.tabler.filled.FileSettings
+import com.composables.icons.tabler.filled.Forbid
+import com.composables.icons.tabler.filled.LayoutGrid
+import com.composables.icons.tabler.filled.User
+import com.composables.icons.tabler.outline.Automation
 import com.composables.icons.tabler.outline.DotsVertical
+import com.composables.icons.tabler.outline.FileSettings
+import com.composables.icons.tabler.outline.Forbid
+import com.composables.icons.tabler.outline.LayoutGrid
+import com.composables.icons.tabler.outline.User
 import com.composables.icons.tabler.outline.UserX
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -68,7 +77,7 @@ import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
 import me.bmax.apatch.util.PkgConfig
-import me.bmax.apatch.util.isWhiteListEnabled
+import me.bmax.apatch.util.getWhiteListMode
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.setWhiteListMode
 import me.bmax.apatch.util.ui.LocalSnackbarHost
@@ -83,7 +92,29 @@ fun SuperUserScreen() {
     val snackBarHost = LocalSnackbarHost.current
     val reboot = stringResource(id = R.string.reboot)
     val rebootToApply = stringResource(id = R.string.apm_reboot_to_apply)
-    var isWhiteListEnabled by rememberSaveable { mutableStateOf(isWhiteListEnabled()) }
+    val whiteListModes = listOf(-1, 0, 1, 2)
+    var showEditWhiteListMode by remember { mutableStateOf(false) }
+    var whiteListMode by remember { mutableStateOf(-1) }
+
+    val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
+    val kPatchReady = state != APApplication.State.UNKNOWN_STATE
+    val aPatchReady =
+        (state == APApplication.State.ANDROIDPATCH_INSTALLING || state == APApplication.State.ANDROIDPATCH_INSTALLED || state == APApplication.State.ANDROIDPATCH_NEED_UPDATE)
+
+    LaunchedEffect(Unit) {
+        if (kPatchReady && aPatchReady) {
+            whiteListMode = getWhiteListMode()
+        }
+    }
+
+    val modeIcons = remember {
+        mapOf(
+            -1 to (Tabler.Filled.Forbid to Tabler.Outline.Forbid),
+            0 to (Tabler.Filled.User to Tabler.Outline.User),
+            1 to (Tabler.Filled.FileSettings to Tabler.Outline.FileSettings),
+            2 to (Tabler.Filled.LayoutGrid to Tabler.Outline.LayoutGrid)
+        )
+    }
 
     LaunchedEffect(Unit) {
         if (viewModel.appList.isEmpty()) {
@@ -140,37 +171,6 @@ fun SuperUserScreen() {
                     }
                 },
             )
-        },
-        floatingActionButton = {
-            val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
-            val kPatchReady = state != APApplication.State.UNKNOWN_STATE
-            val aPatchReady =
-                (state == APApplication.State.ANDROIDPATCH_INSTALLING || state == APApplication.State.ANDROIDPATCH_INSTALLED || state == APApplication.State.ANDROIDPATCH_NEED_UPDATE)
-            if (kPatchReady && aPatchReady) {
-                FloatingActionButton(
-                    modifier = Modifier.clip(Large),
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    onClick = {
-                        setWhiteListMode(!isWhiteListEnabled)
-                        isWhiteListEnabled = !isWhiteListEnabled
-                        scope.launch {
-                            val result = snackBarHost.showSnackbar(
-                                message = rebootToApply,
-                                actionLabel = reboot,
-                                duration = SnackbarDuration.Long
-                            )
-                            if (result == SnackbarResult.ActionPerformed) {
-                                reboot()
-                            }
-                        }
-                    }) {
-                    Icon(
-                        imageVector = if (isWhiteListEnabled) Tabler.Filled.ClipboardList else Tabler.Outline.ClipboardList,
-                        contentDescription = null
-                    )
-                }
-            }
         }
     ) { innerPadding ->
         PullToRefreshBox(
@@ -188,6 +188,63 @@ fun SuperUserScreen() {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = remember { PaddingValues(bottom = 16.dp + 56.dp) }
             ) {
+                if (kPatchReady && aPatchReady) {
+                    item {
+                        Column {
+                            ListItem(
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = Tabler.Outline.Automation,
+                                        contentDescription = stringResource(R.string.su_pkg_excluded_setting_title)
+                                    )
+                                },
+                                headlineContent = {
+                                    Text(stringResource(R.string.su_pkg_excluded_setting_title))
+                                },
+                                modifier = Modifier.clickable {
+                                    showEditWhiteListMode = !showEditWhiteListMode
+                                }
+                            )
+                            AnimatedVisibility(showEditWhiteListMode) {
+                                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                    whiteListModes.forEachIndexed { index, modeId ->
+                                        val isSelected = whiteListMode == modeId
+                                        val icons = modeIcons[modeId]
+                                        SegmentedButton(
+                                            shape = SegmentedButtonDefaults.itemShape(
+                                                index = index,
+                                                count = whiteListModes.size
+                                            ),
+                                            onClick = {
+                                                setWhiteListMode(modeId)
+                                                whiteListMode = modeId
+                                                scope.launch {
+                                                    val result = snackBarHost.showSnackbar(
+                                                        message = rebootToApply,
+                                                        actionLabel = reboot,
+                                                        duration = SnackbarDuration.Long
+                                                    )
+                                                    if (result == SnackbarResult.ActionPerformed) {
+                                                        reboot()
+                                                    }
+                                                }
+                                            },
+                                            selected = isSelected,
+                                            icon = {},
+                                            label = {
+                                                Icon(
+                                                    imageVector = (if (isSelected) icons?.first else icons?.second)!!,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 items(
                     viewModel.appList.filter { it.packageName != apApp.packageName },
                     key = { it.packageName + it.uid }) { app ->
@@ -276,7 +333,18 @@ private fun AppItem(
                             Natives.setUidExclude(app.uid, 0)
                         } else {
                             Natives.revokeSu(app.uid)
-                            if (isWhiteListEnabled()) {
+                            val mode = getWhiteListMode()
+                            val isSystem =
+                                (app.packageInfo.applicationInfo?.flags?.and(ApplicationInfo.FLAG_SYSTEM) != 0)
+
+                            val shouldExclude = when (mode) {
+                                0 -> !isSystem
+                                1 -> isSystem
+                                2 -> true
+                                else -> false
+                            }
+
+                            if (shouldExclude) {
                                 Natives.setUidExclude(app.uid, 1)
                             }
                         }
