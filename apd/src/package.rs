@@ -55,7 +55,7 @@ pub fn read_ap_package_config() -> Vec<PackageConfig> {
 pub fn whitelist_mode() -> i32 {
     let max_retry = 5;
     for _ in 0..max_retry {
-        return match fs::read_to_string("/data/adb/ap/.whitelist_config") {
+        return match fs::read_to_string("/data/adb/ap/whitelist_config") {
             Ok(s) => s.trim().parse::<i32>().unwrap_or(-1),
             Err(e) => {
                 warn!("Error opening file: {}", e);
@@ -123,10 +123,7 @@ pub fn write_ap_package_config(package_configs: &[PackageConfig]) -> io::Result<
         }
         return Ok(());
     }
-    Err(io::Error::new(
-        io::ErrorKind::Other,
-        "Failed after max retries",
-    ))
+    Err(io::Error::other("Failed after max retries"))
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
@@ -144,12 +141,12 @@ pub fn synchronize_package_config() -> io::Result<Vec<PackageConfig>> {
         match read_lines("/data/system/packages.list") {
             Ok(lines) => {
                 let system_packages_map: HashSet<(String, String, bool)> = lines
-                    .filter_map(|line| line.ok())
+                    .map_while(Result::ok)
                     .filter_map(|line| {
                         let mut parts = line.split_whitespace();
                         let pkg = parts.next()?.to_string();
                         let uid = parts.next()?.to_string();
-                        let is_system_app = parts.last()?.to_string() == "@system";
+                        let is_system_app = parts.last()? == "@system";
                         Some((pkg, uid, is_system_app))
                     })
                     .collect();
@@ -237,8 +234,5 @@ pub fn synchronize_package_config() -> io::Result<Vec<PackageConfig>> {
             }
         }
     }
-    Err(io::Error::new(
-        io::ErrorKind::Other,
-        "Failed after max retries",
-    ))
+    Err(io::Error::other("Failed after max retries"))
 }

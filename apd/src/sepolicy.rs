@@ -19,7 +19,7 @@ fn parse_single_word(input: &str) -> IResult<&str, &str> {
     take_while1(is_sepolicy_char).parse(input)
 }
 
-fn parse_bracket_objs(input: &str) -> IResult<&str, SeObject> {
+fn parse_bracket_objs(input: &str) -> IResult<&str, SeObject<'_>> {
     let (input, (_, words, _)) = (
         tag("{"),
         take_while_m_n(1, 100, |c: char| is_sepolicy_char(c) || c.is_whitespace()),
@@ -29,12 +29,12 @@ fn parse_bracket_objs(input: &str) -> IResult<&str, SeObject> {
     Ok((input, words.split_whitespace().collect()))
 }
 
-fn parse_single_obj(input: &str) -> IResult<&str, SeObject> {
+fn parse_single_obj(input: &str) -> IResult<&str, SeObject<'_>> {
     let (input, word) = take_while1(is_sepolicy_char).parse(input)?;
     Ok((input, vec![word]))
 }
 
-fn parse_star(input: &str) -> IResult<&str, SeObject> {
+fn parse_star(input: &str) -> IResult<&str, SeObject<'_>> {
     let (input, _) = tag("*").parse(input)?;
     Ok((input, vec!["*"]))
 }
@@ -42,12 +42,12 @@ fn parse_star(input: &str) -> IResult<&str, SeObject> {
 // 1. a single sepolicy word
 // 2. { obj1 obj2 obj3 ...}
 // 3. *
-fn parse_seobj(input: &str) -> IResult<&str, SeObject> {
+fn parse_seobj(input: &str) -> IResult<&str, SeObject<'_>> {
     let (input, strs) = alt((parse_single_obj, parse_bracket_objs, parse_star)).parse(input)?;
     Ok((input, strs))
 }
 
-fn parse_seobj_no_star(input: &str) -> IResult<&str, SeObject> {
+fn parse_seobj_no_star(input: &str) -> IResult<&str, SeObject<'_>> {
     let (input, strs) = alt((parse_single_obj, parse_bracket_objs)).parse(input)?;
     Ok((input, strs))
 }
@@ -376,6 +376,7 @@ const CMD_TYPE_TRANSITION: u32 = 7;
 const CMD_TYPE_CHANGE: u32 = 8;
 const CMD_GENFSCON: u32 = 9;
 
+#[allow(unused)]
 #[derive(Debug, Default)]
 enum PolicyObject {
     All, // for "*", stand for all objects, and is NULL in ffi
@@ -401,7 +402,7 @@ impl TryFrom<&str> for PolicyObject {
 /// normal statement would be expanded to atomic statement, for example:
 /// allow domain1 domain2:file1 { read write }; would be expanded to two atomic statement
 /// allow domain1 domain2:file1 read;allow domain1 domain2:file1 write;
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, unused)]
 #[derive(Debug, new)]
 struct AtomicStatement {
     cmd: u32,
@@ -650,10 +651,12 @@ impl<'a> TryFrom<&'a PolicyStatement<'a>> for Vec<AtomicStatement> {
     }
 }
 
+#[allow(clippy::empty_line_after_doc_comments)]
 ////////////////////////////////////////////////////////////////
 ///  for C FFI to call kernel interface
 ///////////////////////////////////////////////////////////////
 
+#[allow(unused)]
 #[derive(Debug)]
 #[repr(C)]
 struct FfiPolicy {
@@ -668,6 +671,7 @@ struct FfiPolicy {
     sepol7: *const ffi::c_char,
 }
 
+#[allow(unused)]
 fn to_c_ptr(pol: &PolicyObject) -> *const ffi::c_char {
     match pol {
         PolicyObject::None | PolicyObject::All => std::ptr::null(),

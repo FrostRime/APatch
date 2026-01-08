@@ -30,14 +30,19 @@ namespace lsplant {
             reset(local_ref);
         }
 
-        ScopedLocalRef(ScopedLocalRef &&s) noexcept: ScopedLocalRef(s.env_, s.release()) {}
+        ScopedLocalRef(ScopedLocalRef &&s) noexcept: ScopedLocalRef(s.env_, s.release()) {
+        }
 
         template<JObject U>
-        ScopedLocalRef(ScopedLocalRef<U> &&s) noexcept : ScopedLocalRef(s.env_, (T) s.release()) {}
+        ScopedLocalRef(ScopedLocalRef<U> &&s) noexcept : ScopedLocalRef(s.env_, (T) s.release()) {
+        }
 
-        explicit ScopedLocalRef(JNIEnv *env) noexcept: ScopedLocalRef(env, T{nullptr}) {}
+        explicit ScopedLocalRef(JNIEnv *env) noexcept: ScopedLocalRef(env, T{nullptr}) {
+        }
 
-        ~ScopedLocalRef() { reset(); }
+        ~ScopedLocalRef() {
+            reset();
+        }
 
         void reset(T ptr = nullptr) {
             if (ptr != local_ref_) {
@@ -54,7 +59,9 @@ namespace lsplant {
             return localRef;
         }
 
-        T get() const { return local_ref_; }
+        T get() const {
+            return local_ref_;
+        }
 
         ScopedLocalRef<T> clone() const {
             return ScopedLocalRef<T>(env_, (T) env_->NewLocalRef(local_ref_));
@@ -66,7 +73,9 @@ namespace lsplant {
             return *this;
         }
 
-        operator bool() const { return local_ref_; }
+        operator bool() const {
+            return local_ref_;
+        }
 
         template<JObject U>
         friend
@@ -94,9 +103,13 @@ namespace lsplant {
         DISALLOW_COPY_AND_ASSIGN(JNIScopeFrame);
 
     public:
-        JNIScopeFrame(JNIEnv *env, jint size) : env_(env) { env_->PushLocalFrame(size); }
+        JNIScopeFrame(JNIEnv *env, jint size) : env_(env) {
+            env_->PushLocalFrame(size);
+        }
 
-        ~JNIScopeFrame() { env_->PopLocalFrame(nullptr); }
+        ~JNIScopeFrame() {
+            env_->PopLocalFrame(nullptr);
+        }
     };
 
     class JNIMonitor {
@@ -106,17 +119,21 @@ namespace lsplant {
         DISALLOW_COPY_AND_ASSIGN(JNIMonitor);
 
     public:
-        JNIMonitor(JNIEnv *env, jobject obj) : env_(env), obj_(obj) { env_->MonitorEnter(obj_); }
+        JNIMonitor(JNIEnv *env, jobject obj) : env_(env), obj_(obj) {
+            env_->MonitorEnter(obj_);
+        }
 
-        ~JNIMonitor() { env_->MonitorExit(obj_); }
+        ~JNIMonitor() {
+            env_->MonitorExit(obj_);
+        }
     };
 
     template<typename T, typename U>
     concept ScopeOrRaw =
     std::is_convertible_v<T, U> ||
-    (is_instance_v<std::decay_t<T>, ScopedLocalRef> &&
-     std::is_convertible_v<typename std::decay_t<T>::BaseType, U>) ||
-    (std::is_same_v<std::decay_t<T>, JObjectArrayElement> && std::is_convertible_v<jobject, U>);
+            (is_instance_v<std::decay_t<T>, ScopedLocalRef> &&
+                    std::is_convertible_v<typename std::decay_t<T>::BaseType, U>) ||
+            (std::is_same_v<std::decay_t<T>, JObjectArrayElement> && std::is_convertible_v<jobject, U>);
 
     template<typename T>
     concept ScopeOrClass = ScopeOrRaw<T, jclass>;
@@ -160,14 +177,14 @@ namespace lsplant {
 
     template<typename... T, size_t... I>
     [[maybe_unused]] inline auto WrapScope(JNIEnv *env, std::tuple<T...> &&x,
-                                           std::index_sequence<I...>) {
+            std::index_sequence<I...>) {
         return std::make_tuple(WrapScope(env, std::forward<T>(std::get<I>(x)))...);
     }
 
     template<typename... T>
     [[maybe_unused]] inline auto WrapScope(JNIEnv *env, std::tuple<T...> &&x) {
         return WrapScope(env, std::forward<std::tuple<T...>>(x),
-                         std::make_index_sequence<sizeof...(T)>());
+                std::make_index_sequence<sizeof...(T)>());
     }
 
     inline auto JNI_NewStringUTF(JNIEnv *env, std::string_view sv) {
@@ -176,10 +193,12 @@ namespace lsplant {
 
     class JUTFString {
     public:
-        JUTFString(JNIEnv *env, jstring jstr) : JUTFString(env, jstr, nullptr) {}
+        JUTFString(JNIEnv *env, jstring jstr) : JUTFString(env, jstr, nullptr) {
+        }
 
         JUTFString(const ScopedLocalRef<jstring> &jstr)
-                : JUTFString(jstr.env_, jstr.local_ref_, nullptr) {}
+                : JUTFString(jstr.env_, jstr.local_ref_, nullptr) {
+        }
 
         JUTFString(JNIEnv *env, jstring jstr, const char *default_cstr) : env_(env), jstr_(jstr) {
             if (env_ && jstr_)
@@ -188,13 +207,21 @@ namespace lsplant {
                 cstr_ = default_cstr;
         }
 
-        operator const char *() const { return cstr_; }
+        operator const char *() const {
+            return cstr_;
+        }
 
-        operator const std::string() const { return cstr_; }
+        operator const std::string() const {
+            return cstr_;
+        }
 
-        operator const bool() const { return cstr_ != nullptr; }
+        operator const bool() const {
+            return cstr_ != nullptr;
+        }
 
-        auto get() const { return cstr_; }
+        auto get() const {
+            return cstr_;
+        }
 
         ~JUTFString() {
             if (env_ && jstr_) env_->ReleaseStringUTFChars(jstr_, cstr_);
@@ -231,7 +258,8 @@ namespace lsplant {
     requires(std::is_function_v<Func>)
     [[maybe_unused]] inline auto JNI_SafeInvoke(JNIEnv *env, Func JNIEnv::*f, Args &&...args) {
         struct finally {
-            finally(JNIEnv *env) : env_(env) {}
+            finally(JNIEnv *env) : env_(env) {
+            }
 
             ~finally() {
                 if (auto exception = ClearException(env_)) {
@@ -239,9 +267,9 @@ namespace lsplant {
 #ifdef LOG_TAG
                             LOG_TAG,
 #else
-                                        "JNIHelper",
+                            "JNIHelper",
 #endif
-                                        "%s", JUTFString(env_, exception.get()).get());
+                            "%s", JUTFString(env_, exception.get()).get());
                 }
             }
 
@@ -271,7 +299,7 @@ namespace lsplant {
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_GetFieldID(JNIEnv *env, Class &&clazz, std::string_view name,
-                                                std::string_view sig) {
+            std::string_view sig) {
         return JNI_SafeInvoke(env, &JNIEnv::GetFieldID, std::forward<Class>(clazz), name, sig);
     }
 
@@ -326,64 +354,64 @@ namespace lsplant {
 
     template<ScopeOrObject Object, ScopeOrObject Value>
     [[maybe_unused]] inline auto JNI_SetObjectField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                    const Value &value) {
+            const Value &value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetObjectField, std::forward<Object>(obj), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_SetBooleanField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                     jboolean value) {
+            jboolean value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetBooleanField, std::forward<Object>(obj), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_SetByteField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                  jbyte value) {
+            jbyte value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetByteField, std::forward<Object>(obj), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_SetCharField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                  jchar value) {
+            jchar value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetCharField, std::forward<Object>(obj), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_SetShortField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                   jshort value) {
+            jshort value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetShortField, std::forward<Object>(obj), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_SetIntField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                 jint value) {
+            jint value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetIntField, std::forward<Object>(obj), fieldId, value);
     }
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_SetLongField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                  jlong value) {
+            jlong value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetLongField, std::forward<Object>(obj), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_SetFloatField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                   jfloat value) {
+            jfloat value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetFloatField, std::forward<Object>(obj), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_SetDoubleField(JNIEnv *env, Object &&obj, jfieldID fieldId,
-                                                    jdouble value) {
+            jdouble value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetDoubleField, std::forward<Object>(obj), fieldId,
-                              value);
+                value);
     }
 
 // functions to static field
@@ -391,46 +419,46 @@ namespace lsplant {
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_GetStaticFieldID(JNIEnv *env, Class &&clazz, std::string_view name,
-                         std::string_view sig) {
+            std::string_view sig) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticFieldID, std::forward<Class>(clazz), name,
-                              sig);
+                sig);
     }
 
 // getters
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_GetStaticObjectField(JNIEnv *env, Class &&clazz,
-                                                          jfieldID fieldId) {
+            jfieldID fieldId) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticObjectField, std::forward<Class>(clazz),
-                              fieldId);
+                fieldId);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_GetStaticBooleanField(JNIEnv *env, Class &&clazz,
-                                                           jfieldID fieldId) {
+            jfieldID fieldId) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticBooleanField, std::forward<Class>(clazz),
-                              fieldId);
+                fieldId);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_GetStaticByteField(JNIEnv *env, Class &&clazz, jfieldID fieldId) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticByteField, std::forward<Class>(clazz),
-                              fieldId);
+                fieldId);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_GetStaticCharField(JNIEnv *env, Class &&clazz, jfieldID fieldId) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticCharField, std::forward<Class>(clazz),
-                              fieldId);
+                fieldId);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_GetStaticShortField(JNIEnv *env, Class &&clazz, jfieldID fieldId) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticShortField, std::forward<Class>(clazz),
-                              fieldId);
+                fieldId);
     }
 
     template<ScopeOrClass Class>
@@ -443,21 +471,21 @@ namespace lsplant {
     [[maybe_unused]] inline auto
     JNI_GetStaticLongField(JNIEnv *env, Class &&clazz, jfieldID fieldId) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticLongField, std::forward<Class>(clazz),
-                              fieldId);
+                fieldId);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_GetStaticFloatField(JNIEnv *env, Class &&clazz, jfieldID fieldId) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticFloatField, std::forward<Class>(clazz),
-                              fieldId);
+                fieldId);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_GetStaticDoubleField(JNIEnv *env, Class &&clazz,
-                                                          jfieldID fieldId) {
+            jfieldID fieldId) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticDoubleField, std::forward<Class>(clazz),
-                              fieldId);
+                fieldId);
     }
 
 // setters
@@ -465,91 +493,91 @@ namespace lsplant {
     template<ScopeOrClass Class, ScopeOrObject Object>
     [[maybe_unused]] inline auto
     JNI_SetStaticObjectField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                             const Object &value) {
+            const Object &value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticObjectField, std::forward<Class>(clazz),
-                              fieldId,
-                              value);
+                fieldId,
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_SetStaticBooleanField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                              jboolean value) {
+            jboolean value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticBooleanField, std::forward<Class>(clazz),
-                              fieldId,
-                              value);
+                fieldId,
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_SetStaticByteField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                           jbyte value) {
+            jbyte value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticByteField, std::forward<Class>(clazz), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_SetStaticCharField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                           jchar value) {
+            jchar value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticCharField, std::forward<Class>(clazz), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_SetStaticShortField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                            jshort value) {
+            jshort value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticShortField, std::forward<Class>(clazz),
-                              fieldId,
-                              value);
+                fieldId,
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_SetStaticIntField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                                                       jint value) {
+            jint value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticIntField, std::forward<Class>(clazz), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_SetStaticLongField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                           jlong value) {
+            jlong value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticLongField, std::forward<Class>(clazz), fieldId,
-                              value);
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_SetStaticFloatField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                            jfloat value) {
+            jfloat value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticFloatField, std::forward<Class>(clazz),
-                              fieldId,
-                              value);
+                fieldId,
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto
     JNI_SetStaticDoubleField(JNIEnv *env, Class &&clazz, jfieldID fieldId,
-                             jdouble value) {
+            jdouble value) {
         return JNI_SafeInvoke(env, &JNIEnv::SetStaticDoubleField, std::forward<Class>(clazz),
-                              fieldId,
-                              value);
+                fieldId,
+                value);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_ToReflectedMethod(JNIEnv *env, Class &&clazz, jmethodID method,
-                                                       jboolean isStatic = JNI_FALSE) {
+            jboolean isStatic = JNI_FALSE) {
         return JNI_SafeInvoke(env, &JNIEnv::ToReflectedMethod, std::forward<Class>(clazz), method,
-                              isStatic);
+                isStatic);
     }
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_ToReflectedField(JNIEnv *env, Class &&clazz, jfieldID field,
-                                                      jboolean isStatic = JNI_FALSE) {
+            jboolean isStatic = JNI_FALSE) {
         return JNI_SafeInvoke(env, &JNIEnv::ToReflectedField, std::forward<Class>(clazz), field,
-                              isStatic);
+                isStatic);
     }
 
 // functions to method
@@ -558,174 +586,174 @@ namespace lsplant {
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_GetMethodID(JNIEnv *env, Class &&clazz, std::string_view name,
-                                                 std::string_view sig) {
+            std::string_view sig) {
         return JNI_SafeInvoke(env, &JNIEnv::GetMethodID, std::forward<Class>(clazz), name, sig);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallVoidMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                    Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallVoidMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallObjectMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                      Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallObjectMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallBooleanMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                       Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallBooleanMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallByteMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                    Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallByteMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallCharMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                    Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallCharMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallShortMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                     Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallShortMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallIntMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                   Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallIntMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallLongMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                    Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallLongMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallFloatMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                     Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallFloatMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, typename... Args>
     [[maybe_unused]] inline auto JNI_CallDoubleMethod(JNIEnv *env, Object &&obj, jmethodID method,
-                                                      Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallDoubleMethod, std::forward<Object>(obj), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
 // static methods
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_GetStaticMethodID(JNIEnv *env, Class &&clazz,
-                                                       std::string_view name,
-                                                       std::string_view sig) {
+            std::string_view name,
+            std::string_view sig) {
         return JNI_SafeInvoke(env, &JNIEnv::GetStaticMethodID, std::forward<Class>(clazz), name,
-                              sig);
+                sig);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallStaticVoidMethod(JNIEnv *env, Class &&clazz, jmethodID method,
-                             Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticVoidMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto JNI_CallStaticObjectMethod(JNIEnv *env, Class &&clazz,
-                                                            jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticObjectMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto JNI_CallStaticBooleanMethod(JNIEnv *env, Class &&clazz,
-                                                             jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticBooleanMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallStaticByteMethod(JNIEnv *env, Class &&clazz, jmethodID method,
-                             Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticByteMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallStaticCharMethod(JNIEnv *env, Class &&clazz, jmethodID method,
-                             Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticCharMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallStaticShortMethod(JNIEnv *env, Class &&clazz, jmethodID method,
-                              Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticShortMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallStaticIntMethod(JNIEnv *env, Class &&clazz, jmethodID method,
-                            Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticIntMethod, std::forward<Class>(clazz), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallStaticLongMethod(JNIEnv *env, Class &&clazz, jmethodID method,
-                             Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticLongMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallStaticFloatMethod(JNIEnv *env, Class &&clazz, jmethodID method,
-                              Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticFloatMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto JNI_CallStaticDoubleMethod(JNIEnv *env, Class &&clazz,
-                                                            jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallStaticDoubleMethod, std::forward<Class>(clazz),
-                              method,
-                              std::forward<Args>(args)...);
+                method,
+                std::forward<Args>(args)...);
     }
 
 // non-virtual methods
@@ -733,88 +761,88 @@ namespace lsplant {
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallNonvirtualVoidMethod(JNIEnv *env, Object &&obj, Class &&clazz,
-                                 jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualVoidMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto JNI_CallNonvirtualObjectMethod(JNIEnv *env, Object &&obj,
-                                                                Class &&clazz, jmethodID method,
-                                                                Args &&...args) {
+            Class &&clazz, jmethodID method,
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualObjectMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto JNI_CallNonvirtualBooleanMethod(JNIEnv *env, Object &&obj,
-                                                                 Class &&clazz, jmethodID method,
-                                                                 Args &&...args) {
+            Class &&clazz, jmethodID method,
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualBooleanMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallNonvirtualByteMethod(JNIEnv *env, Object &&obj, Class &&clazz,
-                                 jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualByteMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallNonvirtualCharMethod(JNIEnv *env, Object &&obj, Class &&clazz,
-                                 jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualCharMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallNonvirtualShortMethod(JNIEnv *env, Object &&obj, Class &&clazz,
-                                  jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualShortMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallNonvirtualIntMethod(JNIEnv *env, Object &&obj, Class &&clazz,
-                                jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualIntMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallNonvirtualLongMethod(JNIEnv *env, Object &&obj, Class &&clazz,
-                                 jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualLongMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto
     JNI_CallNonvirtualFloatMethod(JNIEnv *env, Object &&obj, Class &&clazz,
-                                  jmethodID method, Args &&...args) {
+            jmethodID method, Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualFloatMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto JNI_CallNonvirtualDoubleMethod(JNIEnv *env, Object &&obj,
-                                                                Class &&clazz, jmethodID method,
-                                                                Args &&...args) {
+            Class &&clazz, jmethodID method,
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::CallNonvirtualDoubleMethod, std::forward<Object>(obj),
-                              std::forward<Class>(clazz), method, std::forward<Args>(args)...);
+                std::forward<Class>(clazz), method, std::forward<Args>(args)...);
     }
 
     template<ScopeOrClass Class, typename... Args>
     [[maybe_unused]] inline auto JNI_NewObject(JNIEnv *env, Class &&clazz, jmethodID method,
-                                               Args &&...args) {
+            Args &&...args) {
         return JNI_SafeInvoke(env, &JNIEnv::NewObject, std::forward<Class>(clazz), method,
-                              std::forward<Args>(args)...);
+                std::forward<Args>(args)...);
     }
 
     template<typename... Args>
@@ -824,21 +852,21 @@ namespace lsplant {
 
     template<ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_RegisterNatives(JNIEnv *env, Class &&clazz,
-                                                     const JNINativeMethod *methods, jint size) {
+            const JNINativeMethod *methods, jint size) {
         return JNI_SafeInvoke(env, &JNIEnv::RegisterNatives, std::forward<Class>(clazz), methods,
-                              size);
+                size);
     }
 
     template<ScopeOrObject Object, ScopeOrClass Class>
     [[maybe_unused]] inline auto JNI_IsInstanceOf(JNIEnv *env, Object &&obj, Class &&clazz) {
         return JNI_SafeInvoke(env, &JNIEnv::IsInstanceOf, std::forward<Object>(obj),
-                              std::forward<Class>(clazz));
+                std::forward<Class>(clazz));
     }
 
     template<ScopeOrObject Object1, ScopeOrObject Object2>
     [[maybe_unused]] inline auto JNI_IsSameObject(JNIEnv *env, Object1 &&a, Object2 &&b) {
         return JNI_SafeInvoke(env, &JNIEnv::IsSameObject, std::forward<Object1>(a),
-                              std::forward<Object2>(b));
+                std::forward<Object2>(b));
     }
 
     template<ScopeOrObject Object>
@@ -916,51 +944,85 @@ namespace lsplant {
         class Iterator {
             friend class ScopedLocalRef<T>;
 
-            Iterator(JArrayUnderlyingType<T> *e) : e_(e) {}
+            Iterator(JArrayUnderlyingType<T> *e) : e_(e) {
+            }
 
             JArrayUnderlyingType<T> *e_;
 
         public:
-            auto &operator*() { return *e_; }
+            auto &operator*() {
+                return *e_;
+            }
 
-            auto *operator->() { return e_; }
+            auto *operator->() {
+                return e_;
+            }
 
-            Iterator &operator++() { return ++e_, *this; }
+            Iterator &operator++() {
+                return ++e_, *this;
+            }
 
-            Iterator &operator--() { return --e_, *this; }
+            Iterator &operator--() {
+                return --e_, *this;
+            }
 
-            Iterator operator++(int) { return Iterator(e_++); }
+            Iterator operator++(int) {
+                return Iterator(e_++);
+            }
 
-            Iterator operator--(int) { return Iterator(e_--); }
+            Iterator operator--(int) {
+                return Iterator(e_--);
+            }
 
-            bool operator==(const Iterator &other) const { return other.e_ == e_; }
+            bool operator==(const Iterator &other) const {
+                return other.e_ == e_;
+            }
 
-            bool operator!=(const Iterator &other) const { return other.e_ != e_; }
+            bool operator!=(const Iterator &other) const {
+                return other.e_ != e_;
+            }
         };
 
         class ConstIterator {
             friend class ScopedLocalRef<T>;
 
-            ConstIterator(const JArrayUnderlyingType<T> *e) : e_(e) {}
+            ConstIterator(const JArrayUnderlyingType<T> *e) : e_(e) {
+            }
 
             const JArrayUnderlyingType<T> *e_;
 
         public:
-            const auto &operator*() { return *e_; }
+            const auto &operator*() {
+                return *e_;
+            }
 
-            const auto *operator->() { return e_; }
+            const auto *operator->() {
+                return e_;
+            }
 
-            ConstIterator &operator++() { return ++e_, *this; }
+            ConstIterator &operator++() {
+                return ++e_, *this;
+            }
 
-            ConstIterator &operator--() { return --e_, *this; }
+            ConstIterator &operator--() {
+                return --e_, *this;
+            }
 
-            ConstIterator operator++(int) { return ConstIterator(e_++); }
+            ConstIterator operator++(int) {
+                return ConstIterator(e_++);
+            }
 
-            ConstIterator operator--(int) { return ConstIterator(e_--); }
+            ConstIterator operator--(int) {
+                return ConstIterator(e_--);
+            }
 
-            bool operator==(const ConstIterator &other) const { return other.e_ == e_; }
+            bool operator==(const ConstIterator &other) const {
+                return other.e_ == e_;
+            }
 
-            bool operator!=(const ConstIterator &other) const { return other.e_ != e_; }
+            bool operator!=(const ConstIterator &other) const {
+                return other.e_ != e_;
+            }
         };
 
         auto begin() {
@@ -973,13 +1035,21 @@ namespace lsplant {
             return Iterator(elements_ + size_);
         }
 
-        const auto begin() const { return ConstIterator(elements_); }
+        const auto begin() const {
+            return ConstIterator(elements_);
+        }
 
-        auto end() const { return ConstIterator(elements_ + size_); }
+        auto end() const {
+            return ConstIterator(elements_ + size_);
+        }
 
-        const auto cbegin() const { return ConstIterator(elements_); }
+        const auto cbegin() const {
+            return ConstIterator(elements_);
+        }
 
-        auto cend() const { return ConstIterator(elements_ + size_); }
+        auto cend() const {
+            return ConstIterator(elements_ + size_);
+        }
 
         using BaseType [[maybe_unused]] = T;
 
@@ -987,14 +1057,20 @@ namespace lsplant {
             reset(local_ref);
         }
 
-        ScopedLocalRef(ScopedLocalRef &&s) noexcept { *this = std::move(s); }
+        ScopedLocalRef(ScopedLocalRef &&s) noexcept {
+            *this = std::move(s);
+        }
 
         template<JObject U>
-        ScopedLocalRef(ScopedLocalRef<U> &&s) noexcept : ScopedLocalRef(s.env_, (T) s.release()) {}
+        ScopedLocalRef(ScopedLocalRef<U> &&s) noexcept : ScopedLocalRef(s.env_, (T) s.release()) {
+        }
 
-        explicit ScopedLocalRef(JNIEnv *env) noexcept: ScopedLocalRef(env, T{nullptr}) {}
+        explicit ScopedLocalRef(JNIEnv *env) noexcept: ScopedLocalRef(env, T{nullptr}) {
+        }
 
-        ~ScopedLocalRef() { env_->DeleteLocalRef(release()); }
+        ~ScopedLocalRef() {
+            env_->DeleteLocalRef(release());
+        }
 
         void reset(T ptr = nullptr) {
             if (ptr != local_ref_) {
@@ -1036,14 +1112,18 @@ namespace lsplant {
             return localRef;
         }
 
-        T get() const { return local_ref_; }
+        T get() const {
+            return local_ref_;
+        }
 
         JArrayUnderlyingType<T> &operator[](size_t index) {
             modified_ = true;
             return elements_[index];
         }
 
-        const JArrayUnderlyingType<T> &operator[](size_t index) const { return elements_[index]; }
+        const JArrayUnderlyingType<T> &operator[](size_t index) const {
+            return elements_[index];
+        }
 
         void commit() {
             ReleaseElements(JNI_COMMIT);
@@ -1068,9 +1148,13 @@ namespace lsplant {
             return *this;
         }
 
-        size_t size() const { return size_; }
+        size_t size() const {
+            return size_;
+        }
 
-        operator bool() const { return local_ref_; }
+        operator bool() const {
+            return local_ref_;
+        }
 
         template<JObject U>
         friend
@@ -1117,7 +1201,8 @@ namespace lsplant {
         }
 
         explicit JObjectArrayElement(JNIEnv *env, jobjectArray array, int i, size_t size)
-                : env_(env), array_(array), i_(i), size_(size), item_(obtain()) {}
+                : env_(env), array_(array), i_(i), size_(size), item_(obtain()) {
+        }
 
         JObjectArrayElement &operator++() {
             ++i_;
@@ -1142,11 +1227,16 @@ namespace lsplant {
     public:
         JObjectArrayElement(JObjectArrayElement &&s)
                 : env_(s.env_), array_(s.array_), i_(s.i_), size_(s.size_),
-                  item_(std::move(s.item_)) {}
+                  item_(std::move(s.item_)) {
+        }
 
-        operator ScopedLocalRef<jobject> &() & { return item_; }
+        operator ScopedLocalRef<jobject> &() & {
+            return item_;
+        }
 
-        operator ScopedLocalRef<jobject> &&() && { return std::move(item_); }
+        operator ScopedLocalRef<jobject> &&() && {
+            return std::move(item_);
+        }
 
         JObjectArrayElement &operator=(JObjectArrayElement &&s) {
             reset(s.item_.release());
@@ -1180,15 +1270,25 @@ namespace lsplant {
             JNI_SafeInvoke(env_, &JNIEnv::SetObjectArrayElement, array_, i_, item_);
         }
 
-        ScopedLocalRef<jobject> clone() const { return item_.clone(); }
+        ScopedLocalRef<jobject> clone() const {
+            return item_.clone();
+        }
 
-        jobject get() const { return item_.get(); }
+        jobject get() const {
+            return item_.get();
+        }
 
-        jobject release() { return item_.release(); }
+        jobject release() {
+            return item_.release();
+        }
 
-        jobject operator->() const { return item_.get(); }
+        jobject operator->() const {
+            return item_.get();
+        }
 
-        jobject operator*() const { return item_.get(); }
+        jobject operator*() const {
+            return item_.get();
+        }
 
     private:
         JNIEnv *env_;
@@ -1206,15 +1306,21 @@ namespace lsplant {
         class Iterator {
             friend class ScopedLocalRef<jobjectArray>;
 
-            Iterator(JObjectArrayElement &&e) : e_(std::move(e)) {}
+            Iterator(JObjectArrayElement &&e) : e_(std::move(e)) {
+            }
 
             Iterator(JNIEnv *env, jobjectArray array, int i, size_t size) : e_(env, array, i,
-                                                                               size) {}
+                    size) {
+            }
 
         public:
-            auto &operator*() { return e_; }
+            auto &operator*() {
+                return e_;
+            }
 
-            auto *operator->() { return e_.get(); }
+            auto *operator->() {
+                return e_.get();
+            }
 
             Iterator &operator++() {
                 ++e_;
@@ -1226,13 +1332,21 @@ namespace lsplant {
                 return *this;
             }
 
-            Iterator operator++(int) { return Iterator(e_++); }
+            Iterator operator++(int) {
+                return Iterator(e_++);
+            }
 
-            Iterator operator--(int) { return Iterator(e_--); }
+            Iterator operator--(int) {
+                return Iterator(e_--);
+            }
 
-            bool operator==(const Iterator &other) const { return other.e_.i_ == e_.i_; }
+            bool operator==(const Iterator &other) const {
+                return other.e_.i_ == e_.i_;
+            }
 
-            bool operator!=(const Iterator &other) const { return other.e_.i_ != e_.i_; }
+            bool operator!=(const Iterator &other) const {
+                return other.e_.i_ != e_.i_;
+            }
 
         private:
             JObjectArrayElement e_;
@@ -1247,12 +1361,17 @@ namespace lsplant {
             }
 
             ConstIterator(JNIEnv *env, jobjectArray array, int i, int size)
-                    : env_(env), array_(array), i_(i), size_(size), item_(obtain()) {}
+                    : env_(env), array_(array), i_(i), size_(size), item_(obtain()) {
+            }
 
         public:
-            auto &operator*() { return item_; }
+            auto &operator*() {
+                return item_;
+            }
 
-            auto *operator->() { return &item_; }
+            auto *operator->() {
+                return &item_;
+            }
 
             ConstIterator &operator++() {
                 ++i_;
@@ -1266,13 +1385,21 @@ namespace lsplant {
                 return *this;
             }
 
-            ConstIterator operator++(int) { return ConstIterator(env_, array_, i_ + 1, size_); }
+            ConstIterator operator++(int) {
+                return ConstIterator(env_, array_, i_ + 1, size_);
+            }
 
-            ConstIterator operator--(int) { return ConstIterator(env_, array_, i_ - 1, size_); }
+            ConstIterator operator--(int) {
+                return ConstIterator(env_, array_, i_ - 1, size_);
+            }
 
-            bool operator==(const ConstIterator &other) const { return other.i_ == i_; }
+            bool operator==(const ConstIterator &other) const {
+                return other.i_ == i_;
+            }
 
-            bool operator!=(const ConstIterator &other) const { return other.i_ != i_; }
+            bool operator!=(const ConstIterator &other) const {
+                return other.i_ != i_;
+            }
 
         private:
             JNIEnv *env_;
@@ -1282,32 +1409,50 @@ namespace lsplant {
             ScopedLocalRef<jobject> item_;
         };
 
-        auto begin() { return Iterator(env_, local_ref_, 0, size_); }
+        auto begin() {
+            return Iterator(env_, local_ref_, 0, size_);
+        }
 
-        auto end() { return Iterator(env_, local_ref_, size_, size_); }
+        auto end() {
+            return Iterator(env_, local_ref_, size_, size_);
+        }
 
-        const auto begin() const { return ConstIterator(env_, local_ref_, 0, size_); }
+        const auto begin() const {
+            return ConstIterator(env_, local_ref_, 0, size_);
+        }
 
-        auto end() const { return ConstIterator(env_, local_ref_, size_, size_); }
+        auto end() const {
+            return ConstIterator(env_, local_ref_, size_, size_);
+        }
 
-        const auto cbegin() const { return ConstIterator(env_, local_ref_, 0, size_); }
+        const auto cbegin() const {
+            return ConstIterator(env_, local_ref_, 0, size_);
+        }
 
-        auto cend() const { return ConstIterator(env_, local_ref_, size_, size_); }
+        auto cend() const {
+            return ConstIterator(env_, local_ref_, size_, size_);
+        }
 
         ScopedLocalRef(JNIEnv *env, jobjectArray local_ref) noexcept: env_(env),
                                                                       local_ref_(nullptr) {
             reset(local_ref);
         }
 
-        ScopedLocalRef(ScopedLocalRef &&s) noexcept { *this = std::move(s); }
+        ScopedLocalRef(ScopedLocalRef &&s) noexcept {
+            *this = std::move(s);
+        }
 
         template<JObject U>
         ScopedLocalRef(ScopedLocalRef<U> &&s) noexcept
-                : ScopedLocalRef(s.env_, (jobjectArray) s.release()) {}
+                : ScopedLocalRef(s.env_, (jobjectArray) s.release()) {
+        }
 
-        explicit ScopedLocalRef(JNIEnv *env) noexcept: ScopedLocalRef(env, jobjectArray{nullptr}) {}
+        explicit ScopedLocalRef(JNIEnv *env) noexcept: ScopedLocalRef(env, jobjectArray{nullptr}) {
+        }
 
-        ~ScopedLocalRef() { env_->DeleteLocalRef(release()); }
+        ~ScopedLocalRef() {
+            env_->DeleteLocalRef(release());
+        }
 
         void reset(jobjectArray ptr = nullptr) {
             if (ptr != local_ref_) {
@@ -1327,7 +1472,9 @@ namespace lsplant {
             return localRef;
         }
 
-        jobjectArray get() const { return local_ref_; }
+        jobjectArray get() const {
+            return local_ref_;
+        }
 
         JObjectArrayElement operator[](size_t index) {
             return JObjectArrayElement(env_, local_ref_, index, size_);
@@ -1351,9 +1498,13 @@ namespace lsplant {
             return *this;
         }
 
-        size_t size() const { return size_; }
+        size_t size() const {
+            return size_;
+        }
 
-        operator bool() const { return local_ref_; }
+        operator bool() const {
+            return local_ref_;
+        }
 
         template<JObject U>
         friend
@@ -1378,7 +1529,7 @@ namespace lsplant {
 
     template<ScopeOrClass Class, ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_NewObjectArray(JNIEnv *env, jsize len, Class &&clazz,
-                                                    const Object &init) {
+            const Object &init) {
         return JNI_SafeInvoke(env, &JNIEnv::NewObjectArray, len, std::forward<Class>(clazz), init);
     }
 
@@ -1416,8 +1567,8 @@ namespace lsplant {
 
     template<ScopeOrObject Object>
     [[maybe_unused]] inline auto JNI_GetObjectFieldOf(JNIEnv *env, Object &&object,
-                                                      std::string_view field_name,
-                                                      std::string_view field_class) {
+            std::string_view field_name,
+            std::string_view field_class) {
         auto &&o = std::forward<Object>(object);
         return JNI_GetObjectField(
                 env, o, JNI_GetFieldID(env, JNI_GetObjectClass(env, o), field_name, field_class));

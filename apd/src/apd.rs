@@ -8,6 +8,7 @@ use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
 use std::{ffi::CStr, process::Command};
 
+#[allow(unused_imports)]
 #[cfg(any(target_os = "linux", target_os = "android"))]
 use crate::pty::prepare_pty;
 use crate::{

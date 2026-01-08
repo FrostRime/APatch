@@ -95,17 +95,12 @@ fun SuperUserScreen() {
     val whiteListModes = listOf(-1, 0, 1, 2)
     var showEditWhiteListMode by remember { mutableStateOf(false) }
     var whiteListMode by remember { mutableStateOf(-1) }
+    var resetSUAppsPhase by remember { mutableStateOf(0) }
 
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
         (state == APApplication.State.ANDROIDPATCH_INSTALLING || state == APApplication.State.ANDROIDPATCH_INSTALLED || state == APApplication.State.ANDROIDPATCH_NEED_UPDATE)
-
-    LaunchedEffect(Unit) {
-        if (kPatchReady && aPatchReady) {
-            whiteListMode = getWhiteListMode()
-        }
-    }
 
     val modeIcons = remember {
         mapOf(
@@ -117,6 +112,9 @@ fun SuperUserScreen() {
     }
 
     LaunchedEffect(Unit) {
+        if (kPatchReady && aPatchReady) {
+            whiteListMode = getWhiteListMode()
+        }
         if (viewModel.appList.isEmpty()) {
             viewModel.fetchAppList()
         }
@@ -143,6 +141,7 @@ fun SuperUserScreen() {
 
                         ProvideMenuShape(MaterialTheme.shapes.medium) {
                             DropdownMenu(expanded = showDropdown, onDismissRequest = {
+                                resetSUAppsPhase = 0
                                 showDropdown = false
                             }) {
                                 DropdownMenuItem(text = {
@@ -165,6 +164,26 @@ fun SuperUserScreen() {
                                 }, onClick = {
                                     viewModel.showSystemApps = !viewModel.showSystemApps
                                     showDropdown = false
+                                })
+
+                                DropdownMenuItem(text = {
+                                    Text(
+                                        if (resetSUAppsPhase == 0) {
+                                            stringResource(R.string.system_default)
+                                        } else {
+                                            stringResource(R.string.settings_clear_super_key_dialog)
+                                        }
+                                    )
+                                }, onClick = {
+                                    if (resetSUAppsPhase == 0) {
+                                        resetSUAppsPhase++
+                                    } else {
+                                        showDropdown = false
+                                        setWhiteListMode(-1)
+                                        whiteListMode = -1
+                                        scope.launch { viewModel.resetAppList() }
+                                        resetSUAppsPhase = 0
+                                    }
                                 })
                             }
                         }

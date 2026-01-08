@@ -16,7 +16,6 @@ use notify::{Config, Event, EventKind, INotifyWatcher, RecursiveMode, Watcher};
 use rustix::mount::*;
 use signal_hook::consts::signal::*;
 use signal_hook::iterator::Signals;
-use std::ffi::CStr;
 use std::fs::{remove_dir_all, rename};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
@@ -44,7 +43,7 @@ fn copy_dir_with_xattr(src: &Path, dest: &Path) -> io::Result<()> {
         let rel_path = entry
             .path()
             .strip_prefix(src)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| io::Error::other(e.to_string()))?;
         let target_path = dest.join(rel_path);
         if entry.file_type().is_dir() {
             fs::create_dir_all(&target_path)?;
@@ -152,7 +151,7 @@ pub fn mount_systemlessly(module_dir: &str, is_img: bool) -> Result<()> {
 
     let mut system_lowerdir: Vec<String> = Vec::new();
 
-    let partition = vec!["vendor", "product", "system_ext", "odm", "oem"];
+    let partition = ["vendor", "product", "system_ext", "odm", "oem"];
     let mut partition_lowerdir: HashMap<String, Vec<String>> = HashMap::new();
     for ele in &partition {
         partition_lowerdir.insert((*ele).to_string(), Vec::new());
@@ -189,10 +188,10 @@ pub fn mount_systemlessly(module_dir: &str, is_img: bool) -> Result<()> {
             // if /partition is a mountpoint, we would move it to $MODPATH/$partition when install
             // otherwise it must be a symlink and we don't need to overlay!
             let part_path = Path::new(&module).join(part);
-            if part_path.is_dir() {
-                if let Some(v) = partition_lowerdir.get_mut(*part) {
-                    v.push(format!("{}", part_path.display()));
-                }
+            if part_path.is_dir()
+                && let Some(v) = partition_lowerdir.get_mut(*part)
+            {
+                v.push(format!("{}", part_path.display()));
             }
         }
     }
@@ -290,7 +289,7 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
         defs::APATCH_LOG_FOLDER,
         defs::APATCH_LOG_FOLDER
     );
-    let mut args = vec!["-c", &command_string];
+    let args = ["-c", &command_string];
     // for all file to .old
     let result = utils::run_command("sh", &args, None)?.wait()?;
     if result.success() {
@@ -301,7 +300,7 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     let logcat_path = format!("{}locat.log", defs::APATCH_LOG_FOLDER);
     let dmesg_path = format!("{}dmesg.log", defs::APATCH_LOG_FOLDER);
     let bootlog = fs::File::create(dmesg_path)?;
-    args = vec![
+    let args = [
         "-s",
         "9",
         "120s",
@@ -323,7 +322,7 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
             .args(args)
             .spawn()
     };
-    args = vec!["-s", "9", "120s", "dmesg", "-w"];
+    let args = ["-s", "9", "120s", "dmesg", "-w"];
     let _result = unsafe {
         Command::new("timeout")
             .process_group(0)
@@ -396,10 +395,8 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     }
     if is_lite_mode_enabled {
         info!("litemode runing skip mount tempfs")
-    } else {
-        if let Err(e) = mount::mount_tmpfs(utils::get_tmp_path()) {
-            warn!("do temp dir mount failed: {}", e);
-        }
+    } else if let Err(e) = mount::mount_tmpfs(utils::get_tmp_path()) {
+        warn!("do temp dir mount failed: {}", e);
     }
 
     // exec modules post-fs-data scripts
@@ -430,7 +427,7 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
         )
         .context("mount tmp")?;
         mount_change(&tmp_dir, MountPropagationFlags::PRIVATE).context("make tmp private")?;
-        let dir_names = vec!["vendor", "product", "system_ext", "odm", "oem", "system"];
+        let dir_names = ["vendor", "product", "system_ext", "odm", "oem", "system"];
         let dir = fs::read_dir(module_dir)?;
         for entry in dir.flatten() {
             let module_path = entry.path();
@@ -460,14 +457,12 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
         if let Err(e) = unmount(&tmp_dir, UnmountFlags::DETACH) {
             log::error!("failed to unmount tmp {}", e);
         }
-    } else {
-        if !is_lite_mode_enabled {
-            if let Err(e) = systemless_bind_mount(module_dir) {
-                warn!("do systemless bind_mount failed: {}", e);
-            }
-        } else {
-            info!("litemode runing skip magic mount");
+    } else if !is_lite_mode_enabled {
+        if let Err(e) = systemless_bind_mount(module_dir) {
+            warn!("do systemless bind_mount failed: {}", e);
         }
+    } else {
+        info!("litemode runing skip magic mount");
     }
 
     info!("remove update flag");
@@ -561,13 +556,11 @@ pub fn start_uid_listener() -> Result<()> {
     {
         let mutex_clone = mutex.clone();
         thread::spawn(move || {
-            let mut signals = Signals::new(&[SIGTERM, SIGINT, SIGPWR]).unwrap();
-            for sig in signals.forever() {
+            let mut signals = Signals::new([SIGTERM, SIGINT, SIGPWR]).unwrap();
+            if let Some(sig) = signals.forever().next() {
                 log::warn!("[shutdown] Caught signal {sig}, refreshing package list...");
-                let skey = CStr::from_bytes_with_nul(b"su\0")
-                    .expect("[shutdown_listener] CStr::from_bytes_with_nul failed");
-                refresh_ap_package_list(&skey, &mutex_clone);
-                break; // 执行一次后退出线程
+                let skey = c"su";
+                refresh_ap_package_list(skey, &mutex_clone);
             }
         });
     }
@@ -596,9 +589,8 @@ pub fn start_uid_listener() -> Result<()> {
     while let Ok(delayed) = rx.recv() {
         if delayed {
             debounce = false;
-            let skey = CStr::from_bytes_with_nul(b"su\0")
-                .expect("[start_uid_listener] CStr::from_bytes_with_nul failed");
-            refresh_ap_package_list(&skey, &mutex);
+            let skey = c"su";
+            refresh_ap_package_list(skey, &mutex);
         } else if !debounce {
             thread::sleep(Duration::from_secs(1));
             debounce = true;

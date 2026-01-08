@@ -37,7 +37,7 @@ jstring nativeKernelPatchBuildTime(JNIEnv *env, jobject /* this */, jstring supe
 }
 
 jlong nativeSu(JNIEnv *env, jobject /* this */, jstring super_key_jstr, jint to_uid,
-               jstring selinux_context_jstr) {
+        jstring selinux_context_jstr) {
     ensureSuperKeyNonNull(super_key_jstr);
 
     const auto super_key = JUTFString(env, super_key_jstr);
@@ -56,7 +56,7 @@ jlong nativeSu(JNIEnv *env, jobject /* this */, jstring super_key_jstr, jint to_
 }
 
 jint nativeSetUidExclude(JNIEnv *env, jobject /* this */, jstring super_key_jstr, jint uid,
-                         jint exclude) {
+        jint exclude) {
     ensureSuperKeyNonNull(super_key_jstr);
 
     const auto super_key = JUTFString(env, super_key_jstr);
@@ -118,7 +118,7 @@ jobject nativeSuProfile(JNIEnv *env, jobject /* this */, jstring super_key_jstr,
 }
 
 jlong nativeLoadKernelPatchModule(JNIEnv *env, jobject /* this */, jstring super_key_jstr,
-                                  jstring module_path_jstr, jstring args_jstr) {
+        jstring module_path_jstr, jstring args_jstr) {
     ensureSuperKeyNonNull(super_key_jstr);
 
     const auto super_key = JUTFString(env, super_key_jstr);
@@ -133,7 +133,7 @@ jlong nativeLoadKernelPatchModule(JNIEnv *env, jobject /* this */, jstring super
 }
 
 jobject nativeControlKernelPatchModule(JNIEnv *env, jobject /* this */, jstring super_key_jstr,
-                                       jstring module_name_jstr, jstring control_args_jstr) {
+        jstring module_name_jstr, jstring control_args_jstr) {
     ensureSuperKeyNonNull(super_key_jstr);
 
     const auto super_key = JUTFString(env, super_key_jstr);
@@ -142,7 +142,7 @@ jobject nativeControlKernelPatchModule(JNIEnv *env, jobject /* this */, jstring 
 
     char buf[4096] = {'\0'};
     long rc = sc_kpm_control(super_key.get(), module_name.get(), control_args.get(), buf,
-                             sizeof(buf));
+            sizeof(buf));
     if (rc < 0) [[unlikely]] {
         LOGE("nativeControlKernelPatchModule error: %ld", rc);
     }
@@ -160,7 +160,7 @@ jobject nativeControlKernelPatchModule(JNIEnv *env, jobject /* this */, jstring 
 }
 
 jlong nativeUnloadKernelPatchModule(JNIEnv *env, jobject /* this */, jstring super_key_jstr,
-                                    jstring module_name_jstr) {
+        jstring module_name_jstr) {
     ensureSuperKeyNonNull(super_key_jstr);
 
     const auto super_key = JUTFString(env, super_key_jstr);
@@ -200,7 +200,7 @@ jstring nativeKernelPatchModuleList(JNIEnv *env, jobject /* this */, jstring sup
 }
 
 jstring nativeKernelPatchModuleInfo(JNIEnv *env, jobject /* this */, jstring super_key_jstr,
-                                    jstring module_name_jstr) {
+        jstring module_name_jstr) {
     ensureSuperKeyNonNull(super_key_jstr);
 
     const auto super_key = JUTFString(env, super_key_jstr);
@@ -215,7 +215,7 @@ jstring nativeKernelPatchModuleInfo(JNIEnv *env, jobject /* this */, jstring sup
 }
 
 jlong nativeGrantSu(JNIEnv *env, jobject /* this */, jstring super_key_jstr, jint uid, jint to_uid,
-                    jstring selinux_context_jstr) {
+        jstring selinux_context_jstr) {
     ensureSuperKeyNonNull(super_key_jstr);
 
     const auto super_key = JUTFString(env, super_key_jstr);
@@ -273,28 +273,28 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
     }
 
     const static JNINativeMethod gMethods[] = {
-            {"nativeReady",                    "(Ljava/lang/String;)Z",                                                                      reinterpret_cast<void *>(&nativeReady)},
-            {"nativeKernelPatchVersion",       "(Ljava/lang/String;)J",                                                                      reinterpret_cast<void *>(&nativeKernelPatchVersion)},
-            {"nativeKernelPatchBuildTime",     "(Ljava/lang/String;)Ljava/lang/String;",                                                     reinterpret_cast<void *>(&nativeKernelPatchBuildTime)},
-            {"nativeSu",                       "(Ljava/lang/String;ILjava/lang/String;)J",                                                   reinterpret_cast<void *>(&nativeSu)},
-            {"nativeSetUidExclude",            "(Ljava/lang/String;II)I",                                                                    reinterpret_cast<void *>(&nativeSetUidExclude)},
-            {"nativeGetUidExclude",            "(Ljava/lang/String;I)I",                                                                     reinterpret_cast<void *>(&nativeGetUidExclude)},
-            {"nativeSuUids",                   "(Ljava/lang/String;)[I",                                                                     reinterpret_cast<void *>(&nativeSuUids)},
-            {"nativeSuProfile",                "(Ljava/lang/String;I)Lme/bmax/apatch/Natives$Profile;",                                      reinterpret_cast<void *>(&nativeSuProfile)},
-            {"nativeLoadKernelPatchModule",    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",                                  reinterpret_cast<void *>(&nativeLoadKernelPatchModule)},
+            {"nativeReady", "(Ljava/lang/String;)Z", reinterpret_cast<void *>(&nativeReady)},
+            {"nativeKernelPatchVersion", "(Ljava/lang/String;)J", reinterpret_cast<void *>(&nativeKernelPatchVersion)},
+            {"nativeKernelPatchBuildTime", "(Ljava/lang/String;)Ljava/lang/String;", reinterpret_cast<void *>(&nativeKernelPatchBuildTime)},
+            {"nativeSu", "(Ljava/lang/String;ILjava/lang/String;)J", reinterpret_cast<void *>(&nativeSu)},
+            {"nativeSetUidExclude", "(Ljava/lang/String;II)I", reinterpret_cast<void *>(&nativeSetUidExclude)},
+            {"nativeGetUidExclude", "(Ljava/lang/String;I)I", reinterpret_cast<void *>(&nativeGetUidExclude)},
+            {"nativeSuUids", "(Ljava/lang/String;)[I", reinterpret_cast<void *>(&nativeSuUids)},
+            {"nativeSuProfile", "(Ljava/lang/String;I)Lme/bmax/apatch/Natives$Profile;", reinterpret_cast<void *>(&nativeSuProfile)},
+            {"nativeLoadKernelPatchModule", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J", reinterpret_cast<void *>(&nativeLoadKernelPatchModule)},
             {"nativeControlKernelPatchModule", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lme/bmax/apatch/Natives$KPMCtlRes;", reinterpret_cast<void *>(&nativeControlKernelPatchModule)},
-            {"nativeUnloadKernelPatchModule",  "(Ljava/lang/String;Ljava/lang/String;)J",                                                    reinterpret_cast<void *>(&nativeUnloadKernelPatchModule)},
-            {"nativeKernelPatchModuleNum",     "(Ljava/lang/String;)J",                                                                      reinterpret_cast<void *>(&nativeKernelPatchModuleNum)},
-            {"nativeKernelPatchModuleList",    "(Ljava/lang/String;)Ljava/lang/String;",                                                     reinterpret_cast<void *>(&nativeKernelPatchModuleList)},
-            {"nativeKernelPatchModuleInfo",    "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",                                   reinterpret_cast<void *>(&nativeKernelPatchModuleInfo)},
-            {"nativeGrantSu",                  "(Ljava/lang/String;IILjava/lang/String;)J",                                                  reinterpret_cast<void *>(&nativeGrantSu)},
-            {"nativeRevokeSu",                 "(Ljava/lang/String;I)J",                                                                     reinterpret_cast<void *>(&nativeRevokeSu)},
-            {"nativeSuPath",                   "(Ljava/lang/String;)Ljava/lang/String;",                                                     reinterpret_cast<void *>(&nativeSuPath)},
-            {"nativeResetSuPath",              "(Ljava/lang/String;Ljava/lang/String;)Z",                                                    reinterpret_cast<void *>(&nativeResetSuPath)},
+            {"nativeUnloadKernelPatchModule", "(Ljava/lang/String;Ljava/lang/String;)J", reinterpret_cast<void *>(&nativeUnloadKernelPatchModule)},
+            {"nativeKernelPatchModuleNum", "(Ljava/lang/String;)J", reinterpret_cast<void *>(&nativeKernelPatchModuleNum)},
+            {"nativeKernelPatchModuleList", "(Ljava/lang/String;)Ljava/lang/String;", reinterpret_cast<void *>(&nativeKernelPatchModuleList)},
+            {"nativeKernelPatchModuleInfo", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", reinterpret_cast<void *>(&nativeKernelPatchModuleInfo)},
+            {"nativeGrantSu", "(Ljava/lang/String;IILjava/lang/String;)J", reinterpret_cast<void *>(&nativeGrantSu)},
+            {"nativeRevokeSu", "(Ljava/lang/String;I)J", reinterpret_cast<void *>(&nativeRevokeSu)},
+            {"nativeSuPath", "(Ljava/lang/String;)Ljava/lang/String;", reinterpret_cast<void *>(&nativeSuPath)},
+            {"nativeResetSuPath", "(Ljava/lang/String;Ljava/lang/String;)Z", reinterpret_cast<void *>(&nativeResetSuPath)},
     };
 
     if (JNI_RegisterNatives(env, clazz, gMethods, sizeof(gMethods) / sizeof(gMethods[0])) <
-        0) [[unlikely]] {
+            0) [[unlikely]] {
         LOGE("Failed to register native methods");
         return JNI_FALSE;
     }

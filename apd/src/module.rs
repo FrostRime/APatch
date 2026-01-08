@@ -6,7 +6,7 @@ use const_format::concatcp;
 use is_executable::is_executable;
 use java_properties::PropertiesIter;
 use log::{info, warn};
-use mlua::{Function, Lua, Result as LuaResult, Table, Value};
+use mlua::{Function, Lua, Result as LuaResult, Table};
 use std::{
     collections::HashMap,
     env::var as env_var,
@@ -44,13 +44,11 @@ fn exec_install_script(module_file: &str) -> Result<()> {
     let realpath =
         fs::canonicalize(module_file).with_context(|| format!("realpath: {module_file} failed"))?;
 
-    let content;
-
-    if !should_use_overlayfs()? {
-        content = INSTALL_MODULE_SCRIPT_.to_string();
+    let content = if !should_use_overlayfs()? {
+        INSTALL_MODULE_SCRIPT_.to_string()
     } else {
-        content = INSTALL_MODULE_SCRIPT.to_string();
-    }
+        INSTALL_MODULE_SCRIPT.to_string()
+    };
     let result = Command::new(assets::BUSYBOX_PATH)
         .args(["sh", "-c", &content])
         .env("ASH_STANDALONE", "1")
@@ -223,9 +221,9 @@ pub fn exec_stage_script(stage: &str, block: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn exec_stage_lua(stage: &str,wait: bool,superkey: &str) -> Result<()> {
+pub fn exec_stage_lua(stage: &str, wait: bool, superkey: &str) -> Result<()> {
     let stage_safe = stage.replace('-', "_");
-    run_lua(&superkey, &stage_safe, true, wait).map_err(|e| anyhow::anyhow!("{}", e))?;
+    run_lua(superkey, &stage_safe, true, wait).map_err(|e| anyhow::anyhow!("{}", e))?;
     Ok(())
 }
 pub fn exec_common_scripts(dir: &str, wait: bool) -> Result<()> {
@@ -282,10 +280,10 @@ pub fn prune_modules() -> Result<()> {
         info!("remove module: {}", module.display());
 
         let uninstaller = module.join("uninstall.sh");
-        if uninstaller.exists() {
-            if let Err(e) = exec_script(uninstaller, true) {
-                warn!("Failed to exec uninstaller: {}", e);
-            }
+        if uninstaller.exists()
+            && let Err(e) = exec_script(uninstaller, true)
+        {
+            warn!("Failed to exec uninstaller: {}", e);
         }
 
         if let Err(e) = fs::remove_dir_all(module) {
@@ -345,7 +343,7 @@ fn _install_module(zip: &str) -> Result<()> {
     let _module_update_dir = format!("{}{}", modules_update_dir.display(), module_id.clone());
     info!("module dir: {}", module_dir);
     if !Path::new(&module_dir.clone()).exists() {
-        fs::create_dir(&module_dir.clone()).expect("Failed to create module folder");
+        fs::create_dir(module_dir.clone()).expect("Failed to create module folder");
         let permissions = fs::Permissions::from_mode(0o700);
         fs::set_permissions(module_dir.clone(), permissions).expect("Failed to set permissions");
     }
@@ -367,8 +365,7 @@ fn _install_module(zip: &str) -> Result<()> {
 }
 
 pub fn install_module(zip: &str) -> Result<()> {
-    let result = _install_module(zip);
-    result
+    _install_module(zip)
 }
 
 pub fn _uninstall_module(id: &str, update_dir: &str) -> Result<()> {
@@ -444,43 +441,38 @@ pub fn load_all_lua_modules(lua: &Lua) -> LuaResult<()> {
     };
 
     if modules_dir.exists() {
-        for entry in
-            fs::read_dir(modules_dir).unwrap_or_else(|_| fs::read_dir("/dev/null").unwrap())
+        for entry in fs::read_dir(modules_dir)
+            .unwrap_or_else(|_| fs::read_dir("/dev/null").unwrap())
+            .flatten()
         {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_dir() {
-                    let id = path.file_name().unwrap().to_string_lossy().to_string();
-                    let package: Table = lua.globals().get("package")?;
-                    let old_cpath: String = package.get("cpath")?;
-                    let new_cpath = format!("{}/?.so;{}", path.to_string_lossy(), old_cpath);
-                    package.set("cpath", new_cpath)?;
+            let path = entry.path();
+            if path.is_dir() {
+                let id = path.file_name().unwrap().to_string_lossy().to_string();
+                let package: Table = lua.globals().get("package")?;
+                let old_cpath: String = package.get("cpath")?;
+                let new_cpath = format!("{}/?.so;{}", path.to_string_lossy(), old_cpath);
+                package.set("cpath", new_cpath)?;
 
-                    let lua_file = path.join(format!("{}.lua", id));
+                let lua_file = path.join(format!("{}.lua", id));
 
-                    if lua_file.exists() {
-                        match fs::read_to_string(&lua_file) {
-                            Ok(code) => {
-                                match lua
-                                    .load(&code)
-                                    .set_name(&*lua_file.to_string_lossy())
-                                    .eval::<Table>()
-                                {
-                                    Ok(module) => {
-                                        modules.set(id.clone(), module.clone())?;
-                                    }
-                                    Err(e) => {
-                                        eprintln!(
-                                            "Failed to eval Lua {}: {}",
-                                            lua_file.display(),
-                                            e
-                                        );
-                                    }
+                if lua_file.exists() {
+                    match fs::read_to_string(&lua_file) {
+                        Ok(code) => {
+                            match lua
+                                .load(&code)
+                                .set_name(&*lua_file.to_string_lossy())
+                                .eval::<Table>()
+                            {
+                                Ok(module) => {
+                                    modules.set(id.clone(), module.clone())?;
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to eval Lua {}: {}", lua_file.display(), e);
                                 }
                             }
-                            Err(e) => {
-                                eprintln!("Failed to read Lua {}: {}", lua_file.display(), e);
-                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to read Lua {}: {}", lua_file.display(), e);
                         }
                     }
                 }
@@ -582,7 +574,7 @@ pub fn run_action(id: &str) -> Result<()> {
         let _ = exec_script(&action_script_path, true);
     } else {
         //if no action.sh, try to run lua action
-        run_lua(&id, "action", false, true).map_err(|e| anyhow::anyhow!("{}", e))?;
+        run_lua(id, "action", false, true).map_err(|e| anyhow::anyhow!("{}", e))?;
     }
     Ok(())
 }
@@ -710,8 +702,7 @@ fn _list_modules(path: &str) -> Vec<HashMap<String, String>> {
         let web = path.join(defs::MODULE_WEB_DIR).exists();
         let id = module_prop_map.get("id").map(|s| s.as_str()).unwrap_or("");
         let id_lua_file = format!("{}.lua", id);
-        let action = path.join(defs::MODULE_ACTION_SH).exists()
-                || path.join(&id_lua_file).exists();
+        let action = path.join(defs::MODULE_ACTION_SH).exists() || path.join(&id_lua_file).exists();
 
         module_prop_map.insert("enabled".to_owned(), enabled.to_string());
         module_prop_map.insert("update".to_owned(), update.to_string());

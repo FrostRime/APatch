@@ -19,12 +19,16 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.Natives
 import me.bmax.apatch.apApp
 import me.bmax.apatch.util.HanziToPinyin
 import me.bmax.apatch.util.Pkg
 import me.bmax.apatch.util.PkgConfig
+import java.io.File
+import java.nio.channels.FileChannel
+import java.nio.file.StandardOpenOption
 import java.text.Collator
 import java.util.Locale
 
@@ -85,6 +89,28 @@ class SuperUserViewModel : ViewModel() {
         }.sortedByDescending {
             it.uid == 2000
         }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
+    suspend fun resetAppList() {
+        isRefreshing = true
+        withContext(Dispatchers.IO) {
+            val content = newSingleThreadContext("SyncWorker")
+            async(content) {
+                Natives.su()
+                Pkg.readPackages().list.map {
+                    val uid = it.applicationInfo!!.uid
+                    Natives.revokeSu(uid)
+                    Natives.setUidExclude(uid, 0)
+                }
+                val file = File(APApplication.PACKAGE_CONFIG_FILE)
+                if (!file.parentFile?.exists()!!) file.parentFile?.mkdirs()
+                FileChannel.open(file.toPath(), StandardOpenOption.WRITE).use { channel ->
+                    channel.truncate(0)
+                }
+            }.await()
+        }
+        fetchAppList()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)

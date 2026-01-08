@@ -11,8 +11,8 @@ use crate::defs::PTS_NAME;
 use crate::utils::get_tmp_path;
 use anyhow::{Ok, Result, bail};
 use libc::{
-    __errno, EINTR, SIG_BLOCK, SIG_UNBLOCK, SIGWINCH, TIOCGWINSZ, TIOCSWINSZ, fork,
-    pthread_sigmask, sigaddset, sigemptyset, sigset_t, sigwait, waitpid, winsize,
+    EINTR, SIG_BLOCK, SIG_UNBLOCK, SIGWINCH, TIOCGWINSZ, TIOCSWINSZ, fork, pthread_sigmask,
+    sigaddset, sigemptyset, sigset_t, sigwait, waitpid, winsize,
 };
 use rustix::fs::{Mode, OFlags, open};
 use rustix::io::dup;
@@ -25,6 +25,7 @@ use std::sync::Mutex;
 
 // https://github.com/topjohnwu/Magisk/blob/5627053b7481618adfdf8fa3569b48275589915b/native/src/core/su/pts.cpp
 
+#[allow(unused)]
 fn get_pty_num<F: AsFd>(fd: F) -> Result<u32> {
     Ok(unsafe {
         let tiocgptn = Getter::<ReadOpcode<b'T', 0x30, u32>, u32>::new();
@@ -32,8 +33,10 @@ fn get_pty_num<F: AsFd>(fd: F) -> Result<u32> {
     })
 }
 
+#[allow(unused)]
 static OLD_STDIN: Mutex<Option<Termios>> = Mutex::new(None);
 
+#[allow(unused)]
 fn watch_sigwinch_async(slave: RawFd) {
     let mut winch = MaybeUninit::<sigset_t>::uninit();
     unsafe {
@@ -61,6 +64,7 @@ fn watch_sigwinch_async(slave: RawFd) {
     });
 }
 
+#[allow(unused)]
 fn set_stdin_raw() -> rustix::io::Result<()> {
     let mut termios = tcgetattr(stdin())?;
 
@@ -72,6 +76,7 @@ fn set_stdin_raw() -> rustix::io::Result<()> {
     tcsetattr(stdin(), OptionalActions::Flush, &termios)
 }
 
+#[allow(unused)]
 fn restore_stdin() -> Result<()> {
     let mut guard = OLD_STDIN.lock().unwrap();
 
@@ -82,6 +87,7 @@ fn restore_stdin() -> Result<()> {
     Ok(())
 }
 
+#[allow(unused)]
 fn pump<R: Read, W: Write>(mut from: R, mut to: W) {
     let mut buf = [0u8; 4096];
     loop {
@@ -104,6 +110,7 @@ fn pump<R: Read, W: Write>(mut from: R, mut to: W) {
     }
 }
 
+#[allow(unused)]
 fn pump_stdin_async(mut ptmx: File) {
     let _ = set_stdin_raw();
 
@@ -113,6 +120,7 @@ fn pump_stdin_async(mut ptmx: File) {
     });
 }
 
+#[allow(unused)]
 fn pump_stdout_blocking(mut ptmx: File) {
     let mut stdout = stdout();
     pump(&mut ptmx, &mut stdout);
@@ -120,6 +128,7 @@ fn pump_stdout_blocking(mut ptmx: File) {
     let _ = restore_stdin();
 }
 
+#[allow(unused)]
 fn create_transfer(ptmx: OwnedFd) -> Result<()> {
     let pid = unsafe { fork() };
     match pid {
@@ -142,8 +151,13 @@ fn create_transfer(ptmx: OwnedFd) -> Result<()> {
 
     unsafe {
         loop {
-            if waitpid(pid, &mut status, 0) == -1 && *__errno() != EINTR {
-                continue;
+            let res = waitpid(pid, &mut status, 0);
+            if res == -1 {
+                let err = std::io::Error::last_os_error();
+                if err.raw_os_error() == Some(EINTR) {
+                    continue;
+                }
+                break;
             }
             break;
         }
@@ -152,6 +166,7 @@ fn create_transfer(ptmx: OwnedFd) -> Result<()> {
     exit(status)
 }
 
+#[allow(unused)]
 pub fn prepare_pty() -> Result<()> {
     let tty_in = isatty(stdin());
     let tty_out = isatty(stdout());
