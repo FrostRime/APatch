@@ -216,7 +216,7 @@ tasks.register<Delete>("apdClean") {
 tasks.register<Exec>("cargoBuildJni") {
     executable("cargo")
     args("ndk", "-t", "arm64-v8a", "build", "--release")
-    workingDir("${project.rootDir}/apjni")
+    workingDir("${project.projectDir}/src/apjni")
 }
 
 tasks.register<Copy>("buildApJni") {
@@ -228,7 +228,7 @@ tasks.register<Copy>("buildApJni") {
 tasks.register<Exec>("cargoCleanJni") {
     executable("cargo")
     args("clean")
-    workingDir("${project.rootDir}/apjni")
+    workingDir("${project.projectDir}/src/apjni")
 }
 
 tasks.register<Delete>("apJniClean") {

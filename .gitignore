@@ -12,3 +12,5 @@ key.jks.base64.txt
 .kotlin
 app/src/main/resources/
 private
+/app/src/apjni/target/
+/ap_supercall/target/

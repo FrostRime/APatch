@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import dalvik.annotation.optimization.FastNative
 import kotlinx.parcelize.Parcelize
 
+@Suppress("KotlinJniMissingFunction", "RedundantSuppression")
 object Natives {
     init {
         System.loadLibrary("apjni")
