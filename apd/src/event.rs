@@ -1,10 +1,13 @@
 use crate::magic_mount;
 use crate::module;
 use crate::supercall::fork_for_result;
+#[cfg(unix)]
+use crate::supercall::init_load_package_uid_config;
+use crate::supercall::init_load_su_path;
+use crate::supercall::refresh_ap_package_list;
 use crate::utils::{ensure_dir_exists, ensure_file_exists, get_work_dir, switch_cgroups};
 use crate::{
     assets, defs, mount, restorecon, supercall,
-    supercall::{init_load_package_uid_config, init_load_su_path, refresh_ap_package_list},
     utils::{self, ensure_clean_dir},
 };
 use anyhow::{Context, Result, bail, ensure};

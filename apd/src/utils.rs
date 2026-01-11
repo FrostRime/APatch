@@ -8,6 +8,7 @@ use std::{
     process::Stdio,
 };
 
+use crate::cli::SUPERCALL;
 use crate::defs;
 use std::fs::metadata;
 #[allow(unused_imports)]
@@ -15,8 +16,6 @@ use std::fs::{Permissions, set_permissions};
 #[cfg(unix)]
 use std::os::unix::prelude::PermissionsExt;
 use std::process::Command;
-
-use crate::supercall::sc_su_get_safemode;
 
 pub fn ensure_clean_dir(dir: &str) -> Result<()> {
     let path = Path::new(dir);
@@ -100,7 +99,7 @@ pub fn is_safe_mode(superkey: Option<String>) -> bool {
                 warn!("[is_safe_mode] No valid superkey provided, assuming safemode as false.");
                 false
             },
-            |cstr| sc_su_get_safemode(&cstr) == 1,
+            |cstr| SUPERCALL.sc_su_get_safemode(&cstr) == 1,
         );
     info!("kernel_safemode: {}", safemode);
     safemode

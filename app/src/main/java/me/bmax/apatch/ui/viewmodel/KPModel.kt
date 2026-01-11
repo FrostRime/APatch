@@ -6,7 +6,6 @@ import androidx.compose.runtime.Immutable
 import kotlinx.parcelize.Parcelize
 
 object KPModel {
-
     @Suppress("unused")
     enum class TriggerEvent(val event: String) {
         PAGING_INIT("paging-init"),
@@ -63,5 +62,4 @@ object KPModel {
         var banner: String,
         var patched: Boolean,
     ) : Parcelable
-
 }

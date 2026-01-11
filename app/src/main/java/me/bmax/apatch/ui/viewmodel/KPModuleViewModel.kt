@@ -102,6 +102,4 @@ class KPModuleViewModel : ViewModel() {
             Log.i(TAG, "load cost: ${SystemClock.elapsedRealtime() - start}, modules: $modules")
         }
     }
-
-
 }

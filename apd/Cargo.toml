@@ -42,6 +42,7 @@ getopts = "0.2"
 errno = "0.3.14"
 notify = "8.2"
 signal-hook = "0.3"
+ap_supercall = { path = "../ap_supercall" }
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 rustix = { git = "https://github.com/AndroidPatch/rustix", branch = "main", features = ["all-apis"] }

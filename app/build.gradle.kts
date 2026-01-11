@@ -93,13 +93,6 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            version = "3.28.0+"
-            path("src/main/cpp/CMakeLists.txt")
-        }
-    }
-
     androidResources { generateLocaleConfig = true }
 
     sourceSets["main"].jniLibs.srcDir("libs")
@@ -205,6 +198,7 @@ tasks.register<Copy>("buildApd") {
 tasks.configureEach {
     if (name == "mergeDebugJniLibFolders" || name == "mergeReleaseJniLibFolders") {
         dependsOn("buildApd")
+        dependsOn("buildApJni")
     }
 }
 
@@ -219,7 +213,28 @@ tasks.register<Delete>("apdClean") {
     delete(file("${project.projectDir}/libs/arm64-v8a/libapd.so"))
 }
 
-tasks.clean { dependsOn("apdClean") }
+tasks.register<Exec>("cargoBuildJni") {
+    executable("cargo")
+    args("ndk", "-t", "arm64-v8a", "build", "--release")
+    workingDir("${project.rootDir}/apjni")
+}
+
+tasks.register<Copy>("buildApJni") {
+    dependsOn("cargoBuildJni")
+    from("${project.rootDir}/apjni/target/aarch64-linux-android/release/libapjni.so")
+    into("${project.projectDir}/libs/arm64-v8a")
+}
+
+tasks.register<Exec>("cargoCleanJni") {
+    executable("cargo")
+    args("clean")
+    workingDir("${project.rootDir}/apjni")
+}
+
+tasks.register<Delete>("apJniClean") {
+    dependsOn("cargoCleanJni")
+    delete(file("${project.projectDir}/libs/arm64-v8a/libapjni.so"))
+}
 
 ksp { arg("compose-destinations.defaultTransitions", "none") }
 

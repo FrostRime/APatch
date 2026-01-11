@@ -164,11 +164,13 @@ class SuperUserViewModel : ViewModel() {
                 val uid = appInfo!!.uid
                 val actProfile = if (uids.contains(uid)) Natives.suProfile(uid) else null
                 val packageName = it.packageName
+                val exclude = Natives.isUidExcluded(uid);
+                Log.d(TAG, "uid: $uid: $exclude")
                 val config = configs.getOrDefault(
                     uid,
                     PkgConfig.Config(
                         packageName,
-                        Natives.isUidExcluded(uid),
+                        exclude,
                         0,
                         Natives.Profile(uid = uid)
                     )
