@@ -90,25 +90,6 @@ jobs:
           APP_JAVA_BASE: app/src/main/java
         run: |
           sed -i "s/applicationId[[:space:]]*=[[:space:]]*\".*\"/applicationId = \"$NEW_PKG\"/g" app/build.gradle.kts
-          if [ "$OLD_PKG" = "$NEW_PKG" ]; then
-            echo "新旧包名一致，跳过修改流程。"
-             exit 0
-          fi
-          
-          OLD_PKG_SLASH=$(echo $OLD_PKG | tr '.' '/')
-          NEW_PKG_SLASH=$(echo $NEW_PKG | tr '.' '/')
-          OLD_DIR="${APP_JAVA_BASE}/${OLD_PKG_SLASH}"
-          NEW_DIR="${APP_JAVA_BASE}/${NEW_PKG_SLASH}"
-          sed -i "s/namespace[[:space:]]*=[[:space:]]*\".*\"/namespace = \"$NEW_PKG\"/g" app/build.gradle.kts
-          if [ -d "$OLD_DIR" ]; then
-            mkdir -p "$NEW_DIR"
-            cp -r "$OLD_DIR"/. "$NEW_DIR/"
-            rm -rf "${APP_JAVA_BASE}/me"
-          fi
-          echo "Files moved successfully."
-          find app/src/main -type f \( -name "*.kt" -o -name "*.java" -o -name "*.aidl" -o -name "*.xml" \) -exec sed -i "s/$OLD_PKG/$NEW_PKG/g" {} +
-          find . -name "*.rs" -type f -exec sed -i "s|$OLD_PKG|$NEW_PKG|g" {} +
-          find . -name "*.rs" -type f -exec sed -i "s|$OLD_PKG_SLASH|$NEW_PKG_SLASH|g" {} +
 
       - name: Build with Gradle
         run: |
