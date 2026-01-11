@@ -539,12 +539,6 @@ private fun ModuleItem(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-                HorizontalDivider(
-                    thickness = 1.5.dp,
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier
-                )
-
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Row(

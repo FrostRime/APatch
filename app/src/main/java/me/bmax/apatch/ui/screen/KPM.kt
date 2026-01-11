@@ -585,11 +585,6 @@ private fun KPModuleItem(
                     modifier = Modifier
                         .fillMaxWidth()
                 ) {
-                    HorizontalDivider(
-                        thickness = 1.5.dp,
-                        color = MaterialTheme.colorScheme.surface
-                    )
-
                     Row(
                         modifier = Modifier
                             .padding(top = 8.dp)
