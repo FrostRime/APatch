@@ -90,7 +90,7 @@ jobs:
           OLD_DIR: app/src/main/java/me/bmax/apatch
         run: |
           sed -i "s/applicationId[[:space:]]*=[[:space:]]*\".*\"/applicationId = \"$NEW_PKG\"/g" app/build.gradle.kts
-          NEW_PKG_DIR: $(echo $NEW_PKG | tr '.' '/')
+          NEW_PKG_DIR=$(echo $NEW_PKG | tr '.' '/')
           NEW_DIR=app/src/main/java/$NEW_PKG_DIR
           sed -i "s/namespace[[:space:]]*=[[:space:]]*\".*\"/namespace = \"$NEW_PKG\"/g" app/build.gradle.kts
           if [ -d "$OLD_DIR" ]; then
