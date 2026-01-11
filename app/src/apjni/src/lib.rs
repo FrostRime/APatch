@@ -187,11 +187,15 @@ fn native_control_kernel_patch_module<'a>(
     let module_name = jstr_to_cstr(&mut env, module_name_jstr);
     let args = jstr_to_cstr(&mut env, control_args_jstr);
     let mut buf = [0u8; 4096];
+    let ptr = buf.as_mut_ptr();
+    #[cfg(not(target_os = "android"))]
+    let ptr = ptr as *mut i8;
+
     let rc = ret_to_jlong(get_sc().sc_kpm_control(
         &key,
         module_name.as_ptr(),
         args.as_ptr(),
-        buf.as_mut_ptr(),
+        ptr,
         buf.len() as c_long,
     ));
     let cls = env.find_class("me/bmax/apatch/Natives$KPMCtlRes").unwrap();
@@ -238,9 +242,11 @@ fn native_kernel_patch_module_list<'a>(
     ensure_super_key(&key);
     let key = jstr_to_cstr(&mut env, key);
     let mut buf = [0u8; 4096];
-    get_sc()
-        .sc_kpm_list(&key, buf.as_mut_ptr(), buf.len() as i32)
-        .unwrap();
+
+    let ptr = buf.as_mut_ptr();
+    #[cfg(not(target_os = "android"))]
+    let ptr = ptr as *mut i8;
+    get_sc().sc_kpm_list(&key, ptr, buf.len() as i32).unwrap();
     let out_msg_str = unsafe { std::ffi::CStr::from_ptr(buf.as_ptr().cast()).to_string_lossy() };
     env.new_string(out_msg_str).unwrap()
 }
@@ -255,13 +261,12 @@ fn native_kernel_patch_module_info<'a>(
     let key = jstr_to_cstr(&mut env, key);
     let module_name = jstr_to_cstr(&mut env, module_name_jstr);
     let mut buf = [0u8; 1024];
+
+    let ptr = buf.as_mut_ptr();
+    #[cfg(not(target_os = "android"))]
+    let ptr = ptr as *mut i8;
     get_sc()
-        .sc_kpm_info(
-            &key,
-            module_name.as_ptr(),
-            buf.as_mut_ptr(),
-            buf.len() as i32,
-        )
+        .sc_kpm_info(&key, module_name.as_ptr(), ptr, buf.len() as i32)
         .unwrap();
     let out_msg_str = unsafe { std::ffi::CStr::from_ptr(buf.as_ptr().cast()).to_string_lossy() };
     env.new_string(out_msg_str).unwrap()
@@ -278,7 +283,7 @@ fn native_grant_su(
     ensure_super_key(&key);
     let key = jstr_to_cstr(&mut env, key);
     let sctx_str = jstr_to_cstr(&mut env, sctx);
-    let mut profile = SuProfile::new(uid as i32, to_uid, &sctx_str.to_string_lossy());
+    let mut profile = SuProfile::new(uid, to_uid, &sctx_str.to_string_lossy());
     ret_to_jlong(get_sc().sc_su_grant_uid(&key, &mut profile))
 }
 
@@ -292,8 +297,12 @@ fn native_su_path<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> JString<'
     ensure_super_key(&key);
     let key = jstr_to_cstr(&mut env, key);
     let mut buf = [0u8; SU_PATH_MAX_LEN];
+
+    let ptr = buf.as_mut_ptr();
+    #[cfg(not(target_os = "android"))]
+    let ptr = ptr as *mut i8;
     get_sc()
-        .sc_su_get_path(&key, buf.as_mut_ptr(), buf.len() as i32)
+        .sc_su_get_path(&key, ptr, buf.len() as i32)
         .unwrap();
     let out_msg_str = unsafe { std::ffi::CStr::from_ptr(buf.as_ptr().cast()).to_string_lossy() };
     env.new_string(out_msg_str).unwrap()
@@ -424,7 +433,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
     ];
 
     // 4. 注册方法
-    if let Err(_) = env.register_native_methods(clazz, &methods) {
+    if env.register_native_methods(clazz, &methods).is_err() {
         return JNI_ERR;
     }
 
