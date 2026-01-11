@@ -21,6 +21,8 @@ val branchName: String by rootProject.extra
 val managerBuildTime: String by rootProject.extra
 val kernelPatchVersion: String by rootProject.extra
 
+val apjniPath: String = "${project.projectDir}/src/apjni"
+
 apksign {
     storeFileProperty = "KEYSTORE_FILE"
     storePasswordProperty = "KEYSTORE_PASSWORD"
@@ -216,19 +218,19 @@ tasks.register<Delete>("apdClean") {
 tasks.register<Exec>("cargoBuildJni") {
     executable("cargo")
     args("ndk", "-t", "arm64-v8a", "build", "--release")
-    workingDir("${project.projectDir}/src/apjni")
+    workingDir(apjniPath)
 }
 
 tasks.register<Copy>("buildApJni") {
     dependsOn("cargoBuildJni")
-    from("${project.rootDir}/apjni/target/aarch64-linux-android/release/libapjni.so")
+    from("${apjniPath}/target/aarch64-linux-android/release/libapjni.so")
     into("${project.projectDir}/libs/arm64-v8a")
 }
 
 tasks.register<Exec>("cargoCleanJni") {
     executable("cargo")
     args("clean")
-    workingDir("${project.projectDir}/src/apjni")
+    workingDir(apjniPath)
 }
 
 tasks.register<Delete>("apJniClean") {

@@ -65,6 +65,13 @@ jobs:
         with:
           distribution: jetbrains
           java-version: 21
+          cache: 'gradle'
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.package_id }}
+          shared-key: "rust-build"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -72,7 +79,9 @@ jobs:
       - name: Install Rust toolchain
         run: |
           rustup target install aarch64-linux-android
-          cargo install cargo-ndk
+          if ! command -v cargo-ndk &> /dev/null; then
+            cargo install cargo-ndk
+          fi
 
       - name: Replace package_id
         run: |
@@ -80,7 +89,7 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --build-cache
           echo "BUILD_TOOL_VERSION=$(ls $ANDROID_SDK_ROOT/build-tools/ | tail -n 1)" >> $GITHUB_ENV
 
       - name: Sign Release
