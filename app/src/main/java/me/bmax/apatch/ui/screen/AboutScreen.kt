@@ -42,7 +42,9 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.composables.icons.tabler.Tabler
@@ -95,10 +97,30 @@ fun AboutScreen(navigator: DestinationsNavigator) {
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-            Text(
-                text = stringResource(id = R.string.app_name),
-                style = MaterialTheme.typography.titleLarge
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(id = R.string.app_name),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.tertiary
+                ) {
+                    Text(
+                        text = "BETTER",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 8.sp
+                        ),
+                        modifier = Modifier.padding(
+                            horizontal = 4.dp,
+                            vertical = 0.5.dp
+                        ),
+                        color = MaterialTheme.colorScheme.onTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
             Text(
                 text = BuildConfig.APPLICATION_ID,
                 style = MaterialTheme.typography.bodyMedium,

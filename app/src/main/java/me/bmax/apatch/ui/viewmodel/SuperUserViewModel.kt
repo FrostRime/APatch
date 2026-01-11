@@ -73,9 +73,7 @@ class SuperUserViewModel : ViewModel() {
                 else -> 2
             }
         }.then(compareBy(Collator.getInstance(Locale.getDefault()), AppInfo::label))
-        apps.sortedWith(comparator).also {
-            isRefreshing = false
-        }
+        apps.sortedWith(comparator)
     }
 
     val appList by derivedStateOf {
@@ -164,7 +162,7 @@ class SuperUserViewModel : ViewModel() {
                 val uid = appInfo!!.uid
                 val actProfile = if (uids.contains(uid)) Natives.suProfile(uid) else null
                 val packageName = it.packageName
-                val exclude = Natives.isUidExcluded(uid);
+                val exclude = Natives.isUidExcluded(uid)
                 Log.d(TAG, "uid: $uid: $exclude")
                 val config = configs.getOrDefault(
                     uid,

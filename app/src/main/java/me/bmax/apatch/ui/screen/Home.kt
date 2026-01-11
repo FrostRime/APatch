@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
@@ -66,7 +67,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.lifecycle.compose.dropUnlessResumed
@@ -95,6 +98,7 @@ import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.ProvideMenuShape
+import me.bmax.apatch.ui.component.WarningCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.util.LatestVersionInfo
 import me.bmax.apatch.util.Version
@@ -419,7 +423,29 @@ private fun TopBar(
     var showDropdownReboot by remember { mutableStateOf(false) }
 
     TopAppBar(
-        title = { Text(stringResource(R.string.app_name)) },
+        title = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.app_name))
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.tertiary
+                ) {
+                    Text(
+                        text = "BETTER",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 8.sp
+                        ),
+                        modifier = Modifier.padding(
+                            horizontal = 4.dp,
+                            vertical = 0.5.dp
+                        ),
+                        color = MaterialTheme.colorScheme.onTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        },
         actions = {
             IconButton(onClick = onInstallClick) {
                 Icon(
@@ -951,26 +977,7 @@ private fun InfoCard() {
 
             Spacer(Modifier.height(16.dp))
             InfoCardItem(stringResource(R.string.home_selinux_status), getSELinuxStatus())
-//                Spacer(Modifier.weight(1f))
         }
-    }
-}
-
-@Composable
-fun WarningCard(
-    message: String,
-    color: Color = MaterialTheme.colorScheme.error,
-    onClick: (() -> Unit)? = null
-) {
-    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = color)) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .then(onClick?.let { Modifier.clickable { it() } } ?: Modifier)
-                    .padding(24.dp)
-        ) { Text(text = message, style = MaterialTheme.typography.bodyMedium) }
-        Spacer(Modifier.height(8.dp))
     }
 }
 

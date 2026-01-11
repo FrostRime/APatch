@@ -1,12 +1,11 @@
-use anyhow::{Ok, Result};
-
-#[cfg(unix)]
-use getopts::Options;
-use std::env;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
-use std::path::PathBuf;
-use std::{ffi::CStr, process::Command};
+use std::{env, ffi::CStr, path::PathBuf, process::Command};
+
+use anyhow::{Ok, Result};
+#[cfg(unix)]
+use getopts::Options;
+use rustix::thread::{Gid, Uid, set_thread_res_gid, set_thread_res_uid};
 
 #[allow(unused_imports)]
 #[cfg(any(target_os = "linux", target_os = "android"))]
@@ -15,7 +14,6 @@ use crate::{
     defs,
     utils::{self, umask},
 };
-use rustix::thread::{Gid, Uid, set_thread_res_gid, set_thread_res_uid};
 
 fn print_usage(opts: Options) {
     let brief = "APatch\n\nUsage: <command> [options] [-] [user [argument...]]".to_string();

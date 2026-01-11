@@ -1,18 +1,20 @@
 use crate::cli::SUPERCALL;
 use crate::package::synchronize_package_config;
 use ap_supercall::su_profile::SuProfile;
+use std::{
+    ffi::{CStr, CString},
+    fmt::Write,
+    fs::File,
+    io::{self, Read},
+    process,
+    process::exit,
+    ptr,
+    sync::{Arc, Mutex},
+};
+
 use errno::errno;
 use libc::{c_int, c_long, execv, fork, pid_t, setenv, uid_t, wait};
 use log::{error, info, warn};
-use std::ffi::{CStr, CString};
-use std::fmt::Write;
-use std::fs::File;
-use std::io::{self, Read};
-
-use std::process::exit;
-use std::sync::{Arc, Mutex};
-
-use std::{process, ptr};
 
 const SUPERCALL_SCONTEXT_LEN: usize = 0x60;
 

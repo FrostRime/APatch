@@ -1,9 +1,8 @@
-use anyhow::Result;
-use clap::Parser;
-
 #[cfg(target_os = "android")]
 use android_logger::Config;
+use anyhow::Result;
 use ap_supercall::supercall::SuperCall;
+use clap::Parser;
 #[cfg(target_os = "android")]
 use log::LevelFilter;
 use std::sync::LazyLock;
