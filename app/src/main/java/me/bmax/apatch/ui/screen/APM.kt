@@ -28,7 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +38,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarScrollBehavior
+import androidx.compose.material3.ShapeDefaults.ExtraLarge
+import androidx.compose.material3.ShapeDefaults.ExtraSmall
 import androidx.compose.material3.ShapeDefaults.Large
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -61,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
@@ -417,7 +420,7 @@ private fun ModuleList(
     PullToRefreshBox(
         modifier = modifier
             .padding(horizontal = 12.dp)
-            .padding(bottom = 12.dp),
+            .padding(bottom = 8.dp),
         onRefresh = { viewModel.fetchModuleList() },
         isRefreshing = viewModel.isRefreshing
     ) {
@@ -433,10 +436,10 @@ private fun ModuleList(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(Large)
+                .clip(ExtraLarge)
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             state = state,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             contentPadding = remember {
                 PaddingValues(
                     bottom = 16.dp + 56.dp /*  Scaffold Fab Spacing + Fab container height */
@@ -464,10 +467,23 @@ private fun ModuleList(
                 }
 
                 else -> {
-                    items(modules) { module ->
+                    itemsIndexed(modules) { index, module ->
                         var isChecked by rememberSaveable(module) { mutableStateOf(module.enabled) }
                         val scope = rememberCoroutineScope()
                         val updateInfo = module.updateInfo
+                        val shape = when (index) {
+                            0 -> ExtraSmall.copy(
+                                topStart = ExtraLarge.topStart,
+                                topEnd = ExtraLarge.topEnd
+                            )
+
+                            modules.lastIndex -> ExtraSmall.copy(
+                                bottomStart = ExtraLarge.bottomStart,
+                                bottomEnd = ExtraLarge.bottomEnd
+                            )
+
+                            else -> ExtraSmall
+                        }
 
                         ModuleItem(
                             navigator,
@@ -516,7 +532,9 @@ private fun ModuleList(
                             },
                             onSettings = {
                                 onSettingsModule(it.id, it.name)
-                            })
+                            },
+                            shape = shape
+                        )
                         // fix last item shadow incomplete in LazyColumn
                         Spacer(Modifier.height(1.dp))
                     }
@@ -540,6 +558,7 @@ private fun ModuleItem(
     onSettings: (APModuleViewModel.ModuleInfo) -> Unit,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
+    shape: Shape
 ) {
     val decoration =
         if (module.remove) TextDecoration.LineThrough else if (module.update) TextDecoration.Underline else TextDecoration.None
@@ -551,7 +570,7 @@ private fun ModuleItem(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
-        shape = Large
+        shape = shape
     ) {
         Column(
             modifier = Modifier

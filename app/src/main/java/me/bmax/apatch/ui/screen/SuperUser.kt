@@ -4,6 +4,7 @@ import android.content.pm.ApplicationInfo
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -13,7 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -25,7 +26,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.ShapeDefaults.Large
+import androidx.compose.material3.ShapeDefaults.ExtraLarge
+import androidx.compose.material3.ShapeDefaults.ExtraSmall
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -45,6 +48,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -198,78 +203,99 @@ fun SuperUserScreen() {
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(horizontal = 12.dp)
-                .padding(bottom = 12.dp),
+                .padding(bottom = 8.dp),
             onRefresh = { scope.launch { viewModel.fetchAppList() } },
             isRefreshing = viewModel.isRefreshing
         ) {
+            val filteredList by remember(viewModel.appList) {
+                derivedStateOf {
+                    viewModel.appList.filter { it.packageName != apApp.packageName }
+                }
+            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(Large),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .clip(ExtraLarge),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
                 contentPadding = remember { PaddingValues(bottom = 16.dp + 56.dp) }
             ) {
                 if (kPatchReady && aPatchReady) {
                     item {
-                        Column {
-                            ListItem(
-                                leadingContent = {
-                                    Icon(
-                                        imageVector = Tabler.Outline.Automation,
-                                        contentDescription = stringResource(R.string.su_pkg_excluded_setting_title)
-                                    )
-                                },
-                                headlineContent = {
-                                    Text(stringResource(R.string.su_pkg_excluded_setting_title))
-                                },
+                        Box(modifier = Modifier.clip(ExtraLarge)) {
+                            Column(
                                 modifier = Modifier.clickable {
                                     showEditWhiteListMode = !showEditWhiteListMode
-                                }
-                            )
-                            AnimatedVisibility(showEditWhiteListMode) {
-                                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                                    whiteListModes.forEachIndexed { index, modeId ->
-                                        val isSelected = whiteListMode == modeId
-                                        val icons = modeIcons[modeId]
-                                        SegmentedButton(
-                                            shape = SegmentedButtonDefaults.itemShape(
-                                                index = index,
-                                                count = whiteListModes.size
-                                            ),
-                                            onClick = {
-                                                setWhiteListMode(modeId)
-                                                whiteListMode = modeId
-                                                scope.launch {
-                                                    val result = snackBarHost.showSnackbar(
-                                                        message = rebootToApply,
-                                                        actionLabel = reboot,
-                                                        duration = SnackbarDuration.Long
-                                                    )
-                                                    if (result == SnackbarResult.ActionPerformed) {
-                                                        reboot()
-                                                    }
-                                                }
-                                            },
-                                            selected = isSelected,
-                                            icon = {},
-                                            label = {
-                                                Icon(
-                                                    imageVector = (if (isSelected) icons?.first else icons?.second)!!,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                            }
+                                }) {
+                                ListItem(
+                                    leadingContent = {
+                                        Icon(
+                                            imageVector = Tabler.Outline.Automation,
+                                            contentDescription = stringResource(R.string.su_pkg_excluded_setting_title)
                                         )
+                                    },
+                                    headlineContent = {
+                                        Text(stringResource(R.string.su_pkg_excluded_setting_title))
+                                    }
+                                )
+                                AnimatedVisibility(showEditWhiteListMode) {
+                                    SingleChoiceSegmentedButtonRow(
+                                        modifier = Modifier.fillMaxWidth().padding(4.dp)
+                                    ) {
+                                        whiteListModes.forEachIndexed { _, modeId ->
+                                            val isSelected = whiteListMode == modeId
+                                            val icons = modeIcons[modeId]
+                                            SegmentedButton(
+                                                shape = ExtraLarge,
+                                                border = SegmentedButtonDefaults.borderStroke(Color.Transparent, 0.dp),
+                                                onClick = {
+                                                    setWhiteListMode(modeId)
+                                                    whiteListMode = modeId
+                                                    scope.launch {
+                                                        val result = snackBarHost.showSnackbar(
+                                                            message = rebootToApply,
+                                                            actionLabel = reboot,
+                                                            duration = SnackbarDuration.Long
+                                                        )
+                                                        if (result == SnackbarResult.ActionPerformed) {
+                                                            reboot()
+                                                        }
+                                                    }
+                                                },
+                                                selected = isSelected,
+                                                icon = {},
+                                                label = {
+                                                    Icon(
+                                                        imageVector = (if (isSelected) icons?.first else icons?.second)!!,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-                items(
-                    viewModel.appList.filter { it.packageName != apApp.packageName },
-                    key = { it.packageName + it.uid }) { app ->
-                    AppItem(app)
+
+                itemsIndexed(
+                    items = filteredList,
+                    key = { _, app -> app.packageName + app.uid }) { index, app ->
+                    val shape = when (index) {
+                        0 -> ExtraSmall.copy(
+                            topStart = ExtraLarge.topStart,
+                            topEnd = ExtraLarge.topEnd
+                        )
+
+                        filteredList.lastIndex -> ExtraSmall.copy(
+                            bottomStart = ExtraLarge.bottomStart,
+                            bottomEnd = ExtraLarge.bottomEnd
+                        )
+
+                        else -> ExtraSmall
+                    }
+                    AppItem(app, shape)
                 }
             }
         }
@@ -280,13 +306,14 @@ fun SuperUserScreen() {
 @Composable
 private fun AppItem(
     app: SuperUserViewModel.AppInfo,
+    shape: Shape
 ) {
     val appInfo = app.packageInfo
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = if (app.rootGranted) 4.dp else 1.dp,
-        shape = Large
+        shape = shape
     ) {
         Column(
             modifier = Modifier.clickable(onClick = {

@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
@@ -39,7 +39,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarScrollBehavior
-import androidx.compose.material3.ShapeDefaults.Large
+import androidx.compose.material3.ShapeDefaults.ExtraLarge
+import androidx.compose.material3.ShapeDefaults.ExtraSmall
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -57,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -456,17 +458,17 @@ private fun KPModuleList(
     PullToRefreshBox(
         modifier = modifier
             .padding(horizontal = 12.dp)
-            .padding(bottom = 12.dp),
+            .padding(bottom = 8.dp),
         onRefresh = { viewModel.fetchModuleList() },
         isRefreshing = viewModel.isRefreshing
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(Large)
+                .clip(ExtraLarge)
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             state = state,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             contentPadding = remember {
                 PaddingValues(
                     bottom = 16.dp + 56.dp /*  Scaffold Fab Spacing + Fab container height */
@@ -488,8 +490,21 @@ private fun KPModuleList(
                 }
 
                 else -> {
-                    items(modules) { module ->
+                    itemsIndexed(modules) { index, module ->
                         val scope = rememberCoroutineScope()
+                        val shape = when (index) {
+                            0 -> ExtraSmall.copy(
+                                topStart = ExtraLarge.topStart,
+                                topEnd = ExtraLarge.topEnd
+                            )
+
+                            modules.lastIndex -> ExtraSmall.copy(
+                                bottomStart = ExtraLarge.bottomStart,
+                                bottomEnd = ExtraLarge.bottomEnd
+                            )
+
+                            else -> ExtraSmall
+                        }
                         KPModuleItem(
                             module,
                             onUninstall = {
@@ -499,6 +514,7 @@ private fun KPModuleList(
                                 targetKPMToControl = module
                                 showKPMControlDialog.value = true
                             },
+                            shape = shape
                         )
 
                         // fix last item shadow incomplete in LazyColumn
@@ -517,6 +533,7 @@ private fun KPModuleItem(
     onControl: (KPModel.KPMInfo) -> Unit,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
+    shape: Shape
 ) {
     val moduleAuthor = stringResource(id = R.string.kpm_author)
     val moduleArgs = stringResource(id = R.string.kpm_args)
@@ -527,7 +544,7 @@ private fun KPModuleItem(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
-        shape = Large
+        shape = shape
     ) {
         Box(
             modifier = Modifier
