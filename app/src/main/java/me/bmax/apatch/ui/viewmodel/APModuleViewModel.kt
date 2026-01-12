@@ -49,8 +49,7 @@ class APModuleViewModel : ViewModel() {
         val changelog: String,
     )
 
-    var searchText by mutableStateOf("")
-
+    var search by mutableStateOf("")
     var isRefreshing by mutableStateOf(false)
         private set
 
@@ -60,21 +59,14 @@ class APModuleViewModel : ViewModel() {
         val comparator = compareByDescending<ModuleInfo> { it.metamodule && it.enabled }
             .thenBy(collator) { it.id }
 
-        modules.sortedWith(comparator).also {
+        modules.filter {
+            it.id.contains(search, true) || it.name.contains(
+                search,
+                true
+            ) || HanziToPinyin.getInstance()
+                .toPinyinString(it.name)?.contains(search, true) == true
+        }.sortedWith(comparator).also {
             isRefreshing = false
-        }
-    }
-
-    val filteredModuleList by derivedStateOf {
-        moduleList.filter {
-            it.name.lowercase().contains(searchText.lowercase()) || it.name.lowercase()
-                .contains(searchText.lowercase()) || HanziToPinyin.getInstance()
-                .toPinyinString(it.name).contains(searchText.lowercase()) || it.name.contains(
-                searchText,
-                ignoreCase = true
-            ) ||
-                    it.description.contains(searchText, ignoreCase = true) ||
-                    it.author.contains(searchText, ignoreCase = true)
         }
     }
 

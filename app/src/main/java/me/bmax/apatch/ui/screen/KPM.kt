@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -39,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.ShapeDefaults.Large
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +91,7 @@ import me.bmax.apatch.ui.component.LoadingDialogHandle
 import me.bmax.apatch.ui.component.ModuleSettingsButton
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
+import me.bmax.apatch.ui.component.pinnedScrollBehavior
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.ui.viewmodel.KPModel
@@ -102,6 +104,7 @@ import java.io.IOException
 private const val TAG = "KernelPatchModule"
 private lateinit var targetKPMToControl: KPModel.KPMInfo
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
 fun KPModuleScreen(navigator: DestinationsNavigator) {
@@ -125,6 +128,8 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
     }
 
     val viewModel = viewModel<KPModuleViewModel>()
+    val scrollBehavior = pinnedScrollBehavior()
+    val kpModuleListState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         if (viewModel.moduleList.isEmpty() || viewModel.isNeedRefresh) {
@@ -132,16 +137,12 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
         }
     }
 
-    val kpModuleListState = rememberLazyListState()
-
-    val modules = viewModel.filteredModuleList
-
     Scaffold(topBar = {
         SearchAppBar(
-            title = { Text(stringResource(R.string.kpm)) },
-            searchText = viewModel.searchText,
-            onSearchTextChange = { viewModel.searchText = it },
-            onClearClick = { viewModel.searchText = "" }
+            searchText = viewModel.search,
+            onSearchTextChange = { viewModel.search = it },
+            scrollBehavior = scrollBehavior,
+            searchBarPlaceHolderText = stringResource(R.string.search_modules)
         )
     }, floatingActionButton = run {
         {
@@ -249,11 +250,12 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
     }) { innerPadding ->
         KPModuleList(
             viewModel = viewModel,
-            modules = modules,
+            modules = viewModel.moduleList,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            state = kpModuleListState
+            state = kpModuleListState,
+            scrollBehavior = scrollBehavior
         )
     }
 }
@@ -409,13 +411,14 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KPModuleList(
     viewModel: KPModuleViewModel,
     modules: List<KPModel.KPMInfo>,
     modifier: Modifier = Modifier,
-    state: LazyListState
+    state: LazyListState,
+    scrollBehavior: SearchBarScrollBehavior
 ) {
     val moduleStr = stringResource(id = R.string.kpm)
     val moduleUninstallConfirm = stringResource(id = R.string.kpm_unload_confirm)
@@ -460,7 +463,8 @@ private fun KPModuleList(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(Large),
+                .clip(Large)
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
             state = state,
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = remember {

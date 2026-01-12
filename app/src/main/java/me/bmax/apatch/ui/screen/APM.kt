@@ -4,7 +4,6 @@ import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -38,6 +37,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.ShapeDefaults.Large
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -52,6 +52,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -60,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -96,6 +98,7 @@ import me.bmax.apatch.ui.component.ModuleSettingsButton
 import me.bmax.apatch.ui.component.ModuleUpdateButton
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.WarningCard
+import me.bmax.apatch.ui.component.pinnedScrollBehavior
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.ui.viewmodel.APModuleViewModel
@@ -106,7 +109,9 @@ import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.toggleModule
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.uninstallModule
+import okhttp3.Request
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
 fun APModuleScreen(navigator: DestinationsNavigator) {
@@ -142,6 +147,8 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { viewModel.fetchModuleList() }
+    val scrollBehavior = pinnedScrollBehavior()
+
     //TODO: FIXME -> val isSafeMode = Natives.getSafeMode()
     val isSafeMode = false
     val hasMagisk = hasMagisk()
@@ -149,51 +156,40 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
 
     val moduleListState = rememberLazyListState()
 
-    val modules = viewModel.filteredModuleList
-
     Scaffold(
         topBar = {
             SearchAppBar(
-                title = { Text(stringResource(R.string.apm)) },
-                searchText = viewModel.searchText,
-                onSearchTextChange = { viewModel.searchText = it },
-                onClearClick = { viewModel.searchText = "" }
+                searchText = viewModel.search,
+                onSearchTextChange = { viewModel.search = it },
+                scrollBehavior = scrollBehavior,
+                searchBarPlaceHolderText = stringResource(R.string.search_modules)
             )
-        }, floatingActionButton = if (hideInstallButton) {
-            { /* Empty */ }
-        } else {
-            {
-                val selectZipLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.StartActivityForResult()
-                ) {
-                    if (it.resultCode != RESULT_OK) {
-                        return@rememberLauncherForActivityResult
-                    }
-                    val data = it.data ?: return@rememberLauncherForActivityResult
-                    val uri = data.data ?: return@rememberLauncherForActivityResult
+        },
+        floatingActionButton = {
+            if (hideInstallButton) return@Scaffold
 
-                    Log.i("ModuleScreen", "select zip result: $uri")
-
+            val selectZipLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                if (result.resultCode == RESULT_OK) {
+                    val uri = result.data?.data ?: return@rememberLauncherForActivityResult
                     navigator.navigate(InstallScreenDestination(uri, ModuleType.APM))
-
                     viewModel.markNeedRefresh()
                 }
+            }
 
-                FloatingActionButton(
-                    modifier = Modifier.clip(Large),
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    onClick = {
-                        // select the zip file to install
-                        val intent = Intent(Intent.ACTION_GET_CONTENT)
-                        intent.type = "application/zip"
-                        selectZipLauncher.launch(intent)
-                    }) {
-                    Icon(
-                        imageVector = Tabler.Outline.PackageImport,
-                        contentDescription = null
-                    )
+            FloatingActionButton(
+                modifier = Modifier.clip(Large),
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = MaterialTheme.colorScheme.primary,
+                onClick = {
+                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        type = "application/zip"
+                    }
+                    selectZipLauncher.launch(intent)
                 }
+            ) {
+                Icon(imageVector = Tabler.Outline.PackageImport, contentDescription = null)
             }
         }, snackbarHost = { SnackbarHost(snackBarHost) }) { innerPadding ->
         when {
@@ -213,18 +209,15 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
 
             else -> {
                 ModuleList(
-                    navigator,
+                    navigator = navigator,
                     viewModel = viewModel,
-                    modules = modules,
+                    modules = viewModel.moduleList,
                     modifier = Modifier
-                        .padding(innerPadding)
-//                        .fillMaxSize()
-                    , state = moduleListState,
+                        .padding(innerPadding), state = moduleListState,
                     onInstallModule = {
                         navigator.navigate(InstallScreenDestination(it, ModuleType.APM))
                     },
                     snackBarHost = snackBarHost,
-                    context = context,
                     onSettingsModule = { id, name ->
                         webUILauncher.launch(
                             Intent(
@@ -232,10 +225,40 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                             ).setData("apatch://webui/$id".toUri()).putExtra("id", id)
                                 .putExtra("name", name)
                         )
-                    }
+                    },
+                    scrollBehavior = scrollBehavior
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+private fun getMetaModuleWarningText(
+    viewModel: APModuleViewModel,
+    context: Context
+): String? {
+    val hasSystemModule = viewModel.moduleList.any { module ->
+        SuFile.open("/data/adb/modules/${module.id}/system").exists()
+    }
+
+    if (!hasSystemModule) return null
+
+    val metaProp = SuFile.open("/data/adb/metamodule/module.prop").exists()
+    val metaRemoved = SuFile.open("/data/adb/metamodule/remove").exists()
+    val metaDisabled = SuFile.open("/data/adb/metamodule/disable").exists()
+
+    return when {
+        !metaProp ->
+            context.getString(R.string.no_meta_module_installed)
+
+        metaProp && metaRemoved ->
+            context.getString(R.string.meta_module_removed)
+
+        metaProp && metaDisabled ->
+            context.getString(R.string.meta_module_disabled)
+
+        else -> null
     }
 }
 
@@ -243,33 +266,8 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MetaModuleWarningCard(
-    viewModel: APModuleViewModel
+    text: String
 ) {
-    val hasSystemModule = viewModel.moduleList.any { module ->
-        SuFile.open("/data/adb/modules/${module.id}/system").exists()
-    }
-
-
-    if (!hasSystemModule) return
-
-    val metaProp = SuFile.open("/data/adb/metamodule/module.prop").exists()
-    val metaRemoved = SuFile.open("/data/adb/metamodule/remove").exists()
-    val metaDisabled = SuFile.open("/data/adb/metamodule/disable").exists()
-
-    val warningText = when {
-        !metaProp ->
-            stringResource(R.string.no_meta_module_installed)
-
-        metaProp && metaRemoved ->
-            stringResource(R.string.meta_module_removed)
-
-        metaProp && metaDisabled ->
-            stringResource(R.string.meta_module_disabled)
-
-        else -> null
-    }
-
-    if (warningText == null) return
     var show by remember { mutableStateOf(true) }
 
     AnimatedVisibility(
@@ -278,13 +276,11 @@ private fun MetaModuleWarningCard(
         exit = fadeOut() + shrinkVertically()
     ) {
         WarningCard(
-            message = warningText,
+            message = text,
             onClose = {
                 show = false
             }
         )
-
-        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -299,7 +295,7 @@ private fun ModuleList(
     onInstallModule: (Uri) -> Unit,
     onSettingsModule: (id: String, name: String) -> Unit,
     snackBarHost: SnackbarHostState,
-    context: Context
+    scrollBehavior: SearchBarScrollBehavior
 ) {
     val failedEnable = stringResource(R.string.apm_failed_to_enable)
     val failedDisable = stringResource(R.string.apm_failed_to_disable)
@@ -317,6 +313,7 @@ private fun ModuleList(
     val downloadingText = stringResource(R.string.apm_downloading)
     val startDownloadingText = stringResource(R.string.apm_start_downloading)
 
+    val context = LocalContext.current
     val loadingDialog = rememberLoadingDialog()
     val confirmDialog = rememberConfirmDialog()
 
@@ -331,7 +328,7 @@ private fun ModuleList(
                 runCatching {
                     if (Patterns.WEB_URL.matcher(changelogUrl).matches()) {
                         apApp.okhttpClient.newCall(
-                            okhttp3.Request.Builder().url(changelogUrl).build()
+                            Request.Builder().url(changelogUrl).build()
                         ).execute().use { it.body?.string().orEmpty() }
                     } else {
                         changelogUrl
@@ -424,10 +421,20 @@ private fun ModuleList(
         onRefresh = { viewModel.fetchModuleList() },
         isRefreshing = viewModel.isRefreshing
     ) {
+        val metaModuleWarningText by produceState<String?>(
+            initialValue = null,
+            viewModel.moduleList
+        ) {
+            value = withContext(Dispatchers.IO) {
+                getMetaModuleWarningText(viewModel, context)
+            }
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(Large),
+                .clip(Large)
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
             state = state,
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = remember {
@@ -436,9 +443,12 @@ private fun ModuleList(
                 )
             },
         ) {
-            item {
-                MetaModuleWarningCard(viewModel)
+            if (metaModuleWarningText != null) {
+                item {
+                    MetaModuleWarningCard(metaModuleWarningText!!)
+                }
             }
+
             when {
                 modules.isEmpty() -> {
                     item {

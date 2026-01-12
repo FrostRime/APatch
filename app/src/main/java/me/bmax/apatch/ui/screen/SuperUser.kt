@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -75,6 +75,7 @@ import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
+import me.bmax.apatch.ui.component.pinnedScrollBehavior
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
 import me.bmax.apatch.util.PkgConfig
 import me.bmax.apatch.util.getWhiteListMode
@@ -83,19 +84,20 @@ import me.bmax.apatch.util.setWhiteListMode
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 
 @Suppress("AssignedValueIsNeverRead")
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
 fun SuperUserScreen() {
     val viewModel = viewModel<SuperUserViewModel>()
+    val scrollBehavior = pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
     val snackBarHost = LocalSnackbarHost.current
     val reboot = stringResource(id = R.string.reboot)
     val rebootToApply = stringResource(id = R.string.apm_reboot_to_apply)
     val whiteListModes = listOf(-1, 0, 1, 2)
     var showEditWhiteListMode by remember { mutableStateOf(false) }
-    var whiteListMode by remember { mutableStateOf(-1) }
-    var resetSUAppsPhase by remember { mutableStateOf(0) }
+    var whiteListMode by remember { mutableIntStateOf(-1) }
+    var resetSUAppsPhase by remember { mutableIntStateOf(0) }
 
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
@@ -124,10 +126,10 @@ fun SuperUserScreen() {
         snackbarHost = { SnackbarHost(snackBarHost) },
         topBar = {
             SearchAppBar(
-                title = { Text(stringResource(R.string.su_title)) },
                 searchText = viewModel.search,
                 onSearchTextChange = { viewModel.search = it },
-                onClearClick = { viewModel.search = "" },
+                scrollBehavior = scrollBehavior,
+                searchBarPlaceHolderText = stringResource(R.string.search_apps),
                 dropdownContent = {
                     var showDropdown by remember { mutableStateOf(false) }
 
@@ -188,7 +190,7 @@ fun SuperUserScreen() {
                             }
                         }
                     }
-                },
+                }
             )
         }
     ) { innerPadding ->

@@ -21,12 +21,24 @@ class KPModuleViewModel : ViewModel() {
         private var modules by mutableStateOf<List<KPModel.KPMInfo>>(emptyList())
     }
 
+    var search by mutableStateOf("")
     var isRefreshing by mutableStateOf(false)
         private set
 
+
     val moduleList by derivedStateOf {
-        val comparator = compareBy(Collator.getInstance(Locale.getDefault()), KPModel.KPMInfo::name)
-        modules.sortedWith(comparator).also {
+        val comparator = compareBy(
+            comparator = Collator.getInstance(Locale.getDefault()),
+            selector = KPModel.KPMInfo::name
+        )
+
+        modules.filter {
+            it.name.contains(search, true) || it.name.contains(
+                search,
+                true
+            ) || HanziToPinyin.getInstance()
+                .toPinyinString(it.name)?.contains(search, true) == true
+        }.sortedWith(comparator).also {
             isRefreshing = false
         }
     }
