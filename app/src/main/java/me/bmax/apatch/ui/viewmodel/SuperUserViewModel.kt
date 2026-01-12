@@ -190,9 +190,9 @@ class SuperUserViewModel : ViewModel() {
             }
 
             synchronized(appsLock) {
-                apps = emptyList()
                 apps = newApps
             }
+            isRefreshing = false
         }
     }
 }

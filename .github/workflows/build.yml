@@ -10,7 +10,6 @@ on:
         description: "Custom package id (leave empty to use default list)"
 
 jobs:
-  # 步骤一：解析要编译的 ID 列表
   prepare-list:
     runs-on: ubuntu-latest
     outputs:
@@ -19,28 +18,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          repository: FrostRime/APatch # 假设列表文件在这个仓库里
+          repository: FrostRime/APatch
 
       - name: Set Matrix
         id: set-matrix
         run: |
-          # 如果输入了 package_id，只用这一个；否则读取文件
           if [ -n "${{ github.event.inputs.package_id }}" ]; then
             JSON_ARRAY=$(echo '["${{ github.event.inputs.package_id }}"]' | jq -c .)
           else
-            # 将文件每一行转成 JSON 字符串数组格式
             JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' ./default_package_id_list)
           fi
           echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
 
-  # 步骤二：矩阵并行编译
   build-manager:
     needs: prepare-list
     runs-on: ubuntu-latest
     permissions:
       contents: write
     strategy:
-      fail-fast: false # 即使其中一个 ID 编译失败，也不影响其他的
+      fail-fast: false
       matrix:
         package_id: ${{ fromJson(needs.prepare-list.outputs.matrix) }}
 
@@ -115,6 +111,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          # 使用 package_id 区分不同的 artifact 名字
           name: manager-${{ matrix.package_id }}
           path: ${{ steps.sign_app.outputs.signedReleaseFile || 'app/build/outputs/apk/release/*.apk' }}
