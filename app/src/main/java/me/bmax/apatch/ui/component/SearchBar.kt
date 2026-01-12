@@ -27,7 +27,6 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.SearchBarValue
-import androidx.compose.material3.ShapeDefaults.Large
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
@@ -311,8 +310,7 @@ fun SearchAppBar(
             scrolledSearchBarContainerColor = cardColor.copy(alpha = 0f),
             appBarContainerColor = cardColor.copy(alpha = 0f),
             scrolledAppBarContainerColor = cardColor.copy(alpha = 0f)
-        ),
-        modifier = Modifier.clip(Large)
+        )
     )
 }
 
