@@ -42,6 +42,7 @@
               rustfmt
               pre-commit
               rustPackages.clippy
+              rust-analyzer
             ];
             shellHook = ''
               unset CFLAGS

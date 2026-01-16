@@ -1,0 +1,5 @@
+error: can't find lib `apjni` at path `/home/frost/APatch/app/src/apjni.rs`
+ --> /home/frost/APatch/app/Cargo.toml
+error: can't find lib `apjni` at path `/home/frost/APatch/app/src/apjni.rs`
+ --> /home/frost/APatch/app/Cargo.toml
+error: could not compile due to 2 previous target resolution errors

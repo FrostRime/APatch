@@ -1,0 +1,10 @@
+/home/frost/APatch/app/target/debug/deps/uniffi_internal_macros-0c08dcd900997640.d: /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/lib.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/checksum.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/mod.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/ast.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/parse.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/render.rs
+
+/home/frost/APatch/app/target/debug/deps/libuniffi_internal_macros-0c08dcd900997640.so: /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/lib.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/checksum.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/mod.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/ast.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/parse.rs /home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/render.rs
+
+/home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/lib.rs:
+/home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/checksum.rs:
+/home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/mod.rs:
+/home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/ast.rs:
+/home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/parse.rs:
+/home/frost/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uniffi_internal_macros-0.31.0/src/ir/render.rs:

@@ -7,7 +7,9 @@ use jni::{JNIEnv, JavaVM};
 use libc::{c_char, c_long, uid_t};
 use log::debug;
 use std::ffi::{CStr, CString, c_void};
-use std::io::Error;
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufRead, BufReader, BufWriter, Error, Write};
+use std::path::Path;
 use std::ptr::null_mut;
 use std::sync::OnceLock;
 
@@ -32,9 +34,8 @@ fn get_sc() -> &'static SuperCall {
     SC_INSTANCE.get().expect("SuperCall not initialized!")
 }
 
-// 辅助函数：JString -> CString
-fn jstr_to_cstr(env: &mut JNIEnv, s: JString) -> CString {
-    let r_str: String = env.get_string(&s).expect("Invalid jstring").into();
+fn jstr_to_cstr(env: &mut JNIEnv, s: &JString) -> CString {
+    let r_str: String = env.get_string(s).expect("Invalid jstring").into();
     CString::new(r_str).unwrap()
 }
 
@@ -49,19 +50,19 @@ fn ret_to_jlong(ret: Result<c_long>) -> jlong {
 
 fn native_ready(mut env: JNIEnv, _: JClass, key: JString) -> jboolean {
     ensure_super_key(&key);
-    let key = &jstr_to_cstr(&mut env, key);
+    let key = &jstr_to_cstr(&mut env, &key);
     (get_sc().sc_ready(key)) as jboolean
 }
 
 fn native_kernel_patch_version(mut env: JNIEnv, _: JClass, key: JString) -> jlong {
     ensure_super_key(&key);
-    let key = &jstr_to_cstr(&mut env, key);
+    let key = &jstr_to_cstr(&mut env, &key);
     ret_to_jlong(get_sc().sc_kp_ver(key))
 }
 
 fn native_kernel_patch_build_time<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> JString<'a> {
     ensure_super_key(&key);
-    let key = &jstr_to_cstr(&mut env, key);
+    let key = &jstr_to_cstr(&mut env, &key);
     let mut buf = [0u8; 4096];
     let _ = get_sc().sc_get_build_time(key, buf.as_mut_ptr() as *mut c_char, buf.len());
     env.new_string(unsafe { CStr::from_ptr(buf.as_ptr().cast()) }.to_string_lossy())
@@ -71,7 +72,7 @@ fn native_kernel_patch_build_time<'a>(mut env: JNIEnv<'a>, _: JClass, key: JStri
 fn native_su(mut env: JNIEnv, _: JClass, key: JString, to_uid: jint, sctx: JString) -> jlong {
     ensure_super_key(&key);
 
-    let c_key = jstr_to_cstr(&mut env, key);
+    let c_key = jstr_to_cstr(&mut env, &key);
     let uid = unsafe { libc::getuid() };
 
     let sctx_str: String = if !sctx.is_null() {
@@ -93,13 +94,13 @@ fn native_set_uid_exclude(
     exclude: jint,
 ) -> jint {
     ensure_super_key(&key);
-    let c_key = jstr_to_cstr(&mut env, key);
+    let c_key = jstr_to_cstr(&mut env, &key);
     ret_to_jlong(get_sc().sc_set_ap_mod_exclude(&c_key, uid as i64, exclude)) as jint
 }
 
 fn native_get_uid_exclude(mut env: JNIEnv, _: JClass, key: JString, uid: jint) -> jint {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
+    let key = jstr_to_cstr(&mut env, &key);
     debug!("[native_get_uid_exclude] uid: {}", uid);
     ret_to_jlong(
         get_sc()
@@ -110,7 +111,7 @@ fn native_get_uid_exclude(mut env: JNIEnv, _: JClass, key: JString, uid: jint) -
 
 fn native_su_uids<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> JIntArray<'a> {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
+    let key = jstr_to_cstr(&mut env, &key);
     let num = get_sc().sc_su_uid_nums(&key).unwrap_or(0) as i32;
 
     if num <= 0 {
@@ -134,7 +135,7 @@ fn native_su_uids<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> JIntArray
 
 fn native_su_profile<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString, uid: jint) -> jobject {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
+    let key = jstr_to_cstr(&mut env, &key);
     let mut profile = SuProfile::new(uid, 0, "");
     let rc = ret_to_jlong(get_sc().sc_su_uid_profile(&key, uid as u32, &mut profile));
     if rc < 0 {
@@ -169,9 +170,9 @@ fn native_load_kernel_patch_module<'a>(
     args_jstr: JString,
 ) -> jlong {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
-    let module_path = jstr_to_cstr(&mut env, module_path_jstr);
-    let args = jstr_to_cstr(&mut env, args_jstr);
+    let key = jstr_to_cstr(&mut env, &key);
+    let module_path = jstr_to_cstr(&mut env, &module_path_jstr);
+    let args = jstr_to_cstr(&mut env, &args_jstr);
     ret_to_jlong(get_sc().sc_kpm_load(&key, module_path.as_ptr(), args.as_ptr(), null_mut()))
 }
 
@@ -183,9 +184,9 @@ fn native_control_kernel_patch_module<'a>(
     control_args_jstr: JString,
 ) -> jobject {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
-    let module_name = jstr_to_cstr(&mut env, module_name_jstr);
-    let args = jstr_to_cstr(&mut env, control_args_jstr);
+    let key = jstr_to_cstr(&mut env, &key);
+    let module_name = jstr_to_cstr(&mut env, &module_name_jstr);
+    let args = jstr_to_cstr(&mut env, &control_args_jstr);
     let mut buf = [0u8; 4096];
     let ptr = buf.as_mut_ptr();
     #[cfg(not(target_os = "android"))]
@@ -223,14 +224,14 @@ fn native_unload_kernel_patch_module<'a>(
     module_name_jstr: JString,
 ) -> jlong {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
-    let module_name = jstr_to_cstr(&mut env, module_name_jstr);
+    let key = jstr_to_cstr(&mut env, &key);
+    let module_name = jstr_to_cstr(&mut env, &module_name_jstr);
     ret_to_jlong(get_sc().sc_kpm_unload(&key, module_name.as_ptr(), null_mut()))
 }
 
 fn native_kernel_patch_module_num<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> jint {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
+    let key = jstr_to_cstr(&mut env, &key);
     ret_to_jlong(get_sc().sc_kpm_nums(&key)) as jint
 }
 
@@ -240,7 +241,7 @@ fn native_kernel_patch_module_list<'a>(
     key: JString,
 ) -> JString<'a> {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
+    let key = jstr_to_cstr(&mut env, &key);
     let mut buf = [0u8; 4096];
 
     let ptr = buf.as_mut_ptr();
@@ -258,8 +259,8 @@ fn native_kernel_patch_module_info<'a>(
     module_name_jstr: JString,
 ) -> JString<'a> {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
-    let module_name = jstr_to_cstr(&mut env, module_name_jstr);
+    let key = jstr_to_cstr(&mut env, &key);
+    let module_name = jstr_to_cstr(&mut env, &module_name_jstr);
     let mut buf = [0u8; 1024];
 
     let ptr = buf.as_mut_ptr();
@@ -281,21 +282,21 @@ fn native_grant_su(
     sctx: JString,
 ) -> jlong {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
-    let sctx_str = jstr_to_cstr(&mut env, sctx);
+    let key = jstr_to_cstr(&mut env, &key);
+    let sctx_str = jstr_to_cstr(&mut env, &sctx);
     let mut profile = SuProfile::new(uid, to_uid, &sctx_str.to_string_lossy());
     ret_to_jlong(get_sc().sc_su_grant_uid(&key, &mut profile))
 }
 
 fn native_revoke_su(mut env: JNIEnv, _: JClass, key: JString, uid: jint) -> jlong {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
+    let key = jstr_to_cstr(&mut env, &key);
     ret_to_jlong(get_sc().sc_su_revoke_uid(&key, uid as u32))
 }
 
 fn native_su_path<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> JString<'a> {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
+    let key = jstr_to_cstr(&mut env, &key);
     let mut buf = [0u8; SU_PATH_MAX_LEN];
 
     let ptr = buf.as_mut_ptr();
@@ -315,12 +316,110 @@ fn native_reset_su_path<'a>(
     su_path_jstr: JString,
 ) -> jboolean {
     ensure_super_key(&key);
-    let key = jstr_to_cstr(&mut env, key);
-    let path = jstr_to_cstr(&mut env, su_path_jstr);
+    let key = jstr_to_cstr(&mut env, &key);
+    let path = jstr_to_cstr(&mut env, &su_path_jstr);
     get_sc()
         .sc_su_reset_path(&key, path.as_ptr())
         .map(|ret| ret as u8)
         .unwrap_or(0u8)
+}
+
+fn native_install_kpm_module(
+    mut env: JNIEnv,
+    class: JClass,
+    key_jstr: JString,
+    module_path_jstr: JString,
+    args_jstr: JString,
+) -> jlong {
+    ensure_super_key(&key_jstr);
+    let path: String = env.get_string(&module_path_jstr).unwrap().into();
+    let path = Path::new(&path);
+    let data = fs::read(path).unwrap();
+
+    let content = String::from_utf8_lossy(&data);
+    let name = _find_kpm_field(&content, "name=").unwrap();
+
+    let res = native_load_kernel_patch_module(env, class, key_jstr, module_path_jstr, args_jstr);
+    let mut name_buf = [0u8; 32];
+    let name_bytes = name.as_bytes();
+    let len = name_bytes.len().min(32);
+    name_buf[..len].copy_from_slice(&name_bytes[..len]);
+    let mut info = "\n".as_bytes().to_vec();
+    info.extend_from_slice(&name_buf);
+    info.push(0b01);
+    let kpms_path = Path::new("/data/adb/ap/kpms/");
+    if !kpms_path.exists() {
+        fs::create_dir_all(kpms_path).unwrap();
+    }
+    let file_name = &path.file_name().unwrap().to_string_lossy().to_string();
+    let dest_path = kpms_path.join(file_name);
+    fs::copy(path, dest_path).unwrap();
+    fs::remove_file(path).unwrap();
+    let config_path = kpms_path.join("config");
+    let mut config = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(config_path)
+        .unwrap();
+    info.extend_from_slice(file_name.as_bytes());
+    config.write_all(&info).unwrap();
+    res
+}
+
+fn native_uninstall_kernel_patch_module<'a>(
+    mut env: JNIEnv<'a>,
+    jclass: JClass,
+    key_jstr: JString,
+    module_name_jstr: JString,
+) -> jlong {
+    ensure_super_key(&key_jstr);
+    let name = jstr_to_cstr(&mut env, &module_name_jstr);
+    let mut name_buf = [0u8; 32];
+    let name_bytes = name.as_bytes();
+    let len = name_bytes.len().min(32);
+    name_buf[..len].copy_from_slice(&name_bytes[..len]);
+    let kpms_path = Path::new("/data/adb/ap/kpms/");
+    if !kpms_path.exists() {
+        return 0;
+    }
+    let config_path = kpms_path.join("config");
+    let mut reader = BufReader::new(File::open(&config_path).unwrap());
+
+    let mut kept = Vec::new();
+    let mut record = Vec::new();
+    while reader.read_until(b'\n', &mut record).unwrap() > 0 {
+        if record.len() < 35 {
+            record.clear();
+            continue;
+        }
+        if record[0..32] == name_buf {
+            let filename = String::from_utf8_lossy(&record[34..record.len() - 1]).to_string();
+            let path = Path::new("/data/adb/ap/kpms/").join(filename);
+            if path.exists() {
+                fs::remove_file(path).unwrap();
+            }
+            record.clear();
+            continue;
+        }
+        kept.extend(&record);
+        record.clear();
+    }
+
+    let mut writer = BufWriter::new(File::create(config_path).unwrap());
+    writer.write_all(&kept).unwrap();
+    native_unload_kernel_patch_module(env, jclass, key_jstr, module_name_jstr)
+}
+
+fn _find_kpm_field<'a>(content: &'a str, prefix: &str) -> Option<&'a str> {
+    let start = content.find(prefix)?;
+    let after_prefix = start + prefix.len();
+
+    let end = content[after_prefix..]
+        .find(|c: char| ['\0', '\n'].contains(&c))
+        .map(|pos| after_prefix + pos)
+        .unwrap_or_else(|| content.len());
+
+    Some(&content[after_prefix..end])
 }
 
 macro_rules! method {
@@ -429,6 +528,16 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
             "nativeResetSuPath",
             "(Ljava/lang/String;Ljava/lang/String;)Z",
             native_reset_su_path
+        ),
+        method!(
+            "nativeInstallKpmModule",
+            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
+            native_install_kpm_module
+        ),
+        method!(
+            "nativeUninstallKpmModule",
+            "(Ljava/lang/String;Ljava/lang/String;)J",
+            native_uninstall_kernel_patch_module
         ),
     ];
 

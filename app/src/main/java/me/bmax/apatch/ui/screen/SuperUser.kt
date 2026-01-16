@@ -38,7 +38,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -207,11 +206,6 @@ fun SuperUserScreen() {
             onRefresh = { scope.launch { viewModel.fetchAppList() } },
             isRefreshing = viewModel.isRefreshing
         ) {
-            val filteredList by remember(viewModel.appList) {
-                derivedStateOf {
-                    viewModel.appList.filter { it.packageName != apApp.packageName }
-                }
-            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -279,6 +273,8 @@ fun SuperUserScreen() {
                     }
                 }
 
+                val filteredList =
+                        viewModel.appList.filter { it.packageName != apApp.packageName }
                 itemsIndexed(
                     items = filteredList,
                     key = { _, app -> app.packageName + app.uid }) { index, app ->

@@ -1,8 +1,10 @@
+use crate::kpm;
 use crate::supercall::fork_for_result;
 #[cfg(unix)]
 use crate::supercall::init_load_package_uid_config;
 use crate::supercall::init_load_su_path;
 use crate::supercall::refresh_ap_package_list;
+use std::ffi::CString;
 use std::{
     env, fs,
     os::unix::{fs::PermissionsExt, process::CommandExt},
@@ -148,6 +150,11 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
         return Ok(());
     }
 
+    superkey
+        .clone()
+        .and_then(|key| CString::new(key).ok())
+        .map(|key| kpm::load_kpms(&key, "post-fs-data"));
+
     if let Err(e) = module::prune_modules() {
         warn!("prune modules failed: {}", e);
     }
@@ -203,6 +210,11 @@ fn run_stage(stage: &str, superkey: Option<String>, block: bool) {
         }
         return;
     }
+
+    superkey
+        .clone()
+        .and_then(|key| CString::new(key).ok())
+        .map(|key| kpm::load_kpms(&key, stage));
 
     // execute metamodule stage script first (priority)
     if let Err(e) = metamodule::exec_stage_script(stage, block) {

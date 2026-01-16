@@ -80,8 +80,12 @@ import com.ramcosta.composedestinations.generated.destinations.PatchesDestinatio
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.topjohnwu.superuser.nio.ExtendedFile
 import com.topjohnwu.superuser.nio.FileSystemManager
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
@@ -195,6 +199,29 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                 }
             }
 
+            val selectKpmInstallLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) {
+                if (it.resultCode != RESULT_OK) {
+                    return@rememberLauncherForActivityResult
+                }
+                val data = it.data ?: return@rememberLauncherForActivityResult
+                val uri = data.data ?: return@rememberLauncherForActivityResult
+
+                // todo: args
+                scope.launch {
+                    val rc = installModule(loadingDialog, uri, "") == 0
+                    val toastText = if (rc) successToastText else failToastText
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context, toastText, Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    viewModel.markNeedRefresh()
+                    viewModel.fetchModuleList()
+                }
+            }
+
             var expanded by remember { mutableStateOf(false) }
             val options = listOf(moduleEmbed, moduleInstall, moduleLoad)
 
@@ -230,11 +257,9 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
 //                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
 //                                        intent.type = "application/zip"
 //                                        selectZipLauncher.launch(intent)
-                                        Toast.makeText(
-                                            context,
-                                            "Under development",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
+                                        intent.type = "*/*"
+                                        selectKpmInstallLauncher.launch(intent)
                                     }
 
                                     moduleLoad -> {
@@ -281,6 +306,37 @@ suspend fun loadModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: Strin
                     Log.e(TAG, "Copy kpm error: $e")
                 }
                 Log.d(TAG, "load ${kpm.path} rc: $rc")
+                rc
+            }
+        }
+    }
+    return rc
+}
+
+@OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
+suspend fun installModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: String): Int {
+    val rc = loadingDialog.withLoading {
+        withContext(Dispatchers.IO) {
+            run {
+                val kpmDir: ExtendedFile =
+                    FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "kpm")
+                kpmDir.deleteRecursively()
+                kpmDir.mkdirs()
+                val rand = (1..4).map { ('a'..'z').random() }.joinToString("")
+                val kpm = kpmDir.getChildFile("${rand}.kpm")
+                Log.d(TAG, "save tmp kpm: ${kpm.path}")
+                var rc = -1
+                try {
+                    uri.inputStream().buffered().writeTo(kpm)
+                    val content = newSingleThreadContext("SyncWorker")
+                    async(content) {
+                        Natives.su()
+                        rc = Natives.installKpmModule(kpm.path, args).toInt()
+                    }.await()
+                } catch (e: IOException) {
+                    Log.e(TAG, "Copy kpm error: $e")
+                }
+                Log.d(TAG, "install ${kpm.path} rc: $rc")
                 rc
             }
         }

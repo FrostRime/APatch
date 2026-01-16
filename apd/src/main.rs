@@ -3,6 +3,7 @@ mod assets;
 mod cli;
 mod defs;
 mod event;
+mod kpm;
 mod metamodule;
 mod module;
 mod package;

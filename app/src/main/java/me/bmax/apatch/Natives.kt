@@ -65,6 +65,20 @@ object Natives {
     }
 
     @FastNative
+    private external fun nativeInstallKpmModule(superKey: String, path: String, args: String): Long
+
+    fun installKpmModule(path: String, args: String): Long {
+        return nativeInstallKpmModule(APApplication.superKey, path, args)
+    }
+
+    @FastNative
+    private external fun nativeUninstallKpmModule(superKey: String, moduleName: String): Long
+
+    fun uninstallKpmModule(moduleName: String): Long {
+        return nativeUninstallKpmModule(APApplication.superKey, moduleName)
+    }
+
+    @FastNative
     private external fun nativeKernelPatchVersion(superKey: String): Long
     fun kernelPatchVersion(): Long {
         return nativeKernelPatchVersion(APApplication.superKey)
