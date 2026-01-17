@@ -19,6 +19,7 @@ class KPModuleViewModel : ViewModel() {
     companion object {
         private const val TAG = "KPModuleViewModel"
         private var modules by mutableStateOf<List<KPModel.KPMInfo>>(emptyList())
+        private var installedModules by mutableStateOf<List<KPModel.KPMInfo>>(emptyList())
     }
 
     var search by mutableStateOf("")
@@ -38,24 +39,22 @@ class KPModuleViewModel : ViewModel() {
                 true
             ) || HanziToPinyin.getInstance()
                 .toPinyinString(it.name)?.contains(search, true) == true
-        }.sortedWith(comparator).also {
-            isRefreshing = false
-        }
+        }.sortedWith(comparator)
     }
 
-    var searchText by mutableStateOf("")
+    val installedModuleList by derivedStateOf {
+        val comparator = compareBy(
+            comparator = Collator.getInstance(Locale.getDefault()),
+            selector = KPModel.KPMInfo::name
+        )
 
-    val filteredModuleList by derivedStateOf {
-        moduleList.filter {
-            it.name.lowercase().contains(searchText.lowercase()) || it.name.lowercase()
-                .contains(searchText.lowercase()) || HanziToPinyin.getInstance()
-                .toPinyinString(it.name).contains(searchText.lowercase()) || it.name.contains(
-                searchText,
-                ignoreCase = true
-            ) ||
-                    it.description.contains(searchText, ignoreCase = true) ||
-                    it.author.contains(searchText, ignoreCase = true)
-        }
+        installedModules.filter {
+            it.name.contains(search, true) || it.name.contains(
+                search,
+                true
+            ) || HanziToPinyin.getInstance()
+                .toPinyinString(it.name)?.contains(search, true) == true
+        }.sortedWith(comparator)
     }
 
     var isNeedRefresh by mutableStateOf(false)
@@ -99,6 +98,43 @@ class KPModuleViewModel : ViewModel() {
                     )
                     info
                 }
+
+                var installedModulesName = emptyArray<String>()
+
+                val handle = Thread {
+                    Natives.su()
+                    installedModulesName = Natives.installedKpmList()
+                }
+                handle.start()
+                handle.join()
+
+                installedModules = emptyList()
+
+                installedModulesName.forEach { Log.d(TAG, "installed kpm: $it") }
+
+                modules.forEach {
+                    it.isInstalled = installedModulesName.contains(it.name)
+                }
+
+                val moduleNameSet = modules.map { it.name }.toSet()
+
+                installedModulesName.forEach { name ->
+                    installedModules = if (name in moduleNameSet) {
+                        installedModules + modules.find { it.name == name }!!
+                    } else{
+                        installedModules + KPModel.KPMInfo(
+                            KPModel.ExtraType.KPM,
+                            name,
+                            "",
+                            "unknown",
+                            "unknown",
+                            "unknown",
+                            "unknown",
+                            "unknown",
+                            true
+                        )
+                    }
+                }
                 isNeedRefresh = false
             }.onFailure { e ->
                 Log.e(TAG, "fetchModuleList: ", e)
@@ -112,6 +148,7 @@ class KPModuleViewModel : ViewModel() {
             }
 
             Log.i(TAG, "load cost: ${SystemClock.elapsedRealtime() - start}, modules: $modules")
+            isRefreshing = false
         }
     }
 }

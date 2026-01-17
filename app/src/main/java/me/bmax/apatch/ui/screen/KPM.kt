@@ -42,6 +42,7 @@ import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.ShapeDefaults.ExtraLarge
 import androidx.compose.material3.ShapeDefaults.ExtraSmall
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -277,7 +278,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
     }) { innerPadding ->
         KPModuleList(
             viewModel = viewModel,
-            modules = viewModel.moduleList,
+            modules = viewModel.installedModuleList + viewModel.moduleList.filter { it !in viewModel.installedModuleList },
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
@@ -326,15 +327,17 @@ suspend fun installModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: St
                 val kpm = kpmDir.getChildFile("${rand}.kpm")
                 Log.d(TAG, "save tmp kpm: ${kpm.path}")
                 var rc = -1
+                val content = newSingleThreadContext("SyncWorker")
                 try {
                     uri.inputStream().buffered().writeTo(kpm)
-                    val content = newSingleThreadContext("SyncWorker")
                     async(content) {
                         Natives.su()
                         rc = Natives.installKpmModule(kpm.path, args).toInt()
                     }.await()
                 } catch (e: IOException) {
                     Log.e(TAG, "Copy kpm error: $e")
+                } finally {
+                    content.close()
                 }
                 Log.d(TAG, "install ${kpm.path} rc: $rc")
                 rc
@@ -570,7 +573,23 @@ private fun KPModuleList(
                                 targetKPMToControl = module
                                 showKPMControlDialog.value = true
                             },
-                            shape = shape
+                            shape = shape,
+                            checked = module in viewModel.moduleList,
+                            onEnabled = {module, checked ->
+                                scope.launch {
+                                    val handle = Thread {
+                                        Natives.su()
+                                        Natives.changeInstalledKpmModuleState(module.name, checked)
+
+                                        if (!checked) {
+                                            Natives.unloadKernelPatchModule(module.name) == 0L
+                                        }
+                                    }
+                                    handle.start()
+                                    handle.join()
+                                    viewModel.fetchModuleList()
+                                }
+                            }
                         )
 
                         // fix last item shadow incomplete in LazyColumn
@@ -587,9 +606,11 @@ private fun KPModuleItem(
     module: KPModel.KPMInfo,
     onUninstall: (KPModel.KPMInfo) -> Unit,
     onControl: (KPModel.KPMInfo) -> Unit,
+    onEnabled: (KPModel.KPMInfo, Boolean) -> Unit,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
-    shape: Shape
+    shape: Shape,
+    checked: Boolean = true
 ) {
     val moduleAuthor = stringResource(id = R.string.kpm_author)
     val moduleArgs = stringResource(id = R.string.kpm_args)
@@ -645,6 +666,15 @@ private fun KPModuleItem(
                         )
                     }
 
+                    if (module.isInstalled) {
+                        Switch(
+                            enabled = true,
+                            checked = checked,
+                            onCheckedChange = {
+                                onEnabled(module, it)
+                            }
+                        )
+                    }
                 }
 
                 Text(
@@ -673,7 +703,17 @@ private fun KPModuleItem(
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        KPModuleRemoveButton(enabled = true, onClick = { onUninstall(module) })
+                        KPModuleRemoveButton(enabled = true, onClick = {
+                            if (module.isInstalled) {
+                                val handle = Thread {
+                                    Natives.su()
+                                    Natives.uninstallKpmModule(module.name)
+                                }
+
+                                handle.start()
+                                handle.join()
+                            }
+                            onUninstall(module) })
                     }
                 }
             }

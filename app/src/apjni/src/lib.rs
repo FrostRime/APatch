@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow};
 use ap_supercall::su_profile::SuProfile;
 use ap_supercall::supercall::SuperCall;
 use jni::objects::{JClass, JIntArray, JString, JValue};
-use jni::sys::{JNI_ERR, JNI_VERSION_1_6, jboolean, jint, jlong, jobject};
+use jni::sys::{JNI_ERR, JNI_VERSION_1_6, jboolean, jint, jlong, jobject, jobjectArray};
 use jni::{JNIEnv, JavaVM};
 use libc::{c_char, c_long, uid_t};
 use log::debug;
@@ -187,10 +187,8 @@ fn native_control_kernel_patch_module<'a>(
     let key = jstr_to_cstr(&mut env, &key);
     let module_name = jstr_to_cstr(&mut env, &module_name_jstr);
     let args = jstr_to_cstr(&mut env, &control_args_jstr);
-    let mut buf = [0u8; 4096];
+    let mut buf = [c_char::default(); 4096];
     let ptr = buf.as_mut_ptr();
-    #[cfg(not(target_os = "android"))]
-    let ptr = ptr as *mut i8;
 
     let rc = ret_to_jlong(get_sc().sc_kpm_control(
         &key,
@@ -242,11 +240,9 @@ fn native_kernel_patch_module_list<'a>(
 ) -> JString<'a> {
     ensure_super_key(&key);
     let key = jstr_to_cstr(&mut env, &key);
-    let mut buf = [0u8; 4096];
+    let mut buf = [c_char::default(); 4096];
 
     let ptr = buf.as_mut_ptr();
-    #[cfg(not(target_os = "android"))]
-    let ptr = ptr as *mut i8;
     get_sc().sc_kpm_list(&key, ptr, buf.len() as i32).unwrap();
     let out_msg_str = unsafe { std::ffi::CStr::from_ptr(buf.as_ptr().cast()).to_string_lossy() };
     env.new_string(out_msg_str).unwrap()
@@ -261,11 +257,9 @@ fn native_kernel_patch_module_info<'a>(
     ensure_super_key(&key);
     let key = jstr_to_cstr(&mut env, &key);
     let module_name = jstr_to_cstr(&mut env, &module_name_jstr);
-    let mut buf = [0u8; 1024];
+    let mut buf = [c_char::default(); 1024];
 
     let ptr = buf.as_mut_ptr();
-    #[cfg(not(target_os = "android"))]
-    let ptr = ptr as *mut i8;
     get_sc()
         .sc_kpm_info(&key, module_name.as_ptr(), ptr, buf.len() as i32)
         .unwrap();
@@ -297,11 +291,9 @@ fn native_revoke_su(mut env: JNIEnv, _: JClass, key: JString, uid: jint) -> jlon
 fn native_su_path<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> JString<'a> {
     ensure_super_key(&key);
     let key = jstr_to_cstr(&mut env, &key);
-    let mut buf = [0u8; SU_PATH_MAX_LEN];
+    let mut buf = [c_char::default(); SU_PATH_MAX_LEN];
 
     let ptr = buf.as_mut_ptr();
-    #[cfg(not(target_os = "android"))]
-    let ptr = ptr as *mut i8;
     get_sc()
         .sc_su_get_path(&key, ptr, buf.len() as i32)
         .unwrap();
@@ -338,6 +330,9 @@ fn native_install_kpm_module(
 
     let content = String::from_utf8_lossy(&data);
     let name = _find_kpm_field(&content, "name=").unwrap();
+    _uninstall_kernel_patch_module(
+        &CString::new(name).unwrap()
+    );
 
     let res = native_load_kernel_patch_module(env, class, key_jstr, module_path_jstr, args_jstr);
     let mut name_buf = [0u8; 32];
@@ -347,6 +342,7 @@ fn native_install_kpm_module(
     let mut info = "\n".as_bytes().to_vec();
     info.extend_from_slice(&name_buf);
     info.push(0b01);
+    info.push(0u8);
     let kpms_path = Path::new("/data/adb/ap/kpms/");
     if !kpms_path.exists() {
         fs::create_dir_all(kpms_path).unwrap();
@@ -374,6 +370,11 @@ fn native_uninstall_kernel_patch_module<'a>(
 ) -> jlong {
     ensure_super_key(&key_jstr);
     let name = jstr_to_cstr(&mut env, &module_name_jstr);
+    _uninstall_kernel_patch_module(&name);
+    native_unload_kernel_patch_module(env, jclass, key_jstr, module_name_jstr)
+}
+
+fn _uninstall_kernel_patch_module(name: &CString)-> jlong {
     let mut name_buf = [0u8; 32];
     let name_bytes = name.as_bytes();
     let len = name_bytes.len().min(32);
@@ -407,7 +408,105 @@ fn native_uninstall_kernel_patch_module<'a>(
 
     let mut writer = BufWriter::new(File::create(config_path).unwrap());
     writer.write_all(&kept).unwrap();
-    native_unload_kernel_patch_module(env, jclass, key_jstr, module_name_jstr)
+    0
+}
+
+fn native_change_installed_kpm_module_state<'a>(
+    mut env: JNIEnv<'a>,
+    jclass: JClass,
+    key_jstr: JString,
+    module_name_jstr: JString,
+    enabled: jboolean
+) -> jlong {
+    let name = jstr_to_cstr(&mut env, &module_name_jstr);
+        let mut name_buf = [0u8; 32];
+    let name_bytes = name.as_bytes();
+    let len = name_bytes.len().min(32);
+    name_buf[..len].copy_from_slice(&name_bytes[..len]);
+    let kpms_path = Path::new("/data/adb/ap/kpms/");
+    if !kpms_path.exists() {
+        return 0;
+    }
+    let config_path = kpms_path.join("config");
+    let mut reader = BufReader::new(File::open(&config_path).unwrap());
+
+    let mut module_path = String::default();
+
+    let mut kept = Vec::new();
+    let mut record = Vec::new();
+    while reader.read_until(b'\n', &mut record).unwrap() > 0 {
+        if record.len() < 35 {
+            record.clear();
+            continue;
+        }
+        if record[0..32] == name_buf {
+            record[32] = if enabled != 0 {
+                0b01
+            } else {
+                0b00
+            };
+
+            module_path = kpms_path.join(String::from_utf8_lossy(&record[34..]).to_string().trim()).to_string_lossy().to_string();
+            debug!("{}", module_path)
+        }
+        debug!("record len: {}", record.len());
+        debug!("record bytes: {:?}", record);
+
+        kept.extend(&record);
+        record.clear();
+    }
+
+    debug!("kept bytes: {:?}", kept);
+
+    debug!("writing config");
+    let mut writer = BufWriter::new(File::create(config_path).unwrap());
+    writer.write_all(&kept).unwrap();
+    writer.flush().unwrap();
+
+    debug!("done writing config");
+
+    if enabled != 0 {
+        let path_jstr = env.new_string(&module_path).unwrap();
+        let args = env.new_string("").unwrap();
+        native_load_kernel_patch_module(env, jclass, key_jstr, path_jstr, args)
+    } else {
+        0
+    }
+}
+
+fn native_installed_kpm_list<'a>(mut env: JNIEnv<'a>, _: JClass) -> jobjectArray {
+    let mut kpm_list = Vec::new();
+    let kpm_dir = Path::new("/data/adb/ap/kpms/");
+    debug!("kpm dir exists:{}" , kpm_dir.exists());
+    if kpm_dir.exists() {
+        let config = kpm_dir.join("config");
+        debug!("Reading kpm config from {}", config.to_string_lossy());
+        debug!("config exists:{}" , config.exists());
+        if config.exists() {
+            let mut reader = BufReader::new(File::open(config).unwrap());
+            let mut record = Vec::new();
+            while reader.read_until(b'\n', &mut record).unwrap() > 0 {
+                if record.len() < 35 {
+                    record.clear();
+                    continue;
+                }
+                let name = String::from_utf8_lossy(&record[0..32]).trim_end_matches('\0').to_string();
+                    kpm_list.push(env.new_string(name).unwrap());
+                record.clear();
+            }
+        }
+    }
+    let array = env
+        .new_object_array(
+            kpm_list.len() as i32,
+            "java/lang/String",
+            JString::default(),
+        )
+        .unwrap();
+    for (i, jstr) in kpm_list.iter().enumerate() {
+        env.set_object_array_element(&array, i as i32, jstr).unwrap();
+    }
+    array.as_raw()
 }
 
 fn _find_kpm_field<'a>(content: &'a str, prefix: &str) -> Option<&'a str> {
@@ -444,6 +543,8 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
     );
 
     init_supercall().unwrap();
+
+    debug!("JNI_OnLoad");
 
     let class_name = "me/bmax/apatch/Natives";
     let clazz = match env.find_class(class_name) {
@@ -539,6 +640,16 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
             "(Ljava/lang/String;Ljava/lang/String;)J",
             native_uninstall_kernel_patch_module
         ),
+        method!(
+            "nativeInstalledKpmList",
+            "()[Ljava/lang/String;",
+            native_installed_kpm_list
+        ),
+        method!(
+            "nativeChangeInstalledKpmModuleState",
+            "(Ljava/lang/String;Ljava/lang/String;Z)J",
+            native_change_installed_kpm_module_state
+        )
     ];
 
     // 4. 注册方法

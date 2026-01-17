@@ -94,19 +94,23 @@ class SuperUserViewModel : ViewModel() {
         isRefreshing = true
         withContext(Dispatchers.IO) {
             val content = newSingleThreadContext("SyncWorker")
-            async(content) {
-                Natives.su()
-                Pkg.readPackages().list.map {
-                    val uid = it.applicationInfo!!.uid
-                    Natives.revokeSu(uid)
-                    Natives.setUidExclude(uid, 0)
-                }
-                val file = File(APApplication.PACKAGE_CONFIG_FILE)
-                if (!file.parentFile?.exists()!!) file.parentFile?.mkdirs()
-                FileChannel.open(file.toPath(), StandardOpenOption.WRITE).use { channel ->
-                    channel.truncate(0)
-                }
-            }.await()
+            try {
+                async(content) {
+                    Natives.su()
+                    Pkg.readPackages().list.map {
+                        val uid = it.applicationInfo!!.uid
+                        Natives.revokeSu(uid)
+                        Natives.setUidExclude(uid, 0)
+                    }
+                    val file = File(APApplication.PACKAGE_CONFIG_FILE)
+                    if (!file.parentFile?.exists()!!) file.parentFile?.mkdirs()
+                    FileChannel.open(file.toPath(), StandardOpenOption.WRITE).use { channel ->
+                        channel.truncate(0)
+                    }
+                }.await()
+            } finally {
+                content.close()
+            }
         }
         fetchAppList()
     }
@@ -119,39 +123,43 @@ class SuperUserViewModel : ViewModel() {
             val uids = Natives.suUids().toList()
             Log.d(TAG, "all allows: $uids")
             val content = newSingleThreadContext("SyncWorker")
-            val nativeDataDeferred = async(content) {
-                Natives.su()
-                var startTime = if (BuildConfig.DEBUG) {
-                    System.currentTimeMillis()
-                } else {
-                    null
-                }
-                val configs = PkgConfig.readConfigs()
-
-                if (BuildConfig.DEBUG) {
-                    startTime?.let {
-                        Log.d(
-                            TAG,
-                            "read configs in ${System.currentTimeMillis() - it}ms"
-                        )
+            val nativeDataDeferred = try {
+                async(content) {
+                    Natives.su()
+                    var startTime = if (BuildConfig.DEBUG) {
+                        System.currentTimeMillis()
+                    } else {
+                        null
                     }
-                }
-                startTime = if (BuildConfig.DEBUG) {
-                    System.currentTimeMillis()
-                } else {
-                    null
-                }
-                val apps = Pkg.readPackages()
+                    val configs = PkgConfig.readConfigs()
 
-                if (BuildConfig.DEBUG) {
-                    startTime?.let {
-                        Log.d(
-                            TAG,
-                            "read packages in ${System.currentTimeMillis() - it}ms"
-                        )
+                    if (BuildConfig.DEBUG) {
+                        startTime?.let {
+                            Log.d(
+                                TAG,
+                                "read configs in ${System.currentTimeMillis() - it}ms"
+                            )
+                        }
                     }
+                    startTime = if (BuildConfig.DEBUG) {
+                        System.currentTimeMillis()
+                    } else {
+                        null
+                    }
+                    val apps = Pkg.readPackages()
+
+                    if (BuildConfig.DEBUG) {
+                        startTime?.let {
+                            Log.d(
+                                TAG,
+                                "read packages in ${System.currentTimeMillis() - it}ms"
+                            )
+                        }
+                    }
+                    Pair(configs, apps)
                 }
-                Pair(configs, apps)
+            } finally {
+                content.close()
             }
             val (configs, packages) = nativeDataDeferred.await()
 
