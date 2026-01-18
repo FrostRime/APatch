@@ -51,9 +51,6 @@ class SuperUserViewModel : ViewModel() {
         val config: PkgConfig.Config
     ) : Parcelable {
         @IgnoredOnParcel
-        var showEditProfile by mutableStateOf(false)
-
-        @IgnoredOnParcel
         var rootGranted by mutableStateOf(config.allow != 0)
 
         @IgnoredOnParcel
@@ -198,6 +195,7 @@ class SuperUserViewModel : ViewModel() {
             }
 
             synchronized(appsLock) {
+                apps = emptyList()
                 apps = newApps
             }
             isRefreshing = false

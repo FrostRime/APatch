@@ -121,7 +121,7 @@ class KPModuleViewModel : ViewModel() {
                 installedModulesName.forEach { name ->
                     installedModules = if (name in moduleNameSet) {
                         installedModules + modules.find { it.name == name }!!
-                    } else{
+                    } else {
                         installedModules + KPModel.KPMInfo(
                             KPModel.ExtraType.KPM,
                             name,

@@ -1,13 +1,10 @@
 package me.bmax.apatch
 
-import android.R
 import android.os.Parcelable
 import androidx.annotation.Keep
-import androidx.compose.animation.core.AnimationState
 import androidx.compose.runtime.Immutable
 import dalvik.annotation.optimization.FastNative
 import kotlinx.parcelize.Parcelize
-import me.bmax.apatch.ui.screen.APModuleScreen
 
 @Suppress("KotlinJniMissingFunction", "RedundantSuppression")
 object Natives {
@@ -90,7 +87,11 @@ object Natives {
 
 
     @FastNative
-    private external fun nativeChangeInstalledKpmModuleState(key: String, moduleName: String, enabled: Boolean): Long
+    private external fun nativeChangeInstalledKpmModuleState(
+        key: String,
+        moduleName: String,
+        enabled: Boolean
+    ): Long
 
     fun changeInstalledKpmModuleState(moduleName: String, enabled: Boolean): Long {
         return nativeChangeInstalledKpmModuleState(APApplication.superKey, moduleName, enabled)

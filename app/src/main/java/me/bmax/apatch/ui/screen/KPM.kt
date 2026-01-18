@@ -7,8 +7,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
@@ -38,14 +33,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBarScrollBehavior
-import androidx.compose.material3.ShapeDefaults.ExtraLarge
-import androidx.compose.material3.ShapeDefaults.ExtraSmall
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -57,16 +47,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -94,10 +77,12 @@ import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.KPModuleRemoveButton
+import me.bmax.apatch.ui.component.ListItemData
 import me.bmax.apatch.ui.component.LoadingDialogHandle
 import me.bmax.apatch.ui.component.ModuleSettingsButton
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
+import me.bmax.apatch.ui.component.UIList
 import me.bmax.apatch.ui.component.pinnedScrollBehavior
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
@@ -137,6 +122,40 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
     val viewModel = viewModel<KPModuleViewModel>()
     val scrollBehavior = pinnedScrollBehavior()
     val kpModuleListState = rememberLazyListState()
+    val moduleAuthor = stringResource(id = R.string.kpm_author)
+    val scope = rememberCoroutineScope()
+    val moduleStr = stringResource(id = R.string.kpm)
+    val moduleUninstallConfirm = stringResource(id = R.string.kpm_unload_confirm)
+    val uninstall = stringResource(id = R.string.kpm_unload)
+    val cancel = stringResource(id = android.R.string.cancel)
+
+    val confirmDialog = rememberConfirmDialog()
+    val loadingDialog = rememberLoadingDialog()
+
+    val showKPMControlDialog = remember { mutableStateOf(false) }
+    KPMControlDialog(showDialog = showKPMControlDialog)
+
+    suspend fun onModuleUninstall(module: KPModel.KPMInfo) {
+        val confirmResult = confirmDialog.awaitConfirm(
+            moduleStr,
+            content = moduleUninstallConfirm.format(module.name),
+            confirm = uninstall,
+            dismiss = cancel
+        )
+        if (confirmResult != ConfirmResult.Confirmed) {
+            return
+        }
+
+        val success = loadingDialog.withLoading {
+            withContext(Dispatchers.IO) {
+                Natives.unloadKernelPatchModule(module.name) == 0L
+            }
+        }
+
+        if (success) {
+            viewModel.fetchModuleList()
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (viewModel.moduleList.isEmpty() || viewModel.isNeedRefresh) {
@@ -276,14 +295,84 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
             }
         }
     }) { innerPadding ->
-        KPModuleList(
-            viewModel = viewModel,
-            modules = viewModel.installedModuleList + viewModel.moduleList.filter { it !in viewModel.installedModuleList },
+        val uiListData =
+            remember(viewModel.moduleList, viewModel.installedModuleList, viewModel.search) {
+                val allModules =
+                    viewModel.installedModuleList + viewModel.moduleList.filter { it !in viewModel.installedModuleList }
+                allModules.map { module ->
+                    ListItemData(
+                        title = {
+                            Text(
+                                text = module.name,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        subtitle = "${module.version}, $moduleAuthor ${module.author}",
+                        description = module.description,
+                        onCheckChange = if (module.isInstalled) {
+                            { checked ->
+                                scope.launch {
+                                    val handle = Thread {
+                                        Natives.su()
+                                        Natives.changeInstalledKpmModuleState(module.name, checked)
+
+                                        if (!checked) {
+                                            Natives.unloadKernelPatchModule(module.name) == 0L
+                                        }
+                                    }
+                                    handle.start()
+                                    handle.join()
+                                    viewModel.fetchModuleList()
+                                }
+                            }
+                        } else null,
+                        actions = {
+                            Row(
+                                modifier = Modifier
+                                    .padding(bottom = 12.dp)
+                                    .padding(horizontal = 16.dp)
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(modifier = Modifier.weight(1f))
+
+                                ModuleSettingsButton(onClick = {
+                                    targetKPMToControl = module
+                                    showKPMControlDialog.value = true
+                                })
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                KPModuleRemoveButton(enabled = true, onClick = {
+                                    if (module.isInstalled) {
+                                        val handle = Thread {
+                                            Natives.su()
+                                            Natives.uninstallKpmModule(module.name)
+                                        }
+
+                                        handle.start()
+                                        handle.join()
+                                    }
+                                    scope.launch { onModuleUninstall(module) }
+                                })
+                            }
+                        }
+                    ).apply {
+                        isChecked = module.isInstalled && module in viewModel.moduleList
+                    }
+                }
+            }
+        UIList(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize(),
-            state = kpModuleListState,
-            scrollBehavior = scrollBehavior
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 8.dp),
+            onRefresh = { viewModel.fetchModuleList() },
+            isRefreshing = viewModel.isRefreshing,
+            items = uiListData,
+            scrollBehavior = scrollBehavior,
+            state = kpModuleListState
         )
     }
 }
@@ -472,251 +561,3 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun KPModuleList(
-    viewModel: KPModuleViewModel,
-    modules: List<KPModel.KPMInfo>,
-    modifier: Modifier = Modifier,
-    state: LazyListState,
-    scrollBehavior: SearchBarScrollBehavior
-) {
-    val moduleStr = stringResource(id = R.string.kpm)
-    val moduleUninstallConfirm = stringResource(id = R.string.kpm_unload_confirm)
-    val uninstall = stringResource(id = R.string.kpm_unload)
-    val cancel = stringResource(id = android.R.string.cancel)
-
-    val confirmDialog = rememberConfirmDialog()
-    val loadingDialog = rememberLoadingDialog()
-
-    val showKPMControlDialog = remember { mutableStateOf(false) }
-    KPMControlDialog(showDialog = showKPMControlDialog)
-
-    suspend fun onModuleUninstall(module: KPModel.KPMInfo) {
-        val confirmResult = confirmDialog.awaitConfirm(
-            moduleStr,
-            content = moduleUninstallConfirm.format(module.name),
-            confirm = uninstall,
-            dismiss = cancel
-        )
-        if (confirmResult != ConfirmResult.Confirmed) {
-            return
-        }
-
-        val success = loadingDialog.withLoading {
-            withContext(Dispatchers.IO) {
-                Natives.unloadKernelPatchModule(module.name) == 0L
-            }
-        }
-
-        if (success) {
-            viewModel.fetchModuleList()
-        }
-    }
-
-    PullToRefreshBox(
-        modifier = modifier
-            .padding(horizontal = 12.dp)
-            .padding(bottom = 8.dp),
-        onRefresh = { viewModel.fetchModuleList() },
-        isRefreshing = viewModel.isRefreshing
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(ExtraLarge)
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            state = state,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            contentPadding = remember {
-                PaddingValues(
-                    bottom = 16.dp + 56.dp /*  Scaffold Fab Spacing + Fab container height */
-                )
-            },
-        ) {
-            when {
-                modules.isEmpty() -> {
-                    item {
-                        Box(
-                            modifier = Modifier.fillParentMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                stringResource(R.string.kpm_apm_empty), textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    itemsIndexed(modules) { index, module ->
-                        val scope = rememberCoroutineScope()
-                        val shape = when (index) {
-                            0 -> ExtraSmall.copy(
-                                topStart = ExtraLarge.topStart,
-                                topEnd = ExtraLarge.topEnd
-                            )
-
-                            modules.lastIndex -> ExtraSmall.copy(
-                                bottomStart = ExtraLarge.bottomStart,
-                                bottomEnd = ExtraLarge.bottomEnd
-                            )
-
-                            else -> ExtraSmall
-                        }
-                        KPModuleItem(
-                            module,
-                            onUninstall = {
-                                scope.launch { onModuleUninstall(module) }
-                            },
-                            onControl = {
-                                targetKPMToControl = module
-                                showKPMControlDialog.value = true
-                            },
-                            shape = shape,
-                            checked = module in viewModel.moduleList,
-                            onEnabled = {module, checked ->
-                                scope.launch {
-                                    val handle = Thread {
-                                        Natives.su()
-                                        Natives.changeInstalledKpmModuleState(module.name, checked)
-
-                                        if (!checked) {
-                                            Natives.unloadKernelPatchModule(module.name) == 0L
-                                        }
-                                    }
-                                    handle.start()
-                                    handle.join()
-                                    viewModel.fetchModuleList()
-                                }
-                            }
-                        )
-
-                        // fix last item shadow incomplete in LazyColumn
-                        Spacer(Modifier.height(1.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun KPModuleItem(
-    module: KPModel.KPMInfo,
-    onUninstall: (KPModel.KPMInfo) -> Unit,
-    onControl: (KPModel.KPMInfo) -> Unit,
-    onEnabled: (KPModel.KPMInfo, Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    alpha: Float = 1f,
-    shape: Shape,
-    checked: Boolean = true
-) {
-    val moduleAuthor = stringResource(id = R.string.kpm_author)
-    val moduleArgs = stringResource(id = R.string.kpm_args)
-    val decoration = TextDecoration.None
-    var showActions by remember { mutableStateOf(false) }
-
-    Surface(
-        modifier = modifier,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        shape = shape
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    showActions = !showActions
-                }
-                .padding(all = 16.dp), contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .alpha(alpha = alpha)
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = module.name,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            maxLines = 2,
-                            textDecoration = decoration,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        Text(
-                            text = "${module.version}, $moduleAuthor ${module.author}",
-                            style = MaterialTheme.typography.bodySmall,
-                            textDecoration = decoration,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Text(
-                            text = "$moduleArgs: ${module.args}",
-                            style = MaterialTheme.typography.bodySmall,
-                            textDecoration = decoration,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    if (module.isInstalled) {
-                        Switch(
-                            enabled = true,
-                            checked = checked,
-                            onCheckedChange = {
-                                onEnabled(module, it)
-                            }
-                        )
-                    }
-                }
-
-                Text(
-                    modifier = Modifier
-                        .alpha(alpha = alpha),
-                    text = module.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    textDecoration = decoration,
-                    color = MaterialTheme.colorScheme.outline
-                )
-
-                AnimatedVisibility(
-                    visible = showActions,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        ModuleSettingsButton(onClick = { onControl(module) })
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        KPModuleRemoveButton(enabled = true, onClick = {
-                            if (module.isInstalled) {
-                                val handle = Thread {
-                                    Natives.su()
-                                    Natives.uninstallKpmModule(module.name)
-                                }
-
-                                handle.start()
-                                handle.join()
-                            }
-                            onUninstall(module) })
-                    }
-                }
-            }
-        }
-    }
-}

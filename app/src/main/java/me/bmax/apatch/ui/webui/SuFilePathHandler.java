@@ -64,15 +64,6 @@ public final class SuFilePathHandler implements WebViewAssetLoader.PathHandler {
     @NonNull
     private final OnInsetsRequestedListener mOnInsetsRequestedListener;
 
-    public interface InsetsSupplier {
-        @NonNull
-        Insets get();
-    }
-
-    public interface OnInsetsRequestedListener {
-        void onInsetsRequested(boolean enable);
-    }
-
     /**
      * Creates PathHandler for app's internal storage.
      * The directory to be exposed must be inside either the application's internal data
@@ -215,5 +206,14 @@ public final class SuFilePathHandler implements WebViewAssetLoader.PathHandler {
             Log.e(TAG, "Error opening the requested path: " + path, e);
         }
         return new WebResourceResponse(null, null, null);
+    }
+
+    public interface InsetsSupplier {
+        @NonNull
+        Insets get();
+    }
+
+    public interface OnInsetsRequestedListener {
+        void onInsetsRequested(boolean enable);
     }
 }
