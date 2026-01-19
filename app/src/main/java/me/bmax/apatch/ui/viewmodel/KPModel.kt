@@ -42,7 +42,7 @@ object KPModel {
         var license: String,
         var author: String,
         var description: String,
-        var isInstalled: Boolean = false
+        val isInstalled: Boolean = false
     ) : IExtraInfo
 
     @Immutable

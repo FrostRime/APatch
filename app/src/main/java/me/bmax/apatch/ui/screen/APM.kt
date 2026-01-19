@@ -319,6 +319,7 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
             }
 
             else -> {
+                val authorString = stringResource(R.string.apm_author)
                 val metaWarning by produceState<String?>(null, viewModel.moduleList) {
                     value =
                         withContext(Dispatchers.IO) { getMetaModuleWarningText(viewModel, context) }
@@ -330,7 +331,7 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                             title = {
                                 ModuleTitleWithMeta(module)
                             },
-                            subtitle = "${module.version}, ${context.getString(R.string.apm_author)} ${module.author}",
+                            subtitle = "${module.version}, $authorString ${module.author}",
                             description = module.description,
                             onCheckChange = {
                                 scope.launch {
@@ -356,6 +357,7 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                                     }
                                 }
                             },
+                            checked = module.enabled,
                             actions = {
                                 ModuleActionButtons(
                                     module = module,
@@ -387,12 +389,10 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                                                 .putExtra("name", name)
                                         )
                                     },
-                                    viewModel = viewModel
+                                    viewModel = viewModel,
                                 )
                             }
-                        ).apply {
-                            isChecked = module.enabled
-                        }
+                        )
                     }
                 }
 

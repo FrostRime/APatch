@@ -192,11 +192,12 @@ fun SuperUserScreen() {
             if (kPatchReady && aPatchReady) {
                 list.add(
                     ListItemData(
-                        background = Color.Transparent,
+//                        background = Color.Transparent,
                         title = { Text(stringResource(R.string.su_pkg_excluded_setting_title)) },
                         headerIcon = {
                             Icon(Tabler.Outline.Automation, null)
                         },
+                        checked = true,
                         actions = {
                             SingleChoiceSegmentedButtonRow(
                                 modifier = Modifier
@@ -313,6 +314,7 @@ fun SuperUserScreen() {
                                 viewModel.fetchAppList()
                             }
                         },
+                        checked = app.config.allow != 0,
                         actions = {
                             if (!app.rootGranted) {
                                 ListItem(
@@ -352,9 +354,7 @@ fun SuperUserScreen() {
                                 )
                             }
                         }
-                    ).apply {
-                        isChecked = app.config.allow != 0
-                    }
+                    )
                 })
             list
         }

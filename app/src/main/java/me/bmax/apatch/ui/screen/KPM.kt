@@ -298,7 +298,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
         val uiListData =
             remember(viewModel.moduleList, viewModel.installedModuleList, viewModel.search) {
                 val allModules =
-                    viewModel.installedModuleList + viewModel.moduleList.filter { it !in viewModel.installedModuleList }
+                    viewModel.installedModuleList + viewModel.moduleList.filter { !it.isInstalled }
                 allModules.map { module ->
                     ListItemData(
                         title = {
@@ -327,6 +327,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                                 }
                             }
                         } else null,
+                        checked = module.isInstalled && module in viewModel.moduleList,
                         actions = {
                             Row(
                                 modifier = Modifier
@@ -358,9 +359,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                                 })
                             }
                         }
-                    ).apply {
-                        isChecked = module.isInstalled && module in viewModel.moduleList
-                    }
+                    )
                 }
             }
         UIList(

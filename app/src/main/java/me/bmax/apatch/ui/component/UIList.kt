@@ -42,11 +42,9 @@ data class ListItemData(
     val headerIcon: @Composable (() -> Unit)? = null,
     val trailingContent: @Composable (() -> Unit)? = null,
     val actions: @Composable () -> Unit,
+    val checked: Boolean,
     val onCheckChange: ((Boolean) -> Unit)? = null
-) {
-    var showActions by mutableStateOf(false)
-    var isChecked by mutableStateOf(false)
-}
+)
 
 val bottomShape = ExtraSmall.copy(
     bottomStart = ExtraLarge.bottomStart,
@@ -112,6 +110,8 @@ private fun GenericItem(
     shape: Shape,
     expandedContent: @Composable () -> Unit
 ) {
+    var showActions by remember { mutableStateOf(false) }
+    var isChecked by remember { mutableStateOf(data.checked) }
     val backgroundColor = if (data.background != Color.Unspecified) {
         data.background
     } else {
@@ -119,14 +119,14 @@ private fun GenericItem(
     }
     Surface(
         shape = shape,
-        tonalElevation = if (data.isChecked) 4.dp else 1.dp,
+        tonalElevation = if (isChecked) 4.dp else 1.dp,
         color = backgroundColor
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    data.showActions = !data.showActions
+                    showActions = !showActions
                 }
         ) {
             ListItem(
@@ -161,17 +161,17 @@ private fun GenericItem(
                     if (data.onCheckChange != null) {
                         Column(verticalArrangement = Arrangement.Center) {
                             Checkbox(
-                                checked = data.isChecked,
+                                checked = isChecked,
                                 onCheckedChange = {
-                                    data.isChecked = it
-                                    data.onCheckChange.invoke(data.isChecked)
+                                    isChecked = it
+                                    data.onCheckChange.invoke(isChecked)
                                 }
                             )
                         }
                     }
                 }
             )
-            AnimatedVisibility(data.showActions) {
+            AnimatedVisibility(showActions) {
                 expandedContent()
             }
         }

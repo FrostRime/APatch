@@ -71,6 +71,16 @@ class KPModuleViewModel : ViewModel() {
             val start = SystemClock.elapsedRealtime()
 
             kotlin.runCatching {
+                var installedModulesName = emptyArray<String>()
+
+                val handle = Thread {
+                    Natives.su()
+                    installedModulesName = Natives.installedKpmList()
+                }
+                handle.start()
+                handle.join()
+
+                installedModulesName.forEach { Log.d(TAG, "installed kpm: $it") }
                 var names = Natives.kernelPatchModuleList()
                 if (Natives.kernelPatchModuleNum() <= 0)
                     names = ""
@@ -94,35 +104,17 @@ class KPModuleViewModel : ViewModel() {
                         version ?: "",
                         license ?: "",
                         author ?: "",
-                        description ?: ""
+                        description ?: "",
+                        isInstalled = installedModulesName.contains(name),
                     )
                     info
                 }
 
-                var installedModulesName = emptyArray<String>()
-
-                val handle = Thread {
-                    Natives.su()
-                    installedModulesName = Natives.installedKpmList()
-                }
-                handle.start()
-                handle.join()
-
                 installedModules = emptyList()
 
-                installedModulesName.forEach { Log.d(TAG, "installed kpm: $it") }
-
-                modules.forEach {
-                    it.isInstalled = installedModulesName.contains(it.name)
-                }
-
-                val moduleNameSet = modules.map { it.name }.toSet()
-
-                installedModulesName.forEach { name ->
-                    installedModules = if (name in moduleNameSet) {
-                        installedModules + modules.find { it.name == name }!!
-                    } else {
-                        installedModules + KPModel.KPMInfo(
+                installedModules = installedModulesName.map { name ->
+                    modules.find { it.name == name }
+                        ?: KPModel.KPMInfo(
                             KPModel.ExtraType.KPM,
                             name,
                             "",
@@ -131,10 +123,10 @@ class KPModuleViewModel : ViewModel() {
                             "unknown",
                             "unknown",
                             "unknown",
-                            true
+                            isInstalled = true
                         )
-                    }
                 }
+
                 isNeedRefresh = false
             }.onFailure { e ->
                 Log.e(TAG, "fetchModuleList: ", e)
