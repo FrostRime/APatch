@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.bmax.apatch.Natives
 import me.bmax.apatch.util.HanziToPinyin
+import me.bmax.apatch.util.RootExecutor
 import java.text.Collator
 import java.util.Locale
 
@@ -71,14 +72,9 @@ class KPModuleViewModel : ViewModel() {
             val start = SystemClock.elapsedRealtime()
 
             kotlin.runCatching {
-                var installedModulesName = emptyArray<String>()
-
-                val handle = Thread {
-                    Natives.su()
-                    installedModulesName = Natives.installedKpmList()
+                val installedModulesName = RootExecutor.run {
+                    Natives.installedKpmList()
                 }
-                handle.start()
-                handle.join()
 
                 installedModulesName.forEach { Log.d(TAG, "installed kpm: $it") }
                 var names = Natives.kernelPatchModuleList()

@@ -9,7 +9,6 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
 import java.io.File
 import java.io.FileWriter
-import kotlin.concurrent.thread
 
 object PkgConfig {
     private const val TAG = "PkgConfig"
@@ -78,22 +77,24 @@ object PkgConfig {
         writer.close()
     }
 
-    fun changeConfig(config: Config) {
-        thread {
+    suspend fun changeConfig(config: Config) {
+        RootExecutor.run {
             synchronized(PkgConfig.javaClass) {
-                Natives.su()
                 val configs = readConfigs()
                 val uid = config.profile.uid
+
                 // Root App should not be excluded
                 if (config.allow == 1) {
                     config.exclude = 0
                 }
+
                 if (config.allow == 0 && configs[uid] != null && config.exclude != 0) {
                     configs.remove(uid)
                 } else {
                     Log.d(TAG, "change config: $config")
                     configs[uid] = config
                 }
+
                 writeConfigs(configs)
             }
         }

@@ -101,7 +101,6 @@ fn native_set_uid_exclude(
 fn native_get_uid_exclude(mut env: JNIEnv, _: JClass, key: JString, uid: jint) -> jint {
     ensure_super_key(&key);
     let key = jstr_to_cstr(&mut env, &key);
-    debug!("[native_get_uid_exclude] uid: {}", uid);
     ret_to_jlong(
         get_sc()
             .sc_get_ap_mod_exclude(&key, uid as uid_t)
@@ -330,9 +329,7 @@ fn native_install_kpm_module(
 
     let content = String::from_utf8_lossy(&data);
     let name = _find_kpm_field(&content, "name=").unwrap();
-    _uninstall_kernel_patch_module(
-        &CString::new(name).unwrap()
-    );
+    _uninstall_kernel_patch_module(&CString::new(name).unwrap());
 
     let res = native_load_kernel_patch_module(env, class, key_jstr, module_path_jstr, args_jstr);
     let mut name_buf = [0u8; 32];
@@ -374,7 +371,7 @@ fn native_uninstall_kernel_patch_module<'a>(
     native_unload_kernel_patch_module(env, jclass, key_jstr, module_name_jstr)
 }
 
-fn _uninstall_kernel_patch_module(name: &CString)-> jlong {
+fn _uninstall_kernel_patch_module(name: &CString) -> jlong {
     let mut name_buf = [0u8; 32];
     let name_bytes = name.as_bytes();
     let len = name_bytes.len().min(32);
@@ -416,10 +413,10 @@ fn native_change_installed_kpm_module_state<'a>(
     jclass: JClass,
     key_jstr: JString,
     module_name_jstr: JString,
-    enabled: jboolean
+    enabled: jboolean,
 ) -> jlong {
     let name = jstr_to_cstr(&mut env, &module_name_jstr);
-        let mut name_buf = [0u8; 32];
+    let mut name_buf = [0u8; 32];
     let name_bytes = name.as_bytes();
     let len = name_bytes.len().min(32);
     name_buf[..len].copy_from_slice(&name_bytes[..len]);
@@ -440,13 +437,12 @@ fn native_change_installed_kpm_module_state<'a>(
             continue;
         }
         if record[0..32] == name_buf {
-            record[32] = if enabled != 0 {
-                0b01
-            } else {
-                0b00
-            };
+            record[32] = if enabled != 0 { 0b01 } else { 0b00 };
 
-            module_path = kpms_path.join(String::from_utf8_lossy(&record[34..]).to_string().trim()).to_string_lossy().to_string();
+            module_path = kpms_path
+                .join(String::from_utf8_lossy(&record[34..]).to_string().trim())
+                .to_string_lossy()
+                .to_string();
             debug!("{}", module_path)
         }
         debug!("record len: {}", record.len());
@@ -477,11 +473,11 @@ fn native_change_installed_kpm_module_state<'a>(
 fn native_installed_kpm_list<'a>(mut env: JNIEnv<'a>, _: JClass) -> jobjectArray {
     let mut kpm_list = Vec::new();
     let kpm_dir = Path::new("/data/adb/ap/kpms/");
-    debug!("kpm dir exists:{}" , kpm_dir.exists());
+    debug!("kpm dir exists:{}", kpm_dir.exists());
     if kpm_dir.exists() {
         let config = kpm_dir.join("config");
         debug!("Reading kpm config from {}", config.to_string_lossy());
-        debug!("config exists:{}" , config.exists());
+        debug!("config exists:{}", config.exists());
         if config.exists() {
             let mut reader = BufReader::new(File::open(config).unwrap());
             let mut record = Vec::new();
@@ -490,8 +486,10 @@ fn native_installed_kpm_list<'a>(mut env: JNIEnv<'a>, _: JClass) -> jobjectArray
                     record.clear();
                     continue;
                 }
-                let name = String::from_utf8_lossy(&record[0..32]).trim_end_matches('\0').to_string();
-                    kpm_list.push(env.new_string(name).unwrap());
+                let name = String::from_utf8_lossy(&record[0..32])
+                    .trim_end_matches('\0')
+                    .to_string();
+                kpm_list.push(env.new_string(name).unwrap());
                 record.clear();
             }
         }
@@ -504,7 +502,8 @@ fn native_installed_kpm_list<'a>(mut env: JNIEnv<'a>, _: JClass) -> jobjectArray
         )
         .unwrap();
     for (i, jstr) in kpm_list.iter().enumerate() {
-        env.set_object_array_element(&array, i as i32, jstr).unwrap();
+        env.set_object_array_element(&array, i as i32, jstr)
+            .unwrap();
     }
     array.as_raw()
 }
@@ -649,7 +648,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
             "nativeChangeInstalledKpmModuleState",
             "(Ljava/lang/String;Ljava/lang/String;Z)J",
             native_change_installed_kpm_module_state
-        )
+        ),
     ];
 
     // 4. 注册方法

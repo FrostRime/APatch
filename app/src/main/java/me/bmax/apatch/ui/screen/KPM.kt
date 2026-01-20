@@ -67,9 +67,7 @@ import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
@@ -89,6 +87,7 @@ import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.ui.viewmodel.KPModel
 import me.bmax.apatch.ui.viewmodel.KPModuleViewModel
 import me.bmax.apatch.ui.viewmodel.PatchesViewModel
+import me.bmax.apatch.util.RootExecutor
 import me.bmax.apatch.util.inputStream
 import me.bmax.apatch.util.writeTo
 import java.io.IOException
@@ -313,17 +312,17 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                         onCheckChange = if (module.isInstalled) {
                             { checked ->
                                 scope.launch {
-                                    val handle = Thread {
-                                        Natives.su()
+                                    val success = RootExecutor.run {
                                         Natives.changeInstalledKpmModuleState(module.name, checked)
-
                                         if (!checked) {
                                             Natives.unloadKernelPatchModule(module.name) == 0L
+                                        } else {
+                                            true
                                         }
                                     }
-                                    handle.start()
-                                    handle.join()
-                                    viewModel.fetchModuleList()
+                                    if (success) {
+                                        viewModel.fetchModuleList()
+                                    }
                                 }
                             }
                         } else null,
@@ -346,16 +345,14 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                                 Spacer(modifier = Modifier.width(12.dp))
 
                                 KPModuleRemoveButton(enabled = true, onClick = {
-                                    if (module.isInstalled) {
-                                        val handle = Thread {
-                                            Natives.su()
-                                            Natives.uninstallKpmModule(module.name)
+                                    scope.launch {
+                                        if (module.isInstalled) {
+                                            RootExecutor.run {
+                                                Natives.uninstallKpmModule(module.name)
+                                            }
                                         }
-
-                                        handle.start()
-                                        handle.join()
+                                        onModuleUninstall(module)
                                     }
-                                    scope.launch { onModuleUninstall(module) }
                                 })
                             }
                         }
@@ -404,7 +401,7 @@ suspend fun loadModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: Strin
 
 @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
 suspend fun installModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: String): Int {
-    val rc = loadingDialog.withLoading {
+    return loadingDialog.withLoading {
         withContext(Dispatchers.IO) {
             run {
                 val kpmDir: ExtendedFile =
@@ -414,25 +411,20 @@ suspend fun installModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: St
                 val rand = (1..4).map { ('a'..'z').random() }.joinToString("")
                 val kpm = kpmDir.getChildFile("${rand}.kpm")
                 Log.d(TAG, "save tmp kpm: ${kpm.path}")
-                var rc = -1
-                val content = newSingleThreadContext("SyncWorker")
                 try {
                     uri.inputStream().buffered().writeTo(kpm)
-                    async(content) {
-                        Natives.su()
-                        rc = Natives.installKpmModule(kpm.path, args).toInt()
-                    }.await()
                 } catch (e: IOException) {
                     Log.e(TAG, "Copy kpm error: $e")
-                } finally {
-                    content.close()
+                    return@withContext -1
+                }
+                val rc = RootExecutor.run {
+                    Natives.installKpmModule(kpm.path, args).toInt()
                 }
                 Log.d(TAG, "install ${kpm.path} rc: $rc")
                 rc
             }
         }
     }
-    return rc
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

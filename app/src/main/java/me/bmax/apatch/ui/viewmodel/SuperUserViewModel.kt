@@ -11,12 +11,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.withContext
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import me.bmax.apatch.APApplication
@@ -26,6 +20,7 @@ import me.bmax.apatch.apApp
 import me.bmax.apatch.util.HanziToPinyin
 import me.bmax.apatch.util.Pkg
 import me.bmax.apatch.util.PkgConfig
+import me.bmax.apatch.util.RootExecutor
 import java.io.File
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
@@ -86,108 +81,70 @@ class SuperUserViewModel : ViewModel() {
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     suspend fun resetAppList() {
         isRefreshing = true
-        withContext(Dispatchers.IO) {
-            val content = newSingleThreadContext("SyncWorker")
-            try {
-                async(content) {
-                    Natives.su()
-                    Pkg.readPackages().list.map {
-                        val uid = it.applicationInfo!!.uid
-                        Natives.revokeSu(uid)
-                        Natives.setUidExclude(uid, 0)
-                    }
-                    val file = File(APApplication.PACKAGE_CONFIG_FILE)
-                    if (!file.parentFile?.exists()!!) file.parentFile?.mkdirs()
-                    FileChannel.open(file.toPath(), StandardOpenOption.WRITE).use { channel ->
-                        channel.truncate(0)
-                    }
-                }.await()
-            } finally {
-                content.close()
+        try {
+            RootExecutor.run {
+                Pkg.readPackages().list.forEach {
+                    val uid = it.applicationInfo!!.uid
+                    Natives.revokeSu(uid)
+                    Natives.setUidExclude(uid, 0)
+                }
+
+                val file = File(APApplication.PACKAGE_CONFIG_FILE)
+                if (file.parentFile?.exists() == false) file.parentFile?.mkdirs()
+                FileChannel.open(file.toPath(), StandardOpenOption.WRITE).use { channel ->
+                    channel.truncate(0)
+                }
             }
+        } finally {
+            fetchAppList()
         }
-        fetchAppList()
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     suspend fun fetchAppList() {
         isRefreshing = true
+        try {
+            val (configs, packages) = RootExecutor.run {
+                val startTimeDebug = if (BuildConfig.DEBUG) System.currentTimeMillis() else null
 
-        withContext(Dispatchers.IO) {
+                val configs = PkgConfig.readConfigs()
+                if (BuildConfig.DEBUG) {
+                    startTimeDebug?.let {
+                        Log.d(TAG, "read configs in ${System.currentTimeMillis() - it}ms")
+                    }
+                }
+
+                val apps = Pkg.readPackages()
+                if (BuildConfig.DEBUG) {
+                    startTimeDebug?.let {
+                        Log.d(TAG, "read packages in ${System.currentTimeMillis() - it}ms")
+                    }
+                }
+
+                Pair(configs, apps)
+            }
+
             val uids = Natives.suUids().toList()
             Log.d(TAG, "all allows: $uids")
-            val content = newSingleThreadContext("SyncWorker")
-            val nativeDataDeferred = try {
-                async(content) {
-                    Natives.su()
-                    var startTime = if (BuildConfig.DEBUG) {
-                        System.currentTimeMillis()
-                    } else {
-                        null
-                    }
-                    val configs = PkgConfig.readConfigs()
 
-                    if (BuildConfig.DEBUG) {
-                        startTime?.let {
-                            Log.d(
-                                TAG,
-                                "read configs in ${System.currentTimeMillis() - it}ms"
-                            )
-                        }
-                    }
-                    startTime = if (BuildConfig.DEBUG) {
-                        System.currentTimeMillis()
-                    } else {
-                        null
-                    }
-                    val apps = Pkg.readPackages()
-
-                    if (BuildConfig.DEBUG) {
-                        startTime?.let {
-                            Log.d(
-                                TAG,
-                                "read packages in ${System.currentTimeMillis() - it}ms"
-                            )
-                        }
-                    }
-                    Pair(configs, apps)
-                }
-            } finally {
-                content.close()
-            }
-            val (configs, packages) = nativeDataDeferred.await()
-
-            Log.d(TAG, "all configs: $configs")
-
-            val newApps = packages.list.map {
-                val appInfo = it.applicationInfo
-                val uid = appInfo!!.uid
+            val newApps = packages.list.map { pkg ->
+                val appInfo = pkg.applicationInfo!!
+                val uid = appInfo.uid
                 val actProfile = if (uids.contains(uid)) Natives.suProfile(uid) else null
-                val packageName = it.packageName
+                val packageName = pkg.packageName
                 val exclude = Natives.isUidExcluded(uid)
-                Log.d(TAG, "uid: $uid: $exclude")
-                val config = configs.getOrDefault(
-                    uid,
-                    PkgConfig.Config(
-                        packageName,
-                        exclude,
-                        0,
-                        Natives.Profile(uid = uid)
-                    )
-                )
-                config.allow = 0
 
-                // from kernel
-                if (actProfile != null) {
-                    config.allow = 1
-                    config.profile = actProfile
+                val config = configs.getOrDefault(uid, PkgConfig.Config(
+                    packageName, exclude, 0, Natives.Profile(uid = uid)
+                )).also {
+                    it.allow = if (actProfile != null) 1 else 0
+                    it.profile = actProfile ?: it.profile
                 }
+
                 AppInfo(
                     label = appInfo.loadLabel(apApp.packageManager).toString(),
-                    packageInfo = it,
+                    packageInfo = pkg,
                     packageName = packageName,
                     uid = uid,
                     config = config
@@ -195,9 +152,9 @@ class SuperUserViewModel : ViewModel() {
             }
 
             synchronized(appsLock) {
-                apps = emptyList()
                 apps = newApps
             }
+        } finally {
             isRefreshing = false
         }
     }

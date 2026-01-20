@@ -109,10 +109,7 @@ impl SuperCall {
                 compiler_fence(Ordering::SeqCst);
                 Ok(exclude as c_long)
             }
-            Err(e) => {
-                debug!("sc_kstorage_read failed: {:?}", e);
-                Ok(0)
-            }
+            Err(_) => Ok(0),
         }
     }
 
