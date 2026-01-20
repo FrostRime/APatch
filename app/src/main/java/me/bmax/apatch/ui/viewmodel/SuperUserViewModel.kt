@@ -135,9 +135,11 @@ class SuperUserViewModel : ViewModel() {
                 val packageName = pkg.packageName
                 val exclude = Natives.isUidExcluded(uid)
 
-                val config = configs.getOrDefault(uid, PkgConfig.Config(
-                    packageName, exclude, 0, Natives.Profile(uid = uid)
-                )).also {
+                val config = configs.getOrDefault(
+                    uid, PkgConfig.Config(
+                        packageName, exclude, 0, Natives.Profile(uid = uid)
+                    )
+                ).also {
                     it.allow = if (actProfile != null) 1 else 0
                     it.profile = actProfile ?: it.profile
                 }

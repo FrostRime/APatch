@@ -9,6 +9,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import me.bmax.apatch.apApp
 import me.bmax.apatch.util.HanziToPinyin
@@ -65,9 +67,7 @@ class APModuleViewModel : ViewModel() {
                 true
             ) || HanziToPinyin.getInstance()
                 .toPinyinString(it.name)?.contains(search, true) == true
-        }.sortedWith(comparator).also {
-            isRefreshing = false
-        }
+        }.sortedWith(comparator)
     }
 
     var isNeedRefresh by mutableStateOf(false)
@@ -80,60 +80,61 @@ class APModuleViewModel : ViewModel() {
     fun fetchModuleList() {
         viewModelScope.launch(Dispatchers.IO) {
             isRefreshing = true
-
-            val oldModuleList = modules
-
             val start = SystemClock.elapsedRealtime()
+            val oldModules = modules
 
-            kotlin.runCatching {
+            val result = runCatching { listModules() }
+                .onFailure { e ->
+                    Log.e(TAG, "fetchModuleList: ", e)
+                    isRefreshing = false
+                }.getOrNull() ?: return@launch
 
-                val result = listModules()
-
-                Log.i(TAG, "result: $result")
-
+            try {
                 val array = JSONArray(result)
-                modules = (0 until array.length())
-                    .asSequence()
-                    .map { array.getJSONObject(it) }
-                    .map { obj ->
-                        ModuleInfo(
-                            obj.getString("id"),
-
-                            obj.optString("name"),
-                            obj.optString("author", "Unknown"),
-                            obj.optString("version", "Unknown"),
-                            obj.optInt("versionCode", 0),
-                            obj.optString("description"),
-                            obj.getBoolean("enabled"),
-                            obj.getBoolean("update"),
-                            obj.getBoolean("remove"),
-                            obj.optString("updateJson"),
-                            obj.getBooleanCompat("web"),
-                            obj.getBooleanCompat("action"),
-                            obj.getBooleanCompat("metamodule")
-                        )
-                    }.toList()
-                viewModelScope.launch(Dispatchers.IO) {
-                    val updatedModules = modules.map { module ->
-                        if (module.enabled && module.updateJson.isNotEmpty() && !module.update && !module.remove) {
-                            module.copy(updateInfo = runCatching { checkUpdate(module) }.getOrNull())
-                        } else module
-                    }
-                    modules = updatedModules
+                val newModules = List(array.length()) { i ->
+                    val obj = array.getJSONObject(i)
+                    ModuleInfo(
+                        id = obj.getString("id"),
+                        name = obj.optString("name"),
+                        author = obj.optString("author", "Unknown"),
+                        version = obj.optString("version", "Unknown"),
+                        versionCode = obj.optInt("versionCode", 0),
+                        description = obj.optString("description"),
+                        enabled = obj.getBoolean("enabled"),
+                        update = obj.getBoolean("update"),
+                        remove = obj.getBoolean("remove"),
+                        updateJson = obj.optString("updateJson"),
+                        hasWebUi = obj.getBooleanCompat("web"),
+                        hasActionScript = obj.getBooleanCompat("action"),
+                        metamodule = obj.getBooleanCompat("metamodule")
+                    )
                 }
+
+                if (oldModules != newModules) modules = newModules
                 isNeedRefresh = false
-            }.onFailure { e ->
-                Log.e(TAG, "fetchModuleList: ", e)
-                isRefreshing = false
-            }
 
-            // when both old and new is kotlin.collections.EmptyList
-            // moduleList update will don't trigger
-            if (oldModuleList === modules) {
-                isRefreshing = false
-            }
+                val updatedModules = coroutineScope {
+                    newModules.map { module ->
+                        if (module.enabled && module.updateJson.isNotEmpty() && !module.update && !module.remove) {
+                            async(Dispatchers.IO) {
+                                module.copy(updateInfo = runCatching { checkUpdate(module) }.getOrNull())
+                            }
+                        } else null
+                    }.mapIndexed { index, deferred ->
+                        deferred?.await() ?: newModules[index]
+                    }
+                }
 
-            Log.i(TAG, "load cost: ${SystemClock.elapsedRealtime() - start}, modules: $modules")
+                modules = updatedModules
+            } catch (e: Exception) {
+                Log.e(TAG, "parse modules failed", e)
+            } finally {
+                isRefreshing = false
+                Log.i(
+                    TAG,
+                    "load cost: ${SystemClock.elapsedRealtime() - start}, modules: ${modules.size}"
+                )
+            }
         }
     }
 
