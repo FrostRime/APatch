@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{Result, bail};
 use libc::*;
-use log::{debug, warn};
+use log::warn;
 
 use crate::{sc_call, su_profile::SuProfile, supercall_map::*};
 

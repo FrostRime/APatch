@@ -7,10 +7,9 @@ import kotlinx.coroutines.withContext
 import me.bmax.apatch.Natives
 
 object RootExecutor {
-    private val dispatcher = Dispatchers.IO.limitedParallelism(1)
-    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
 
-    suspend fun <T> run(block: suspend () -> T): T {
+    internal suspend inline fun <T> run(crossinline block: suspend () -> T): T {
         return withContext(scope.coroutineContext) {
             Natives.su()
             block()
