@@ -67,7 +67,9 @@ class APModuleViewModel : ViewModel() {
                 true
             ) || HanziToPinyin.getInstance()
                 .toPinyinString(it.name)?.contains(search, true) == true
-        }.sortedWith(comparator)
+        }.sortedWith(comparator).also {
+            isRefreshing = false
+        }
     }
 
     var isNeedRefresh by mutableStateOf(false)

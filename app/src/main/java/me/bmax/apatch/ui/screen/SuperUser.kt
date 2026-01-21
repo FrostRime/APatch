@@ -1,6 +1,7 @@
 package me.bmax.apatch.ui.screen
 
 import android.content.pm.ApplicationInfo
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -9,8 +10,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -48,11 +49,11 @@ import com.composables.icons.tabler.filled.Forbid
 import com.composables.icons.tabler.filled.LayoutGrid
 import com.composables.icons.tabler.filled.User
 import com.composables.icons.tabler.outline.Automation
-import com.composables.icons.tabler.outline.DotsVertical
 import com.composables.icons.tabler.outline.FileSettings
 import com.composables.icons.tabler.outline.Forbid
 import com.composables.icons.tabler.outline.LayoutGrid
 import com.composables.icons.tabler.outline.User
+import com.composables.icons.tabler.outline.UserCode
 import com.composables.icons.tabler.outline.UserX
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -73,7 +74,6 @@ import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.setWhiteListMode
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 
-@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
@@ -121,68 +121,77 @@ fun SuperUserScreen() {
                 onSearchTextChange = { viewModel.search = it },
                 scrollBehavior = scrollBehavior,
                 searchBarPlaceHolderText = stringResource(R.string.search_apps),
-                dropdownContent = {
-                    var showDropdown by remember { mutableStateOf(false) }
+            )
+        },
+        floatingActionButton = run {
+            {
+                var expanded by remember { mutableStateOf(false) }
 
-                    IconButton(
-                        onClick = { showDropdown = true },
+                Column {
+                    FloatingActionButton(
+                        onClick = {
+                            expanded = !expanded
+                        },
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.primary,
                     ) {
                         Icon(
-                            imageVector = Tabler.Outline.DotsVertical,
-                            contentDescription = stringResource(id = R.string.settings)
+                            imageVector = Tabler.Outline.UserCode,
+                            contentDescription = null
                         )
+                    }
 
-                        ProvideMenuShape(MaterialTheme.shapes.medium) {
-                            DropdownMenu(expanded = showDropdown, onDismissRequest = {
-                                resetSUAppsPhase = 0
-                                showDropdown = false
-                            }) {
-                                DropdownMenuItem(text = {
-                                    Text(stringResource(R.string.su_refresh))
-                                }, onClick = {
-                                    scope.launch {
-                                        viewModel.fetchAppList()
-                                    }
-                                    showDropdown = false
-                                })
 
-                                DropdownMenuItem(text = {
-                                    Text(
-                                        if (viewModel.showSystemApps) {
-                                            stringResource(R.string.su_hide_system_apps)
-                                        } else {
-                                            stringResource(R.string.su_show_system_apps)
-                                        }
-                                    )
-                                }, onClick = {
-                                    viewModel.showSystemApps = !viewModel.showSystemApps
-                                    showDropdown = false
-                                })
+                    ProvideMenuShape(MaterialTheme.shapes.medium) {
+                        DropdownMenu(expanded = expanded, onDismissRequest = {
+                            resetSUAppsPhase = 0
+                            expanded = false
+                        }) {
+                            DropdownMenuItem(text = {
+                                Text(stringResource(R.string.su_refresh))
+                            }, onClick = {
+                                scope.launch {
+                                    viewModel.fetchAppList()
+                                }
+                                expanded = false
+                            })
 
-                                DropdownMenuItem(text = {
-                                    Text(
-                                        if (resetSUAppsPhase == 0) {
-                                            stringResource(R.string.system_default)
-                                        } else {
-                                            stringResource(R.string.settings_clear_super_key_dialog)
-                                        }
-                                    )
-                                }, onClick = {
-                                    if (resetSUAppsPhase == 0) {
-                                        resetSUAppsPhase++
+                            DropdownMenuItem(text = {
+                                Text(
+                                    if (viewModel.showSystemApps) {
+                                        stringResource(R.string.su_hide_system_apps)
                                     } else {
-                                        showDropdown = false
-                                        setWhiteListMode(-1)
-                                        whiteListMode = -1
-                                        scope.launch { viewModel.resetAppList() }
-                                        resetSUAppsPhase = 0
+                                        stringResource(R.string.su_show_system_apps)
                                     }
-                                })
-                            }
+                                )
+                            }, onClick = {
+                                viewModel.showSystemApps = !viewModel.showSystemApps
+                                expanded = false
+                            })
+
+                            DropdownMenuItem(text = {
+                                Text(
+                                    if (resetSUAppsPhase == 0) {
+                                        stringResource(R.string.system_default)
+                                    } else {
+                                        stringResource(R.string.settings_clear_super_key_dialog)
+                                    }
+                                )
+                            }, onClick = {
+                                if (resetSUAppsPhase == 0) {
+                                    resetSUAppsPhase++
+                                } else {
+                                    expanded = false
+                                    setWhiteListMode(-1)
+                                    whiteListMode = -1
+                                    scope.launch { viewModel.resetAppList() }
+                                    resetSUAppsPhase = 0
+                                }
+                            })
                         }
                     }
                 }
-            )
+            }
         }
     ) { innerPadding ->
         val filteredList =
