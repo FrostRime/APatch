@@ -1,149 +1,168 @@
-package me.bmax.apatch.util;
+package me.bmax.apatch.util
 
-import android.content.SharedPreferences;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
-import android.util.Base64;
-import android.util.Log;
+import android.content.SharedPreferences
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import android.util.Log
+import androidx.core.content.edit
+import java.nio.charset.StandardCharsets
+import java.security.KeyStore
+import java.security.SecureRandom
+import java.security.spec.AlgorithmParameterSpec
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
-import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.security.spec.AlgorithmParameterSpec;
+object APatchKeyHelper {
+    internal const val SUPER_KEY: String = "super_key"
+    internal const val SUPER_KEY_ENC: String = "super_key_enc"
+    private const val TAG = "APatchSecurityHelper"
+    private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+    private const val SKIP_STORE_SUPER_KEY = "skip_store_super_key"
+    private const val SUPER_KEY_IV = "super_key_iv"
+    private const val KEY_ALIAS = "APatchSecurityKey"
+    private const val ENCRYPT_MODE = "AES/GCM/NoPadding"
+    private var prefs: SharedPreferences? = null
 
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-
-
-public class APatchKeyHelper {
-    protected static final String SUPER_KEY = "super_key";
-    protected static final String SUPER_KEY_ENC = "super_key_enc";
-    private static final String TAG = "APatchSecurityHelper";
-    private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
-    private static final String SKIP_STORE_SUPER_KEY = "skip_store_super_key";
-    private static final String SUPER_KEY_IV = "super_key_iv";
-    private static final String KEY_ALIAS = "APatchSecurityKey";
-    private static final String ENCRYPT_MODE = "AES/GCM/NoPadding";
-    private static SharedPreferences prefs = null;
-
-    static {
+    init {
         try {
-            KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-            keyStore.load(null);
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+            keyStore.load(null)
             if (!keyStore.containsAlias(KEY_ALIAS)) {
-                generateSecretKey();
+                generateSecretKey()
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to checkAndGenerateSecretKey", e);
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to checkAndGenerateSecretKey", e)
         }
     }
 
-    public static void setSharedPreferences(SharedPreferences sp) {
-        prefs = sp;
+    fun setSharedPreferences(sp: SharedPreferences?) {
+        prefs = sp
     }
 
-    private static void generateSecretKey() {
+    private fun generateSecretKey() {
         try {
-            KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-            keyStore.load(null);
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+            keyStore.load(null)
 
             if (!keyStore.containsAlias(KEY_ALIAS)) {
-                KeyGenerator keyGenerator = KeyGenerator.getInstance(
-                        KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE);
+                val keyGenerator = KeyGenerator.getInstance(
+                    KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE
+                )
 
-                AlgorithmParameterSpec spec = new KeyGenParameterSpec.Builder(
-                        KEY_ALIAS,
-                        KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                        .setRandomizedEncryptionRequired(false)
-                        .build();
+                val spec: AlgorithmParameterSpec = KeyGenParameterSpec.Builder(
+                    KEY_ALIAS,
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                )
+                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                    .setRandomizedEncryptionRequired(false)
+                    .build()
 
-                keyGenerator.init(spec);
-                keyGenerator.generateKey();
+                keyGenerator.init(spec)
+                keyGenerator.generateKey()
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to generateSecretKey", e);
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to generateSecretKey", e)
         }
     }
 
-    private static String getRandomIV() {
-        String randIV = prefs.getString(SUPER_KEY_IV, null);
-        if (randIV == null) {
-            SecureRandom secureRandom = new SecureRandom();
-            byte[] generated = secureRandom.generateSeed(12);
-            randIV = Base64.encodeToString(generated, Base64.DEFAULT);
-            prefs.edit().putString(SUPER_KEY_IV, randIV).apply();
+    private val randomIV: String?
+        get() {
+            var randIV =
+                prefs!!.getString(SUPER_KEY_IV, null)
+            if (randIV == null) {
+                val secureRandom = SecureRandom()
+                val generated = secureRandom.generateSeed(12)
+                randIV = Base64.encodeToString(generated, Base64.DEFAULT)
+                prefs!!.edit { putString(SUPER_KEY_IV, randIV) }
+            }
+            return randIV
         }
-        return randIV;
-    }
 
-    private static String encrypt(String orig) {
+    private fun encrypt(orig: String): String? {
         try {
-            KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-            keyStore.load(null);
-            SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_ALIAS, null);
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+            keyStore.load(null)
+            val secretKey = keyStore.getKey(KEY_ALIAS, null) as SecretKey?
 
-            Cipher cipher = Cipher.getInstance(ENCRYPT_MODE);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, Base64.decode(getRandomIV(), Base64.DEFAULT)));
+            val cipher = Cipher.getInstance(ENCRYPT_MODE)
+            cipher.init(
+                Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(
+                    128, Base64.decode(
+                        randomIV, Base64.DEFAULT
+                    )
+                )
+            )
 
-            return Base64.encodeToString(cipher.doFinal(orig.getBytes(StandardCharsets.UTF_8)), Base64.DEFAULT);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to encrypt: ", e);
-            return null;
+            return Base64.encodeToString(
+                cipher.doFinal(orig.toByteArray(StandardCharsets.UTF_8)),
+                Base64.DEFAULT
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to encrypt: ", e)
+            return null
         }
     }
 
-    private static String decrypt(String encryptedData) {
+    private fun decrypt(encryptedData: String?): String? {
         try {
-            KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-            keyStore.load(null);
-            SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_ALIAS, null);
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
+            keyStore.load(null)
+            val secretKey = keyStore.getKey(KEY_ALIAS, null) as SecretKey?
 
-            Cipher cipher = Cipher.getInstance(ENCRYPT_MODE);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, Base64.decode(getRandomIV(), Base64.DEFAULT)));
+            val cipher = Cipher.getInstance(ENCRYPT_MODE)
+            cipher.init(
+                Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(
+                    128, Base64.decode(
+                        randomIV, Base64.DEFAULT
+                    )
+                )
+            )
 
-            return new String(cipher.doFinal(Base64.decode(encryptedData, Base64.DEFAULT)), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to decrypt", e);
-            return null;
+            return String(
+                cipher.doFinal(Base64.decode(encryptedData, Base64.DEFAULT)),
+                StandardCharsets.UTF_8
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to decrypt", e)
+            return null
         }
     }
 
-    public static boolean shouldSkipStoreSuperKey() {
-        return prefs.getInt(SKIP_STORE_SUPER_KEY, 0) != 0;
+    fun shouldSkipStoreSuperKey(): Boolean {
+        return prefs!!.getInt(SKIP_STORE_SUPER_KEY, 0) != 0
     }
 
-    public static void clearConfigKey() {
-        prefs.edit().remove(SUPER_KEY).apply();
-        prefs.edit().remove(SUPER_KEY_ENC).apply();
-        prefs.edit().remove(SUPER_KEY_IV).apply();
+    fun clearConfigKey() {
+        prefs!!.edit { remove(SUPER_KEY) }
+        prefs!!.edit { remove(SUPER_KEY_ENC) }
+        prefs!!.edit { remove(SUPER_KEY_IV) }
     }
 
-    public static void setShouldSkipStoreSuperKey(boolean should) {
-        clearConfigKey();
-        prefs.edit().putInt(SKIP_STORE_SUPER_KEY, should ? 1 : 0).apply();
+    fun setShouldSkipStoreSuperKey(should: Boolean) {
+        clearConfigKey()
+        prefs!!.edit { putInt(SKIP_STORE_SUPER_KEY, if (should) 1 else 0) }
     }
 
-    public static String readSPSuperKey() {
-        String encKey = prefs.getString(SUPER_KEY_ENC, "");
+    fun readSPSuperKey(): String? {
+        val encKey: String = prefs!!.getString(SUPER_KEY_ENC, "")!!
         if (!encKey.isEmpty()) {
-            return decrypt(encKey);
+            return decrypt(encKey)
         }
 
-        @Deprecated()
-        String key = prefs.getString(SUPER_KEY, "");
-        writeSPSuperKey(key);
-        prefs.edit().remove(SUPER_KEY).apply();
-        return key;
+        val key: String = prefs!!.getString(SUPER_KEY, "")!!
+        writeSPSuperKey(key)
+        prefs!!.edit { remove(SUPER_KEY) }
+        return key
     }
 
-    public static void writeSPSuperKey(String key) {
-        if (shouldSkipStoreSuperKey()) return;
-        key = APatchKeyHelper.encrypt(key);
-        prefs.edit().putString(SUPER_KEY_ENC, key).apply();
+    fun writeSPSuperKey(key: String) {
+        var key = key
+        if (shouldSkipStoreSuperKey()) return
+        key = encrypt(key)!!
+        prefs!!.edit { putString(SUPER_KEY_ENC, key) }
     }
-
 }
