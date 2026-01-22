@@ -17,7 +17,6 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.Natives
 import me.bmax.apatch.apApp
-import me.bmax.apatch.util.HanziToPinyin
 import me.bmax.apatch.util.Pkg
 import me.bmax.apatch.util.PkgConfig
 import me.bmax.apatch.util.RootExecutor
@@ -71,8 +70,7 @@ class SuperUserViewModel : ViewModel() {
     val appList by derivedStateOf {
         sortedList.filter {
             it.label.lowercase().contains(search.lowercase()) || it.packageName.lowercase()
-                .contains(search.lowercase()) || HanziToPinyin.getInstance()
-                .toPinyinString(it.label).contains(search.lowercase())
+                .contains(search.lowercase())
         }.filter {
             it.uid == 2000 // Always show shell
                     || showSystemApps || it.packageInfo.applicationInfo!!.flags.and(ApplicationInfo.FLAG_SYSTEM) == 0

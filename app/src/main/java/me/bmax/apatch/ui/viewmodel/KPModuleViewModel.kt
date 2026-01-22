@@ -11,7 +11,6 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.bmax.apatch.Natives
-import me.bmax.apatch.util.HanziToPinyin
 import me.bmax.apatch.util.RootExecutor
 import java.text.Collator
 import java.util.Locale
@@ -38,8 +37,7 @@ class KPModuleViewModel : ViewModel() {
             it.name.contains(search, true) || it.name.contains(
                 search,
                 true
-            ) || HanziToPinyin.getInstance()
-                .toPinyinString(it.name)?.contains(search, true) == true
+            )
         }.sortedWith(comparator)
     }
 
@@ -53,8 +51,7 @@ class KPModuleViewModel : ViewModel() {
             it.name.contains(search, true) || it.name.contains(
                 search,
                 true
-            ) || HanziToPinyin.getInstance()
-                .toPinyinString(it.name)?.contains(search, true) == true
+            )
         }.sortedWith(comparator)
     }
 

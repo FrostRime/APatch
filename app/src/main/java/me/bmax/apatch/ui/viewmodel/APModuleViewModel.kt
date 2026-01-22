@@ -13,7 +13,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import me.bmax.apatch.apApp
-import me.bmax.apatch.util.HanziToPinyin
 import me.bmax.apatch.util.listModules
 import org.json.JSONArray
 import org.json.JSONObject
@@ -65,8 +64,7 @@ class APModuleViewModel : ViewModel() {
             it.id.contains(search, true) || it.name.contains(
                 search,
                 true
-            ) || HanziToPinyin.getInstance()
-                .toPinyinString(it.name)?.contains(search, true) == true
+            )
         }.sortedWith(comparator).also {
             isRefreshing = false
         }
