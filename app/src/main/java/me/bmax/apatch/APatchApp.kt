@@ -39,7 +39,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
     enum class State {
         UNKNOWN_STATE,
 
-        KERNELPATCH_INSTALLED, KERNELPATCH_NEED_UPDATE, KERNELPATCH_NEED_REBOOT,
+        KERNELPATCH_INSTALLED, KERNELPATCH_NEED_UPDATE, KERNELPATCH_NEED_REBOOT, KERNELPATCH_UNINSTALLING,
 
         ANDROIDPATCH_NOT_INSTALLED, ANDROIDPATCH_INSTALLED, ANDROIDPATCH_INSTALLING, ANDROIDPATCH_NEED_UPDATE, ANDROIDPATCH_UNINSTALLING,
     }
@@ -62,11 +62,9 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         const val SU_PATH_FILE = APATCH_FOLDER + "su_path"
         const val AP_INFO_FILE = APATCH_FOLDER + "ap_info"
         const val WHITELIST_FILE = APATCH_FOLDER + "whitelist_config"
-        @Suppress("unused")
         const val SAFEMODE_FILE = "/dev/.safemode"
         private const val NEED_REBOOT_FILE = "/dev/.need_reboot"
         const val GLOBAL_NAMESPACE_FILE = "/data/adb/.global_namespace_enable"
-        @Suppress("unused")
         const val KPMS_DIR = APATCH_FOLDER + "kpms/"
 
         @Deprecated("Use 'apd -V'")
@@ -279,7 +277,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         // TODO: 2. remove all usage of superkey
         sharedPreferences = getSharedPreferences(SP_NAME, MODE_PRIVATE)
         APatchKeyHelper.setSharedPreferences(sharedPreferences)
-        superKey = APatchKeyHelper.readSPSuperKey().toString()
+        superKey = APatchKeyHelper.readSPSuperKey()
 
         okhttpClient =
             OkHttpClient.Builder().cache(Cache(File(cacheDir, "okhttp"), 10 * 1024 * 1024))

@@ -148,11 +148,8 @@ class WebUIActivity : ComponentActivity() {
         val webViewAssetLoader = WebViewAssetLoader.Builder()
             .setDomain("mui.kernelsu.org")
             .addPathHandler(
-                "/", SuFilePathHandler(
-                    webRoot,
-                    { insets },
-                    { enable -> enableInsets(enable) }
-                )
+                "/",
+                SuFilePathHandler(this, webRoot, { insets }, { enable -> enableInsets(enable) })
             )
             .build()
 
