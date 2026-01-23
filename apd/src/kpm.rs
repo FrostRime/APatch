@@ -93,7 +93,7 @@ pub fn load_kpms(key: &CStr, stage: &str) -> Result<()> {
             }
         };
         let ptr = path.as_ptr();
-        if let Err(_) = SUPERCALL.sc_kpm_load(key, ptr, null(), null_mut()) {
+        if SUPERCALL.sc_kpm_load(key, ptr, null(), null_mut()).is_err() {
             warn!("failed to load {}", kpm.file_name);
             continue;
         }
