@@ -5,9 +5,9 @@ import android.content.pm.PackageInfo
 import android.os.Parcelable
 import android.util.Log
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -32,7 +32,7 @@ class SuperUserViewModel : ViewModel() {
         private const val TAG = "SuperUserViewModel"
         private val appsLock = Any()
 
-        var apps by mutableStateOf<List<AppInfo>>(emptyList())
+        var apps = mutableStateListOf<AppInfo>()
     }
 
     @Immutable
@@ -56,28 +56,33 @@ class SuperUserViewModel : ViewModel() {
     var isRefreshing by mutableStateOf(false)
         private set
 
-    private val sortedList by derivedStateOf {
-        val comparator = compareBy<AppInfo> {
-            when {
-                it.config.allow != 0 -> 0
-                it.config.exclude == 1 -> 1
-                else -> 2
-            }
-        }.then(compareBy(Collator.getInstance(Locale.getDefault()), AppInfo::label))
-        apps.sortedWith(comparator)
-    }
-
-    val appList by derivedStateOf {
-        sortedList.filter {
-            it.label.lowercase().contains(search.lowercase()) || it.packageName.lowercase()
-                .contains(search.lowercase())
-        }.filter {
-            it.uid == 2000 // Always show shell
-                    || showSystemApps || it.packageInfo.applicationInfo!!.flags.and(ApplicationInfo.FLAG_SYSTEM) == 0
-        }.sortedByDescending {
-            it.uid == 2000
+    private val sortedApps: List<AppInfo>
+        get() {
+            val comparator = compareBy<AppInfo> {
+                when {
+                    it.config.allow != 0 -> 0
+                    it.config.exclude == 1 -> 1
+                    else -> 2
+                }
+            }.then(compareBy(Collator.getInstance(Locale.getDefault()), AppInfo::label))
+            return apps.sortedWith(comparator)
         }
-    }
+
+    val appList: List<AppInfo>
+        get() {
+            // 只在搜索关键字变化时才进行小写转换
+            val searchQuery = search.lowercase()
+            return sortedApps.filter {
+                it.label.lowercase().contains(searchQuery) || it.packageName.lowercase()
+                    .contains(searchQuery)
+            }.filter {
+                it.uid == 2000 || showSystemApps || it.packageInfo.applicationInfo!!.flags.and(
+                    ApplicationInfo.FLAG_SYSTEM
+                ) == 0
+            }.sortedByDescending {
+                it.uid == 2000
+            }
+        }
 
     suspend fun resetAppList() {
         isRefreshing = true
@@ -152,7 +157,8 @@ class SuperUserViewModel : ViewModel() {
             }
 
             synchronized(appsLock) {
-                apps = newApps
+                apps.clear()
+                apps.addAll(newApps)
             }
         } finally {
             isRefreshing = false

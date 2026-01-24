@@ -22,7 +22,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,19 +111,14 @@ private fun GenericItem(
     expandedContent: @Composable () -> Unit
 ) {
     var showActions by remember { mutableStateOf(false) }
-    var isChecked by remember { mutableStateOf(data.checked) }
     val backgroundColor = if (data.background != Color.Unspecified) {
         data.background
     } else {
         MaterialTheme.colorScheme.surface
     }
-
-    LaunchedEffect(data.checked) {
-        isChecked = data.checked
-    }
     Surface(
         shape = shape,
-        tonalElevation = if (isChecked) 4.dp else 1.dp,
+        tonalElevation = if (data.checked) 4.dp else 1.dp,
         color = backgroundColor
     ) {
         Column(
@@ -166,10 +160,9 @@ private fun GenericItem(
                     if (data.onCheckChange != null) {
                         Column(verticalArrangement = Arrangement.Center) {
                             Checkbox(
-                                checked = isChecked,
+                                checked = data.checked,
                                 onCheckedChange = {
-                                    isChecked = it
-                                    data.onCheckChange.invoke(isChecked)
+                                    data.onCheckChange.invoke(!data.checked)
                                 }
                             )
                         }

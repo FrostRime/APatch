@@ -2,13 +2,13 @@ package me.bmax.apatch.ui
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -101,10 +101,14 @@ class WebUIActivity : ComponentActivity() {
                                 data.clipData!!.getItemAt(i).uri // Multiple files
                             }
                         }
-                        data.data != null -> { arrayOf(data.data!!) } // Single file
+
+                        data.data != null -> {
+                            arrayOf(data.data!!)
+                        } // Single file
                         else -> null
                     }
                 }
+
                 else -> null
             }
             filePathCallback?.onReceiveValue(uris)
@@ -224,7 +228,8 @@ class WebUIActivity : ComponentActivity() {
                 ): Boolean {
                     this@WebUIActivity.filePathCallback?.onReceiveValue(null)
                     this@WebUIActivity.filePathCallback = filePathCallback
-                    val intent = fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
+                    val intent = fileChooserParams?.createIntent()
+                        ?: Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
                     if (fileChooserParams?.mode == FileChooserParams.MODE_OPEN_MULTIPLE) {
                         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                     }

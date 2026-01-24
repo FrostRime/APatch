@@ -86,6 +86,7 @@ fun SuperUserScreen() {
     val reboot = stringResource(id = R.string.reboot)
     val rebootToApply = stringResource(id = R.string.apm_reboot_to_apply)
     val whiteListModes = listOf(-1, 0, 1, 2)
+    val context = LocalContext.current
     var showEditWhiteListMode by remember { mutableStateOf(false) }
     var whiteListMode by remember { mutableIntStateOf(-1) }
     var resetSUAppsPhase by remember { mutableIntStateOf(0) }
@@ -258,16 +259,20 @@ fun SuperUserScreen() {
                         title = { Text(app.label) },
                         subtitle = app.packageName,
                         headerIcon = {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
+                            val imageRequest = remember(app.packageName) {
+                                ImageRequest.Builder(context)
                                     .data(app.packageInfo)
                                     .memoryCacheKey(app.packageName)
                                     .crossfade(true)
-                                    .build(),
+                                    .build()
+                            }
+
+                            AsyncImage(
+                                model = imageRequest,
                                 contentDescription = app.label,
                                 modifier = Modifier
                                     .padding(4.dp)
-                                    .size(48.dp)
+                                    .size(48.dp),
                             )
                         },
                         label = {
