@@ -43,7 +43,8 @@ data class ListItemData(
     val trailingContent: @Composable (() -> Unit)? = null,
     val actions: @Composable () -> Unit,
     val checked: Boolean,
-    val onCheckChange: ((Boolean) -> Unit)? = null
+    val onCheckChange: ((Boolean) -> Unit)? = null,
+    val showCheckBox: Boolean = false
 )
 
 val bottomShape = ExtraSmall.copy(
@@ -157,12 +158,13 @@ private fun GenericItem(
                     }
                 },
                 trailingContent = {
-                    if (data.onCheckChange != null) {
+                    if (data.showCheckBox) {
                         Column(verticalArrangement = Arrangement.Center) {
                             Checkbox(
                                 checked = data.checked,
+                                enabled = data.onCheckChange != null,
                                 onCheckedChange = {
-                                    data.onCheckChange.invoke(!data.checked)
+                                    data.onCheckChange?.invoke(!data.checked)
                                 }
                             )
                         }

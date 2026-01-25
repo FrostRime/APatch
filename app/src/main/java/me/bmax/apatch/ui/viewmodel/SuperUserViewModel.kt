@@ -160,6 +160,7 @@ class SuperUserViewModel : ViewModel() {
                 apps.clear()
                 apps.addAll(newApps)
             }
+        } catch (_: Exception) {
         } finally {
             isRefreshing = false
         }

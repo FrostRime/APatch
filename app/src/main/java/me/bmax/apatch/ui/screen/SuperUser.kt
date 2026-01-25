@@ -57,6 +57,7 @@ import com.composables.icons.tabler.outline.UserCode
 import com.composables.icons.tabler.outline.UserX
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
@@ -258,12 +259,17 @@ fun SuperUserScreen() {
                     ListItemData(
                         title = { Text(app.label) },
                         subtitle = app.packageName,
+                        showCheckBox = true,
                         headerIcon = {
-                            val imageRequest = remember(app.packageName) {
+                            val imageRequest = remember(app.packageName, app.packageInfo.lastUpdateTime) {
                                 ImageRequest.Builder(context)
                                     .data(app.packageInfo)
-                                    .memoryCacheKey(app.packageName)
+                                    .memoryCacheKey("${app.packageName}-${app.packageInfo.lastUpdateTime}")
                                     .crossfade(true)
+                                    .decoderDispatcher(Dispatchers.IO)
+                                    .fetcherDispatcher(Dispatchers.IO)
+                                    .interceptorDispatcher(Dispatchers.IO)
+                                    .transformationDispatcher(Dispatchers.IO)
                                     .build()
                             }
 

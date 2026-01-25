@@ -331,32 +331,35 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                             title = {
                                 ModuleTitleWithMeta(module)
                             },
+                            showCheckBox = true,
                             subtitle = "${module.version}, $authorString ${module.author}",
                             description = module.description,
-                            onCheckChange = {
-                                scope.launch {
-                                    val success = loadingDialog.withLoading {
-                                        withContext(Dispatchers.IO) {
-                                            toggleModule(module.id, it)
+                            onCheckChange = if (!module.remove && !module.update) {
+                                {
+                                    scope.launch {
+                                        val success = loadingDialog.withLoading {
+                                            withContext(Dispatchers.IO) {
+                                                toggleModule(module.id, it)
+                                            }
                                         }
-                                    }
-                                    if (success) {
-                                        viewModel.fetchModuleList()
+                                        if (success) {
+                                            viewModel.fetchModuleList()
 
-                                        val result = snackBarHost.showSnackbar(
-                                            message = rebootToApply,
-                                            actionLabel = reboot,
-                                            duration = SnackbarDuration.Long
-                                        )
-                                        if (result == SnackbarResult.ActionPerformed) {
-                                            reboot()
+                                            val result = snackBarHost.showSnackbar(
+                                                message = rebootToApply,
+                                                actionLabel = reboot,
+                                                duration = SnackbarDuration.Long
+                                            )
+                                            if (result == SnackbarResult.ActionPerformed) {
+                                                reboot()
+                                            }
+                                        } else {
+                                            val message = if (!it) failedDisable else failedEnable
+                                            snackBarHost.showSnackbar(message.format(module.name))
                                         }
-                                    } else {
-                                        val message = if (!it) failedDisable else failedEnable
-                                        snackBarHost.showSnackbar(message.format(module.name))
                                     }
                                 }
-                            },
+                            } else null,
                             checked = module.enabled,
                             actions = {
                                 ModuleActionButtons(

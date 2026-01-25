@@ -288,13 +288,3 @@ dependencies {
 
     compileOnly(libs.cxx)
 }
-
-cmaker {
-    default {
-        arguments += "-DANDROID_STL=none"
-        arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
-        abiFilters("arm64-v8a")
-        cppFlags += "-std=c++2b"
-        cFlags += "-std=c2x"
-    }
-}

@@ -309,6 +309,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                         },
                         subtitle = "${module.version}, $moduleAuthor ${module.author}",
                         description = module.description,
+                        showCheckBox = module.isInstalled,
                         onCheckChange = if (module.isInstalled) {
                             { checked ->
                                 scope.launch {
