@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui.screen
 
+//import androidx.compose.material3.OutlinedTextField
 import android.os.Build
 import android.system.Os
 import android.widget.Toast
@@ -236,7 +237,6 @@ fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableSta
         properties =
             DialogProperties(
                 decorFitsSystemWindows = true,
-                usePlatformDefaultWidth = false,
                 securePolicy = SecureFlagPolicy.SecureOff
             )
     ) {
@@ -291,7 +291,8 @@ fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableSta
                         visualTransformation =
                             if (keyVisible) VisualTransformation.None
                             else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true
                     )
                     IconButton(
                         modifier = Modifier
@@ -347,8 +348,7 @@ fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
     var suPath by remember { mutableStateOf(Natives.suPath()) }
     BasicAlertDialog(
         onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
-            decorFitsSystemWindows = true,
-            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = true
         )
     ) {
         Surface(
@@ -370,22 +370,17 @@ fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
                         style = MaterialTheme.typography.headlineSmall
                     )
                 }
-                Box(
-                    Modifier
-                        .weight(weight = 1f, fill = false)
-                        .padding(bottom = 12.dp)
-                        .align(Alignment.Start)
-                ) {
-                    OutlinedTextField(
-                        value = suPath,
-                        onValueChange = {
-                            suPath = it
-                        },
-                        shape = MaterialTheme.shapes.large,
-                        label = { Text(stringResource(id = R.string.setting_reset_su_new_path)) },
-                        visualTransformation = VisualTransformation.None,
-                    )
-                }
+
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = suPath,
+                    onValueChange = {
+                        suPath = it
+                    },
+                    shape = MaterialTheme.shapes.large,
+                    label = { Text(stringResource(id = R.string.setting_reset_su_new_path)) },
+                    singleLine = true
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End

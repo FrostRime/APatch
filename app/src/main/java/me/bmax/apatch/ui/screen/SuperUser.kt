@@ -261,17 +261,18 @@ fun SuperUserScreen() {
                         subtitle = app.packageName,
                         showCheckBox = true,
                         headerIcon = {
-                            val imageRequest = remember(app.packageName, app.packageInfo.lastUpdateTime) {
-                                ImageRequest.Builder(context)
-                                    .data(app.packageInfo)
-                                    .memoryCacheKey("${app.packageName}-${app.packageInfo.lastUpdateTime}")
-                                    .crossfade(true)
-                                    .decoderDispatcher(Dispatchers.IO)
-                                    .fetcherDispatcher(Dispatchers.IO)
-                                    .interceptorDispatcher(Dispatchers.IO)
-                                    .transformationDispatcher(Dispatchers.IO)
-                                    .build()
-                            }
+                            val imageRequest =
+                                remember(app.packageName, app.packageInfo.lastUpdateTime) {
+                                    ImageRequest.Builder(context)
+                                        .data(app.packageInfo)
+                                        .memoryCacheKey("${app.packageName}-${app.packageInfo.lastUpdateTime}")
+                                        .crossfade(true)
+                                        .decoderDispatcher(Dispatchers.IO)
+                                        .fetcherDispatcher(Dispatchers.IO)
+                                        .interceptorDispatcher(Dispatchers.IO)
+                                        .transformationDispatcher(Dispatchers.IO)
+                                        .build()
+                                }
 
                             AsyncImage(
                                 model = imageRequest,
