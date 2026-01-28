@@ -85,7 +85,7 @@ pub fn load_kpms(key: &CStr, stage: &str) -> Result<()> {
 
     for kpm in list {
         let path = Path::new(&KPMS_DIR).join(&kpm.file_name);
-        let path = match CString::new(path.to_string_lossy().as_ref()) {
+        let path = match CString::new(path.to_string_lossy().to_string()) {
             Ok(path) => path,
             Err(_) => {
                 warn!("failed to load {}", kpm.file_name);

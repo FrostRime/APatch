@@ -1,20 +1,25 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.tasks.PackageAndroidArtifact
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
 
 plugins {
     alias(libs.plugins.agp.app)
-    alias(libs.plugins.kotlin)
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.lsplugin.apksign)
     alias(libs.plugins.lsplugin.resopt)
-    alias(libs.plugins.lsplugin.cmaker)
     id("kotlin-parcelize")
+    alias(libs.plugins.kotlin)
 }
 
+val androidCompileSdkVersion: Int by rootProject.extra
+val androidCompileNdkVersion: String by rootProject.extra
+val androidBuildToolsVersion: String by rootProject.extra
+val androidMinSdkVersion: Int by rootProject.extra
+val androidTargetSdkVersion: Int by rootProject.extra
+val androidSourceCompatibility: JavaVersion by rootProject.extra
+val androidTargetCompatibility: JavaVersion by rootProject.extra
 val managerVersionCode: Int by rootProject.extra
 val managerVersionName: String by rootProject.extra
 val branchName: String by rootProject.extra
@@ -65,9 +70,6 @@ android {
 
     dependenciesInfo.includeInApk = false
 
-    // https://stackoverflow.com/a/77745844
-    tasks.withType<PackageAndroidArtifact> { doFirst { appMetadata.asFile.orNull?.writeText("") } }
-
     buildFeatures {
         aidl = true
         buildConfig = true
@@ -76,6 +78,10 @@ android {
     }
 
     defaultConfig {
+        minSdk = androidMinSdkVersion
+        targetSdk = androidTargetSdkVersion
+        versionCode = managerVersionCode
+        versionName = managerVersionName
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
         applicationId = "com.frost.rime"
 
@@ -97,19 +103,36 @@ android {
 
     androidResources { generateLocaleConfig = true }
 
-    sourceSets["main"].jniLibs.srcDir("libs")
+    androidResources {
+        generateLocaleConfig = true
+    }
 
-    applicationVariants.all {
-        kotlin.sourceSets { getByName(name) { kotlin.srcDir("build/generated/ksp/$name/kotlin") } }
+    compileSdk = androidCompileSdkVersion
+    ndkVersion = androidCompileNdkVersion
+    buildToolsVersion = androidBuildToolsVersion
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+
+    android.sourceSets.named("main") {
+        kotlin.directories += "build/generated/ksp/$name/kotlin"
+        jniLibs.directories += "libs"
+    }
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        }
     }
 }
 
-java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
-
-kotlin {
-    jvmToolchain(21)
-    compilerOptions { jvmTarget = JvmTarget.JVM_21 }
+// https://stackoverflow.com/a/77745844
+tasks.withType<PackageAndroidArtifact> {
+    doFirst { appMetadata.asFile.orNull?.writeText("") }
 }
+
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 
 fun registerDownloadTask(taskName: String, srcUrl: String, destPath: String, project: Project) {
     project.tasks.register(taskName) {
@@ -251,6 +274,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.androidx.core.ktx)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
