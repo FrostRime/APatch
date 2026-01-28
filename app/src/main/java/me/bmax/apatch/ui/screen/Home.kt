@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -669,11 +670,13 @@ private fun KStatusCard(
                     Column(Modifier.padding(12.dp)) {
                         Text(
                             text = stringResource(R.string.home_su_path),
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium
                         )
                         Text(
                             text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
-                            style = MaterialTheme.typography.titleSmall
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.weight(1f))
                     }
@@ -700,11 +703,13 @@ private fun KStatusCard(
                     ) {
                         Text(
                             text = stringResource(R.string.home_apatch_version),
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium
                         )
                         Text(
                             text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
-                            style = MaterialTheme.typography.titleSmall
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
                         Spacer(Modifier.weight(1f))
                     }
@@ -955,8 +960,17 @@ private fun InfoCard() {
             @Composable
             fun InfoCardItem(label: String, content: String) {
                 contents.appendLine(label).appendLine(content).appendLine()
-                Text(text = label, style = MaterialTheme.typography.bodyLarge)
-                Text(text = content, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = label, style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
             }
 
             InfoCardItem(stringResource(R.string.home_device_info), getDeviceInfo())

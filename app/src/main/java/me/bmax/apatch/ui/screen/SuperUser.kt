@@ -1,12 +1,15 @@
 package me.bmax.apatch.ui.screen
 
 import android.content.pm.ApplicationInfo
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +25,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -203,8 +208,29 @@ fun SuperUserScreen() {
             if (kPatchReady && aPatchReady) {
                 list.add(
                     ListItemData(
-//                        background = Color.Transparent,
-                        title = { Text(stringResource(R.string.su_pkg_excluded_setting_title)) },
+                        title = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(stringResource(R.string.su_pkg_excluded_setting_title))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.tertiary
+                                ) {
+                                    Text(
+                                        text = "AUTO",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 8.sp
+                                        ),
+                                        modifier = Modifier.padding(
+                                            horizontal = 4.dp,
+                                            vertical = 0.5.dp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onTertiary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        },
                         headerIcon = {
                             Icon(Tabler.Outline.Automation, null)
                         },

@@ -168,16 +168,30 @@ class MainActivity : AppCompatActivity() {
                         LocalSnackbarHost provides snackBarHostState,
                     ) {
                         if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                            Row(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .windowInsetsPadding(
+                                        WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)
+                                    )
+                            ) {
                                 SideBar(
                                     navController = navController,
-                                    modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
+                                    modifier = Modifier.windowInsetsPadding(
+                                        WindowInsets.systemBars.only(
+                                            WindowInsetsSides.Top
+                                        )
+                                    ),
                                     visibleDestinations = visibleDestinations
                                 )
                                 DestinationsNavHost(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                                        .consumeWindowInsets(
+                                            WindowInsets.safeDrawing.only(
+                                                WindowInsetsSides.Start
+                                            )
+                                        ),
                                     navGraph = NavGraphs.root,
                                     navController = navController,
                                     engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
@@ -186,7 +200,9 @@ class MainActivity : AppCompatActivity() {
                             }
                         } else {
                             DestinationsNavHost(
-                                modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+                                modifier = Modifier
+                                    .padding(innerPadding)
+                                    .consumeWindowInsets(innerPadding),
                                 navGraph = NavGraphs.root,
                                 navController = navController,
                                 engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
@@ -214,7 +230,10 @@ class MainActivity : AppCompatActivity() {
 }
 
 @Composable
-private fun BottomBar(navController: NavHostController, visibleDestinations: Set<BottomBarDestination>) {
+private fun BottomBar(
+    navController: NavHostController,
+    visibleDestinations: Set<BottomBarDestination>
+) {
     val navigator = navController.rememberDestinationsNavigator()
 
     Crossfade(
@@ -262,7 +281,11 @@ private fun BottomBar(navController: NavHostController, visibleDestinations: Set
 }
 
 @Composable
-private fun SideBar(navController: NavHostController, modifier: Modifier = Modifier, visibleDestinations: Set<BottomBarDestination>) {
+private fun SideBar(
+    navController: NavHostController,
+    modifier: Modifier = Modifier,
+    visibleDestinations: Set<BottomBarDestination>
+) {
     val navigator = navController.rememberDestinationsNavigator()
 
     Crossfade(
@@ -278,7 +301,9 @@ private fun SideBar(navController: NavHostController, modifier: Modifier = Modif
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
             ) {
                 visibleDestinations.forEach { destination ->
-                    val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(destination.direction)
+                    val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(
+                        destination.direction
+                    )
                     NavigationRailItem(
                         selected = isCurrentDestOnBackStack,
                         onClick = {
