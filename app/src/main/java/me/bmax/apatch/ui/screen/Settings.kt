@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -277,7 +278,7 @@ fun SettingScreen() {
             }
 
             // Custom Night Theme Switch
-            if (!nightFollowSystem) {
+            AnimatedVisibility(visible = !nightFollowSystem) {
                 var nightThemeEnabled by rememberSaveable {
                     mutableStateOf(
                         prefs.getBoolean("night_mode_enabled", false)
@@ -313,7 +314,7 @@ fun SettingScreen() {
                     refreshTheme.value = true
                 }
 
-                if (!useSystemDynamicColor) {
+                AnimatedVisibility(visible = !useSystemDynamicColor) {
                     ListItem(headlineContent = {
                         Text(text = stringResource(id = R.string.settings_custom_color_theme))
                     }, modifier = Modifier.clickable {
@@ -326,7 +327,6 @@ fun SettingScreen() {
                             color = MaterialTheme.colorScheme.outline
                         )
                     }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
-
                 }
             } else {
                 ListItem(headlineContent = {

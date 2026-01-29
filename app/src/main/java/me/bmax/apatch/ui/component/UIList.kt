@@ -4,9 +4,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -20,6 +27,7 @@ import androidx.compose.material3.ShapeDefaults.ExtraLarge
 import androidx.compose.material3.ShapeDefaults.ExtraSmall
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 data class ListItemData(
@@ -143,16 +152,33 @@ private fun GenericItem(
                     ) {
                         if (data.subtitle != null) {
                             Text(
+                                modifier = Modifier.padding(start = 4.dp),
                                 text = data.subtitle,
+                                fontWeight = FontWeight.Medium,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
                         if (data.description != null) {
-                            Text(
-                                text = data.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 4.dp)
+                                    .height(IntrinsicSize.Min)
+                            ) {
+                                VerticalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                    thickness = 2.dp,
+                                    modifier = Modifier.fillMaxHeight()
+                                )
+
+                                Spacer(Modifier.width(4.dp))
+
+                                Text(
+                                    text = data.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
                         }
                         data.label?.invoke()
                     }

@@ -56,6 +56,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -470,6 +471,7 @@ private fun ModuleTitleWithMeta(module: APModuleViewModel.ModuleInfo) {
                         text = "META",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onTertiary
                     )
                 }
@@ -484,6 +486,7 @@ private fun ModuleTitleWithMeta(module: APModuleViewModel.ModuleInfo) {
                 maxLines = 2,
                 textDecoration = decoration,
                 fontStyle = fontStyle,
+                fontWeight = FontWeight.SemiBold,
                 overflow = TextOverflow.Ellipsis,
                 onTextLayout = { nameTextLayout = it }
             )

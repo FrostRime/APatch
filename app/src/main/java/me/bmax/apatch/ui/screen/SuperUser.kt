@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -210,7 +211,10 @@ fun SuperUserScreen() {
                     ListItemData(
                         title = {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(stringResource(R.string.su_pkg_excluded_setting_title))
+                                Text(
+                                    stringResource(R.string.su_pkg_excluded_setting_title),
+                                    fontWeight = FontWeight.SemiBold
+                                )
                                 Surface(
                                     shape = RoundedCornerShape(4.dp),
                                     color = MaterialTheme.colorScheme.tertiary
@@ -225,6 +229,7 @@ fun SuperUserScreen() {
                                             vertical = 0.5.dp
                                         ),
                                         color = MaterialTheme.colorScheme.onTertiary,
+                                        fontWeight = FontWeight.SemiBold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -283,7 +288,12 @@ fun SuperUserScreen() {
             list.addAll(
                 filteredList.map { app ->
                     ListItemData(
-                        title = { Text(app.label) },
+                        title = {
+                            Text(
+                                app.label,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        },
                         subtitle = app.packageName,
                         showCheckBox = true,
                         headerIcon = {

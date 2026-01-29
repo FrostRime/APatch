@@ -136,7 +136,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                     .padding(innerPadding)
                     .padding(horizontal = 12.dp)
                     .padding(bottom = 12.dp)
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .clip(Large),
         ) {
             item {
@@ -436,6 +436,7 @@ private fun TopBar(
                             vertical = 0.5.dp
                         ),
                         color = MaterialTheme.colorScheme.onTertiary,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -597,7 +598,8 @@ private fun KStatusCard(
                             APApplication.State.KERNELPATCH_INSTALLED -> {
                                 Text(
                                     text = stringResource(R.string.home_working),
-                                    style = MaterialTheme.typography.titleMedium
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
 
@@ -605,7 +607,8 @@ private fun KStatusCard(
                             APApplication.State.KERNELPATCH_NEED_REBOOT -> {
                                 Text(
                                     text = stringResource(R.string.home_need_update),
-                                    style = MaterialTheme.typography.titleMedium
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Text(
@@ -615,7 +618,8 @@ private fun KStatusCard(
                                             Version.installedKPVString(),
                                             Version.buildKPVString()
                                         ),
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
 
@@ -623,11 +627,13 @@ private fun KStatusCard(
                                 Text(
                                     text = stringResource(R.string.home_install_unknown),
                                     style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium,
                                     color = contentColorFor(cardBackgroundColor)
                                 )
                                 Text(
                                     text = stringResource(R.string.home_install_unknown_summary),
                                     style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
                                     color = contentColorFor(cardBackgroundColor)
                                 )
                             }
@@ -646,7 +652,8 @@ private fun KStatusCard(
                                             )
                                                 "[FULL]"
                                             else "[HALF]",
-                                style = MaterialTheme.typography.titleSmall
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
@@ -709,7 +716,7 @@ private fun KStatusCard(
                         Text(
                             text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.weight(1f))
                     }

@@ -18,7 +18,14 @@
       system:
       let
         naersk-lib = pkgs.callPackage naersk { };
-        pkgs = nixpkgs.legacyPackages.${system}.extend rust.overlays.default;
+        pkgs = import nixpkgs {
+          inherit system;
+          config = {
+            allowUnfree = true;
+            android_sdk.accept_license = true;
+          };
+          overlays = [ rust.overlays.default ];
+        };
       in
       {
         defaultPackage = naersk-lib.buildPackage ./.;
@@ -43,6 +50,8 @@
               pre-commit
               rustPackages.clippy
               rust-analyzer
+              android-studio
+              android-tools
             ];
             shellHook = ''
               unset CFLAGS

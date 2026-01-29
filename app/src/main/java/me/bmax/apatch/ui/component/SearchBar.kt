@@ -223,7 +223,7 @@ fun SearchAppBar(
                     AnimatedContent(
                         targetState = isExpanded,
                         transitionSpec = {
-                            (fadeIn() + slideInHorizontally { -it })
+                            (fadeIn() + slideInHorizontally())
                                 .togetherWith(fadeOut() + slideOutHorizontally())
                         },
                         label = "searchBarTextAnimation"
