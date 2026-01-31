@@ -147,8 +147,13 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
         }
 
         val success = loadingDialog.withLoading {
-            withContext(Dispatchers.IO) {
-                Natives.unloadKernelPatchModule(module.name) == 0L
+            RootExecutor.run {
+                try {
+                    Natives.unloadKernelPatchModule(module.name)
+                    true
+                } catch (_: Exception) {
+                    false
+                }
             }
         }
 
@@ -318,7 +323,12 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
                                     val success = RootExecutor.run {
                                         Natives.changeInstalledKpmModuleState(module.name, checked)
                                         if (!checked) {
-                                            Natives.unloadKernelPatchModule(module.name) == 0L
+                                            try {
+                                                Natives.unloadKernelPatchModule(module.name)
+                                                true
+                                            } catch (_: Exception) {
+                                                false
+                                            }
                                         } else {
                                             true
                                         }

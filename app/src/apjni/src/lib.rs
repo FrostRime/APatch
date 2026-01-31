@@ -9,7 +9,7 @@ use libc::{c_char, c_long, uid_t};
 use log::{debug, warn};
 use std::ffi::{CStr, CString, c_void};
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader, BufWriter, Error, Write};
 use std::path::Path;
 use std::ptr::null_mut;
 use std::sync::OnceLock;
@@ -245,7 +245,11 @@ fn native_unload_kernel_patch_module<'a>(
         ensure_super_key(&key)?;
         let key = jstr_to_cstr(env, &key)?;
         let module_name = jstr_to_cstr(env, &module_name_jstr)?;
-        get_sc()?.sc_kpm_unload(&key, module_name.as_ptr(), null_mut())
+        let res = get_sc()?.sc_kpm_unload(&key, module_name.as_ptr(), null_mut())?;
+        if res != 0 {
+            return Err(Error::from_raw_os_error(res as i32).into());
+        }
+        Ok(res as jlong)
     })
 }
 
