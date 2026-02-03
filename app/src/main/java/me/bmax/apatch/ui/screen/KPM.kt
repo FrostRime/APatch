@@ -7,6 +7,10 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -47,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,8 +64,6 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.outline.PackageImport
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -97,9 +101,8 @@ private const val TAG = "KernelPatchModule"
 private lateinit var targetKPMToControl: KPModel.KPMInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
-fun KPModuleScreen(navigator: DestinationsNavigator) {
+fun KPModuleScreen(navigator: DestinationsNavigator, isBottomBarVisible: Boolean) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     if (state == APApplication.State.UNKNOWN_STATE) {
         Column(
@@ -250,50 +253,67 @@ fun KPModuleScreen(navigator: DestinationsNavigator) {
             var expanded by remember { mutableStateOf(false) }
             val options = listOf(moduleEmbed, moduleInstall, moduleLoad)
 
-            Column {
-                FloatingActionButton(
-                    onClick = {
-                        expanded = !expanded
-                    },
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.primary,
+            AnimatedVisibility(
+                isBottomBarVisible,
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                Column(
+                    Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(vertical = 56.dp * 2)
                 ) {
-                    Icon(
-                        imageVector = Tabler.Outline.PackageImport,
-                        contentDescription = null
-                    )
-                }
-
-                ProvideMenuShape(MaterialTheme.shapes.medium) {
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        properties = PopupProperties(focusable = true)
+                    FloatingActionButton(
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                CircleShape
+                            )
+                            .alpha(0.8f),
+                        onClick = {
+                            expanded = !expanded
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary,
                     ) {
-                        options.forEach { label ->
-                            DropdownMenuItem(text = { Text(label) }, onClick = {
-                                expanded = false
-                                when (label) {
-                                    moduleEmbed -> {
-                                        navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_AND_INSTALL))
-                                    }
+                        Icon(
+                            imageVector = Tabler.Outline.PackageImport,
+                            contentDescription = null
+                        )
+                    }
 
-                                    moduleInstall -> {
+                    ProvideMenuShape(MaterialTheme.shapes.medium) {
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            properties = PopupProperties(focusable = true)
+                        ) {
+                            options.forEach { label ->
+                                DropdownMenuItem(text = { Text(label) }, onClick = {
+                                    expanded = false
+                                    when (label) {
+                                        moduleEmbed -> {
+                                            navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_AND_INSTALL))
+                                        }
+
+                                        moduleInstall -> {
 //                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
 //                                        intent.type = "application/zip"
 //                                        selectZipLauncher.launch(intent)
-                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
-                                        intent.type = "*/*"
-                                        selectKpmInstallLauncher.launch(intent)
-                                    }
+                                            val intent = Intent(Intent.ACTION_GET_CONTENT)
+                                            intent.type = "*/*"
+                                            selectKpmInstallLauncher.launch(intent)
+                                        }
 
-                                    moduleLoad -> {
-                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
-                                        intent.type = "*/*"
-                                        selectKpmLauncher.launch(intent)
+                                        moduleLoad -> {
+                                            val intent = Intent(Intent.ACTION_GET_CONTENT)
+                                            intent.type = "*/*"
+                                            selectKpmLauncher.launch(intent)
+                                        }
                                     }
-                                }
-                            })
+                                })
+                            }
                         }
                     }
                 }

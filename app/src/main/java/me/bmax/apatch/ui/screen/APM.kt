@@ -13,6 +13,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -33,7 +35,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ShapeDefaults.Large
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarResult
@@ -50,7 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -68,8 +69,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.PlayerPlay
 import com.composables.icons.tabler.outline.PackageImport
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ExecuteAPMActionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -103,9 +102,8 @@ import me.bmax.apatch.util.uninstallModule
 import okhttp3.Request
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
-fun APModuleScreen(navigator: DestinationsNavigator) {
+fun APModuleScreen(navigator: DestinationsNavigator, isBottomBarVisible: Boolean) {
     val snackBarHost = LocalSnackbarHost.current
     val context = LocalContext.current
 
@@ -290,18 +288,33 @@ fun APModuleScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            FloatingActionButton(
-                modifier = Modifier.clip(Large),
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                containerColor = MaterialTheme.colorScheme.primary,
-                onClick = {
-                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                        type = "application/zip"
-                    }
-                    selectZipLauncher.launch(intent)
-                }
+            AnimatedVisibility(
+                isBottomBarVisible,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(vertical = 56.dp * 2)
             ) {
-                Icon(imageVector = Tabler.Outline.PackageImport, contentDescription = null)
+                FloatingActionButton(
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                            CircleShape
+                        )
+                        .alpha(0.8f),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                            type = "application/zip"
+                        }
+                        selectZipLauncher.launch(intent)
+                    }
+                ) {
+                    Icon(imageVector = Tabler.Outline.PackageImport, contentDescription = null)
+                }
             }
         }, snackbarHost = { SnackbarHost(snackBarHost) }) { innerPadding ->
         when {

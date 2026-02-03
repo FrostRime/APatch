@@ -69,8 +69,6 @@ import com.composables.icons.tabler.outline.DeviceFloppy
 import com.composables.icons.tabler.outline.Language
 import com.composables.icons.tabler.outline.ReportAnalytics
 import com.composables.icons.tabler.outline.Share
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -93,7 +91,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @SuppressLint("LocalContextGetResourceValueCall")
-@Destination<RootGraph>
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun SettingScreen() {

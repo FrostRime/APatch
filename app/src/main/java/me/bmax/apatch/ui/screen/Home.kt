@@ -88,8 +88,6 @@ import com.composables.icons.tabler.outline.HelpCircle
 import com.composables.icons.tabler.outline.Refresh
 import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -112,7 +110,6 @@ import me.bmax.apatch.util.rootShellForResult
 
 private val managerVersion = getManagerVersion()
 
-@Destination<RootGraph>(start = true)
 @Composable
 fun HomeScreen(navigator: DestinationsNavigator) {
     val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
@@ -671,9 +668,12 @@ private fun KStatusCard(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .clickable {
-                            showResetSuPathDialog.value = true
-                        }) {
+                        .clickable(
+                            enabled = !suPatchUnknown,
+                            onClick = {
+                                showResetSuPathDialog.value = true
+                            })
+                ) {
                     Column(Modifier.padding(12.dp)) {
                         Text(
                             text = stringResource(R.string.home_su_path),

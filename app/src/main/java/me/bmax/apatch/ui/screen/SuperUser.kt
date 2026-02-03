@@ -1,6 +1,10 @@
 package me.bmax.apatch.ui.screen
 
 import android.content.pm.ApplicationInfo
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -38,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -61,8 +67,6 @@ import com.composables.icons.tabler.outline.LayoutGrid
 import com.composables.icons.tabler.outline.User
 import com.composables.icons.tabler.outline.UserCode
 import com.composables.icons.tabler.outline.UserX
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.bmax.apatch.APApplication
@@ -82,9 +86,8 @@ import me.bmax.apatch.util.setWhiteListMode
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
-fun SuperUserScreen() {
+fun SuperUserScreen(isBottomBarVisible: Boolean) {
     val viewModel = viewModel<SuperUserViewModel>()
     val scrollBehavior = pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
@@ -134,68 +137,84 @@ fun SuperUserScreen() {
         floatingActionButton = run {
             {
                 var expanded by remember { mutableStateOf(false) }
-
-                Column {
-                    FloatingActionButton(
-                        onClick = {
-                            expanded = !expanded
-                        },
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        containerColor = MaterialTheme.colorScheme.primary,
+                AnimatedVisibility(
+                    isBottomBarVisible,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                ) {
+                    Column(
+                        Modifier
+                            .padding(horizontal = 16.dp)
+                            .padding(vertical = 56.dp * 2)
                     ) {
-                        Icon(
-                            imageVector = Tabler.Outline.UserCode,
-                            contentDescription = null
-                        )
-                    }
-
-
-                    ProvideMenuShape(MaterialTheme.shapes.medium) {
-                        DropdownMenu(expanded = expanded, onDismissRequest = {
-                            resetSUAppsPhase = 0
-                            expanded = false
-                        }) {
-                            DropdownMenuItem(text = {
-                                Text(stringResource(R.string.su_refresh))
-                            }, onClick = {
-                                scope.launch {
-                                    viewModel.fetchAppList()
-                                }
-                                expanded = false
-                            })
-
-                            DropdownMenuItem(text = {
-                                Text(
-                                    if (viewModel.showSystemApps) {
-                                        stringResource(R.string.su_hide_system_apps)
-                                    } else {
-                                        stringResource(R.string.su_show_system_apps)
-                                    }
+                        FloatingActionButton(
+                            shape = CircleShape,
+                            modifier = Modifier
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                    CircleShape
                                 )
-                            }, onClick = {
-                                viewModel.showSystemApps = !viewModel.showSystemApps
-                                expanded = false
-                            })
+                                .alpha(0.8f),
+                            onClick = {
+                                expanded = !expanded
+                            },
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ) {
+                            Icon(
+                                imageVector = Tabler.Outline.UserCode,
+                                contentDescription = null
+                            )
+                        }
 
-                            DropdownMenuItem(text = {
-                                Text(
-                                    if (resetSUAppsPhase == 0) {
-                                        stringResource(R.string.system_default)
-                                    } else {
-                                        stringResource(R.string.settings_clear_super_key_dialog)
+
+                        ProvideMenuShape(MaterialTheme.shapes.medium) {
+                            DropdownMenu(expanded = expanded, onDismissRequest = {
+                                resetSUAppsPhase = 0
+                                expanded = false
+                            }) {
+                                DropdownMenuItem(text = {
+                                    Text(stringResource(R.string.su_refresh))
+                                }, onClick = {
+                                    scope.launch {
+                                        viewModel.fetchAppList()
                                     }
-                                )
-                            }, onClick = {
-                                if (resetSUAppsPhase == 0) {
-                                    resetSUAppsPhase++
-                                } else {
                                     expanded = false
-                                    setWhiteListMode(-1)
-                                    whiteListMode = -1
-                                    scope.launch { viewModel.resetAppList() }
-                                    resetSUAppsPhase = 0
-                                }
-                            })
+                                })
+
+                                DropdownMenuItem(text = {
+                                    Text(
+                                        if (viewModel.showSystemApps) {
+                                            stringResource(R.string.su_hide_system_apps)
+                                        } else {
+                                            stringResource(R.string.su_show_system_apps)
+                                        }
+                                    )
+                                }, onClick = {
+                                    viewModel.showSystemApps = !viewModel.showSystemApps
+                                    expanded = false
+                                })
+
+                                DropdownMenuItem(text = {
+                                    Text(
+                                        if (resetSUAppsPhase == 0) {
+                                            stringResource(R.string.system_default)
+                                        } else {
+                                            stringResource(R.string.settings_clear_super_key_dialog)
+                                        }
+                                    )
+                                }, onClick = {
+                                    if (resetSUAppsPhase == 0) {
+                                        resetSUAppsPhase++
+                                    } else {
+                                        expanded = false
+                                        setWhiteListMode(-1)
+                                        whiteListMode = -1
+                                        scope.launch { viewModel.resetAppList() }
+                                        resetSUAppsPhase = 0
+                                    }
+                                })
+                            }
                         }
                     }
                 }
