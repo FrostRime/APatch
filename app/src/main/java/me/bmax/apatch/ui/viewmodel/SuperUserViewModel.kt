@@ -19,7 +19,7 @@ import me.bmax.apatch.Natives
 import me.bmax.apatch.apApp
 import me.bmax.apatch.util.Pkg
 import me.bmax.apatch.util.PkgConfig
-import me.bmax.apatch.util.RootExecutor
+import me.bmax.apatch.util.Su
 import java.io.File
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
@@ -87,7 +87,7 @@ class SuperUserViewModel : ViewModel() {
     suspend fun resetAppList() {
         isRefreshing = true
         try {
-            RootExecutor.run {
+            Su.exec {
                 Pkg.readPackages().list.forEach {
                     val uid = it.applicationInfo!!.uid
                     Natives.revokeSu(uid)
@@ -108,7 +108,7 @@ class SuperUserViewModel : ViewModel() {
     suspend fun fetchAppList() {
         isRefreshing = true
         try {
-            val (configs, packages) = RootExecutor.run {
+            val (configs, packages) = Su.exec {
                 val startTimeDebug = if (BuildConfig.DEBUG) System.currentTimeMillis() else null
 
                 val configs = PkgConfig.readConfigs()

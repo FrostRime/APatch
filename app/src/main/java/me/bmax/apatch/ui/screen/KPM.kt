@@ -92,7 +92,7 @@ import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.ui.viewmodel.KPModel
 import me.bmax.apatch.ui.viewmodel.KPModuleViewModel
 import me.bmax.apatch.ui.viewmodel.PatchesViewModel
-import me.bmax.apatch.util.RootExecutor
+import me.bmax.apatch.util.Su
 import me.bmax.apatch.util.inputStream
 import me.bmax.apatch.util.writeTo
 import java.io.IOException
@@ -150,7 +150,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator, isBottomBarVisible: Boolean
         }
 
         val success = loadingDialog.withLoading {
-            RootExecutor.run {
+            Su.exec {
                 try {
                     Natives.unloadKernelPatchModule(module.name)
                     true
@@ -340,7 +340,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator, isBottomBarVisible: Boolean
                         onCheckChange = if (module.isInstalled) {
                             { checked ->
                                 scope.launch {
-                                    val success = RootExecutor.run {
+                                    val success = Su.exec {
                                         Natives.changeInstalledKpmModuleState(module.name, checked)
                                         if (!checked) {
                                             try {
@@ -380,7 +380,7 @@ fun KPModuleScreen(navigator: DestinationsNavigator, isBottomBarVisible: Boolean
                                 KPModuleRemoveButton(enabled = true, onClick = {
                                     scope.launch {
                                         if (module.isInstalled) {
-                                            RootExecutor.run {
+                                            Su.exec {
                                                 Natives.uninstallKpmModule(module.name)
                                             }
                                         }
@@ -450,7 +450,7 @@ suspend fun installModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: St
                     Log.e(TAG, "Copy kpm error: $e")
                     return@withContext -1
                 }
-                val rc = RootExecutor.run {
+                val rc = Su.exec {
                     Natives.installKpmModule(kpm.path, args).toInt()
                 }
                 Log.d(TAG, "install ${kpm.path} rc: $rc")

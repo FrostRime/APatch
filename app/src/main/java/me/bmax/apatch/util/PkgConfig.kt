@@ -78,7 +78,7 @@ object PkgConfig {
     }
 
     suspend fun changeConfig(config: Config) {
-        RootExecutor.run {
+        Su.exec {
             synchronized(PkgConfig.javaClass) {
                 val configs = readConfigs()
                 val uid = config.profile.uid

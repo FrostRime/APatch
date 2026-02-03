@@ -9,7 +9,7 @@ use libc::{c_char, c_long, uid_t};
 use log::{debug, warn};
 use std::ffi::{CStr, CString, c_void};
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufRead, BufReader, BufWriter, Error, Write};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::Path;
 use std::ptr::null_mut;
 use std::sync::OnceLock;
@@ -191,6 +191,18 @@ fn native_load_kernel_patch_module<'a>(
 }
 
 fn _load_kernel_patch_module(key: &CStr, module_path: &CStr, args: &CStr) -> Result<c_long> {
+    let binding = module_path.to_string_lossy().to_string();
+    let path = Path::new(&binding);
+    _ = fs::read(path)
+        .map_err(|_| ())
+        .and_then(|data| {
+            let binding = String::from_utf8_lossy(&data).to_string();
+            _find_kpm_field(&binding, "name=")
+                .map(String::from)
+                .map_err(|_| ())
+        })
+        .and_then(|name| CString::new(name).map_err(|_| ()))
+        .and_then(|name| _unload_kernel_patch_module(key, &name).map_err(|_| ()));
     get_sc()?.sc_kpm_load(key, module_path.as_ptr(), args.as_ptr(), null_mut())
 }
 
@@ -245,12 +257,16 @@ fn native_unload_kernel_patch_module<'a>(
         ensure_super_key(&key)?;
         let key = jstr_to_cstr(env, &key)?;
         let module_name = jstr_to_cstr(env, &module_name_jstr)?;
-        let res = get_sc()?.sc_kpm_unload(&key, module_name.as_ptr(), null_mut())?;
+        let res = _unload_kernel_patch_module(&key, &module_name)?;
         if res != 0 {
-            return Err(Error::from_raw_os_error(res as i32).into());
+            return Err(std::io::Error::from_raw_os_error(res as i32).into());
         }
         Ok(res as jlong)
     })
+}
+
+fn _unload_kernel_patch_module(key: &CStr, module_name: &CStr) -> Result<c_long> {
+    get_sc()?.sc_kpm_unload(key, module_name.as_ptr(), null_mut())
 }
 
 fn native_kernel_patch_module_num<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> jint {
@@ -433,14 +449,15 @@ fn _uninstall_kernel_patch_module(name: &CString) -> Result<()> {
 
     let mut kept = Vec::new();
     let mut record = Vec::new();
+    debug!("kpms_path: {}", kpms_path.to_string_lossy());
     while reader.read_until(b'\n', &mut record)? > 0 {
         if record.len() < 35 {
             record.clear();
             continue;
         }
         if record[0..32] == name_buf {
-            let filename = String::from_utf8_lossy(&record[34..record.len() - 1]).to_string();
-            let path = Path::new("/data/adb/ap/kpms/").join(filename);
+            let filename = String::from_utf8_lossy(&record[34..record.len()]).to_string();
+            let path = kpms_path.join(filename.trim());
             if path.exists() {
                 fs::remove_file(path)?;
             }
@@ -450,8 +467,9 @@ fn _uninstall_kernel_patch_module(name: &CString) -> Result<()> {
         kept.extend(&record);
         record.clear();
     }
-
-    let mut writer = BufWriter::new(File::create(config_path)?);
+    File::create(&config_path)?;
+    let file = OpenOptions::new().write(true).open(&config_path)?;
+    let mut writer = BufWriter::new(file);
     writer.write_all(&kept)?;
     Ok(())
 }

@@ -11,7 +11,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.bmax.apatch.Natives
-import me.bmax.apatch.util.RootExecutor
+import me.bmax.apatch.util.Su
 import java.text.Collator
 import java.util.Locale
 
@@ -69,7 +69,7 @@ class KPModuleViewModel : ViewModel() {
             val start = SystemClock.elapsedRealtime()
 
             kotlin.runCatching {
-                val installedModulesName = RootExecutor.run {
+                val installedModulesName = Su.exec {
                     Natives.installedKpmList()
                 }
 
