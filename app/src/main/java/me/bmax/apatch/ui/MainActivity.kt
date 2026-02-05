@@ -133,8 +133,10 @@ class MainActivity : AppCompatActivity() {
             APatchTheme {
                 val navController = rememberNavController()
                 val navigator = navController.rememberDestinationsNavigator()
+                val snackBarHostState = remember { SnackbarHostState() }
                 CompositionLocalProvider(
-                    localNavigator provides navigator
+                    localNavigator provides navigator,
+                    LocalSnackbarHost provides snackBarHostState,
                 ) {
                     val defaultTransitions = object : NavHostAnimatedDestinationStyle() {
                         override val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
@@ -196,7 +198,6 @@ fun MainScreen(navigator: DestinationsNavigator) {
             !(destination.kPatchRequired && !kPatchReady) && !(destination.aPatchRequired && !aPatchReady)
         }.toSet()
     }
-    val snackBarHostState = remember { SnackbarHostState() }
 
     val pagerState = rememberPagerState(
         pageCount = { visibleDestinations.size }
@@ -281,59 +282,55 @@ fun MainScreen(navigator: DestinationsNavigator) {
                 }
             },
     ) {
-        CompositionLocalProvider(
-            LocalSnackbarHost provides snackBarHostState,
-        ) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .layerBackdrop(backdrop),
-                key = { page ->
-                    visibleDestinations.elementAtOrNull(page)?.name ?: "unknown"
-                },
-                pageSpacing = 0.dp
-            ) { page ->
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    val destination = visibleDestinations.elementAtOrNull(page)
-                    val screenContent = screenContents[destination?.name ?: ""]
-                    if (screenContent != null) {
-                        screenContent()
-                    } else {
-                        HomeScreen(navigator)
-                    }
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .layerBackdrop(backdrop),
+            key = { page ->
+                visibleDestinations.elementAtOrNull(page)?.name ?: "unknown"
+            },
+            pageSpacing = 0.dp
+        ) { page ->
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val destination = visibleDestinations.elementAtOrNull(page)
+                val screenContent = screenContents[destination?.name ?: ""]
+                if (screenContent != null) {
+                    screenContent()
+                } else {
+                    HomeScreen(navigator)
                 }
             }
         }
+    }
 
-        AnimatedVisibility(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 56.dp),
-            visible = isBottomBarVisible,
-            enter = slideInVertically(
-                initialOffsetY = { fullHeight -> fullHeight }
-            ),
-            exit = slideOutVertically(
-                targetOffsetY = { fullHeight -> fullHeight }
-            )
+    AnimatedVisibility(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 56.dp),
+        visible = isBottomBarVisible,
+        enter = slideInVertically(
+            initialOffsetY = { fullHeight -> fullHeight }
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { fullHeight -> fullHeight }
+        )
+    ) {
+        Box(
+            contentAlignment = Alignment.BottomCenter
         ) {
-            Box(
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                FloatingBottomBar(
-                    visibleDestinations = visibleDestinations,
-                    currentPage = pagerState.currentPage,
-                    onPageSelected = { page ->
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(page)
-                        }
-                    },
-                    backdrop = backdrop
-                )
-            }
+            FloatingBottomBar(
+                visibleDestinations = visibleDestinations,
+                currentPage = pagerState.currentPage,
+                onPageSelected = { page ->
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(page)
+                    }
+                },
+                backdrop = backdrop
+            )
         }
     }
 }
@@ -563,8 +560,8 @@ private fun FloatingBottomBarItem(
         label = "highlightStrengthAnimation"
     )
 
-    val selectedColor = MaterialTheme.colorScheme.primary
-    val unselectedColor = MaterialTheme.colorScheme.onSurface
+    val selectedColor by rememberUpdatedState(MaterialTheme.colorScheme.primary)
+    val unselectedColor by rememberUpdatedState(MaterialTheme.colorScheme.onSurface)
     val iconColor by remember {
         derivedStateOf {
             lerp(
