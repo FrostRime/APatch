@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui
 
+//noinspection SuspiciousImport
 import android.R
 import android.annotation.SuppressLint
 import android.os.Build
@@ -7,63 +8,66 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ShapeDefaults.ExtraSmall
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -71,6 +75,15 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.rememberNavController
 import coil.Coil
 import coil.ImageLoader
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.colorControls
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -93,6 +106,8 @@ import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
 
@@ -142,6 +157,7 @@ class MainActivity : AppCompatActivity() {
                                 fadeOut(animationSpec = tween(340))
                             }
                     }
+
                     LocalConfiguration.current
                     DestinationsNavHost(
                         navGraph = NavGraphs.root,
@@ -188,9 +204,11 @@ fun MainScreen(navigator: DestinationsNavigator) {
     val coroutineScope = rememberCoroutineScope()
     var isBottomBarVisible by remember { mutableStateOf(true) }
     var lastPage by remember { mutableIntStateOf(pagerState.currentPage) }
-    var lastTouchY by remember { mutableStateOf(0f) }
-    var lastTouchTime by remember { mutableStateOf(0L) }
+    var lastTouchY by remember { mutableFloatStateOf(0f) }
+    var lastTouchTime by remember { mutableLongStateOf(0L) }
     val minDragThreshold = 85f
+
+    val backdrop = rememberLayerBackdrop()
 
     fun showBottomBar() {
         isBottomBarVisible = true
@@ -268,7 +286,9 @@ fun MainScreen(navigator: DestinationsNavigator) {
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .layerBackdrop(backdrop),
                 key = { page ->
                     visibleDestinations.elementAtOrNull(page)?.name ?: "unknown"
                 },
@@ -310,102 +330,209 @@ fun MainScreen(navigator: DestinationsNavigator) {
                         coroutineScope.launch {
                             pagerState.animateScrollToPage(page)
                         }
-                    }
+                    },
+                    backdrop = backdrop
                 )
             }
         }
     }
 }
 
+@Suppress("AssignedValueIsNeverRead")
 @Composable
 private fun FloatingBottomBar(
     visibleDestinations: Set<BottomBarDestination>,
     currentPage: Int,
-    onPageSelected: (Int) -> Unit
+    onPageSelected: (Int) -> Unit,
+    backdrop: LayerBackdrop
 ) {
     val itemSize = 66.dp
+    val coroutineScope = rememberCoroutineScope()
 
-    val indicatorOffset by animateDpAsState(
-        targetValue = currentPage * itemSize,
-        label = "indicatorOffset"
+    var isPressed by remember { mutableStateOf(false) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    val indicatorOffset = remember { Animatable(0.dp, Dp.VectorConverter) }
+
+    val indicatorScale by animateFloatAsState(
+        targetValue = if (isPressed) 1.5f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
     )
 
-    AnimatedContent(
-        targetState = visibleDestinations,
-    ) { visibleDestinations ->
-        Surface(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
-                    shape = CircleShape
+    val indicatorHighlight by animateFloatAsState(
+        targetValue = if (isPressed) 0.25f else 0f,
+        animationSpec = tween(durationMillis = 150)
+    )
+
+    val indicatorBlur by animateDpAsState(
+        targetValue = if (isPressed) 0.dp else 8.dp,
+        animationSpec = tween(durationMillis = 150)
+    )
+
+    val updatedOnPageSelected by rememberUpdatedState(onPageSelected)
+    val updatedVisibleDestinations by rememberUpdatedState(visibleDestinations)
+
+    LaunchedEffect(currentPage) {
+        if (!isDragging) {
+            indicatorOffset.animateTo(
+                targetValue = currentPage * itemSize,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
                 )
-                .shadow(
-                    elevation = 8.dp,
-                    shape = CircleShape,
-                    clip = true
-                ),
-            shape = CircleShape,
-            tonalElevation = 8.dp,
-            color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.75f)
-        ) {
-            Box {
+            )
+        }
+    }
+
+
+    fun animatePressIn() {
+        isPressed = true
+    }
+
+    fun animateRelease(targetPage: Int) {
+        isPressed = false
+        isDragging = false
+        updatedOnPageSelected(targetPage)
+    }
+
+    val background =
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+
+    val sliderBackground =
+        MaterialTheme.colorScheme.onSurface.copy(0.1f).compositeOver(background)
+
+    Box(contentAlignment = Alignment.CenterStart) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Box(
+                modifier = Modifier
+                    .width(updatedVisibleDestinations.size * itemSize + 8.dp)
+                    .height(itemSize / 1.25f + 8.dp)
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        highlight = { Highlight(alpha = 0.25f) },
+                        shape = { CircleShape },
+                        effects = {
+                            vibrancy()
+                            colorControls(brightness = 0.2f)
+                            blur(8f.dp.toPx())
+                            lens(16.dp.toPx(), 32.dp.toPx())
+                        },
+                        onDrawSurface = { drawRect(background) }
+                    )
+            ) {
                 Box(
                     modifier = Modifier
-                        .alpha(0.7f)
+                        .padding(4.dp)
                         .matchParentSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { offset ->
+                                    coroutineScope.launch {
+                                        val page = (offset.x.toDp() / itemSize)
+                                            .toInt()
+                                            .coerceIn(0, updatedVisibleDestinations.size - 1)
+                                        animateRelease(page)
+                                    }
+                                },
+                            )
+                        }
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { _ ->
+                                    coroutineScope.launch {
+                                        isDragging = true
+                                        animatePressIn()
+                                    }
+                                },
+                                onDrag = { _, dragAmount ->
+                                    coroutineScope.launch {
+                                        val newOffset = indicatorOffset.value + dragAmount.x.toDp()
+                                        val clampedOffset = newOffset.coerceIn(
+                                            0.dp,
+                                            (updatedVisibleDestinations.size - 1) * itemSize
+                                        )
+                                        indicatorOffset.snapTo(clampedOffset)
+                                    }
+                                },
+                                onDragEnd = {
+                                    coroutineScope.launch {
+                                        val targetPage =
+                                            ((indicatorOffset.value + itemSize / 2) / itemSize)
+                                                .toInt()
+                                                .coerceIn(0, updatedVisibleDestinations.size - 1)
+
+                                        animateRelease(targetPage)
+                                        indicatorOffset.animateTo(
+                                            targetPage * itemSize,
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessLow
+                                            )
+                                        )
+                                    }
+                                },
+                                onDragCancel = {
+                                    coroutineScope.launch {
+                                        isDragging = false
+                                        isPressed = false
+                                    }
+                                }
+                            )
+                        }
+                )
+            }
+
+            Row {
+                Spacer(Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .offset(x = indicatorOffset.value)
+                        .width(itemSize)
+                        .height(itemSize / 1.25f)
+                        .graphicsLayer(
+                            scaleX = indicatorScale,
+                            scaleY = indicatorScale
+                        )
+                        .drawBackdrop(
+                            backdrop = backdrop,
+                            highlight = { Highlight(alpha = indicatorHighlight) },
+                            shape = { CircleShape },
+                            effects = {
+                                vibrancy()
+                                colorControls(brightness = 0.2f)
+                                blur(indicatorBlur.toPx())
+                                lens(16.dp.toPx(), 32.dp.toPx())
+                            },
+                            onDrawSurface = { drawRect(sliderBackground) }
+                        ),
+                )
+            }
+
+            if (updatedVisibleDestinations.size > 10) {
+                LazyRow(
+                    modifier = Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .fillMaxWidth()
-                            .alpha(0.15f)
-                            .matchParentSize()
-                            .clip(CircleShape)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .offset(x = indicatorOffset)
-                                .width(itemSize)
-                                .height(itemSize)
-                                .clip(ExtraSmall)
-                                .background(
-                                    MaterialTheme.colorScheme.outline
-                                )
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .padding(9.dp)
-                            .fillMaxWidth()
-                            .matchParentSize()
-                            .clip(CircleShape)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .offset(x = indicatorOffset)
-                                .width(itemSize - 2.dp)
-                                .height(itemSize - 2.dp)
-                                .clip(ExtraSmall)
-                                .background(
-                                    MaterialTheme.colorScheme.tertiaryContainer
-                                )
-                        )
+                    items(updatedVisibleDestinations.size) { index ->
+                        visibleDestinations.elementAtOrNull(index)?.let {
+                            FloatingBottomBarItem(
+                                destination = it,
+                                sliderOffset = indicatorOffset.value,
+                                itemWidth = itemSize,
+                                index = index
+                            )
+                        }
                     }
                 }
-                Row(
-                    modifier = Modifier
-                        .padding(8.dp)
-                ) {
-                    visibleDestinations.forEachIndexed { index, destination ->
+            } else {
+                Row {
+                    Spacer(Modifier.width(4.dp))
+                    updatedVisibleDestinations.forEachIndexed { index, destination ->
                         FloatingBottomBarItem(
                             destination = destination,
-                            sliderOffset = indicatorOffset,
+                            sliderOffset = indicatorOffset.value,
                             itemWidth = itemSize,
-                            selected = currentPage == index,
-                            index = index,
-                            onClick = { onPageSelected(index) }
+                            index = index
                         )
                     }
                 }
@@ -417,58 +544,51 @@ private fun FloatingBottomBar(
 @Composable
 private fun FloatingBottomBarItem(
     destination: BottomBarDestination,
-    selected: Boolean,
     sliderOffset: Dp,
     itemWidth: Dp,
-    index: Int,
-    onClick: () -> Unit
+    index: Int
 ) {
-    val density = LocalDensity.current
+    val sliderEnd = sliderOffset + itemWidth
+    val itemStart = index * itemWidth
+    val itemEnd = (index + 1) * itemWidth
 
-    val iconStartPx = index * with(density) { itemWidth.toPx() }
-    val iconEndPx = (index + 1) * with(density) { itemWidth.toPx() }
-    val sliderPx = with(density) { sliderOffset.toPx() }
-    val sliderEndPx = sliderPx + with(density) { itemWidth.toPx() }
+    val overlapStart = max(sliderOffset.value, itemStart.value)
+    val overlapEnd = min(sliderEnd.value, itemEnd.value)
+    val overlapLength = max(0f, overlapEnd - overlapStart)
+    val overlapRatio = overlapLength / itemWidth.value
 
-    val isCovered = sliderPx <= iconStartPx && sliderEndPx >= iconEndPx
-
-    val iconColor by animateColorAsState(
-        targetValue = if (isCovered) MaterialTheme.colorScheme.onSecondaryContainer
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "iconColorAnimation"
+    val highlightStrength by animateFloatAsState(
+        targetValue = overlapRatio.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 100, easing = FastOutSlowInEasing),
+        label = "highlightStrengthAnimation"
     )
 
-    val scale by animateFloatAsState(
-        targetValue = if (isCovered) 1.1f else 1f,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "iconScaleAnimation"
-    )
+    val selectedColor = MaterialTheme.colorScheme.primary
+    val unselectedColor = MaterialTheme.colorScheme.onSurface
+    val iconColor by remember {
+        derivedStateOf {
+            lerp(
+                unselectedColor,
+                selectedColor,
+                FastOutSlowInEasing.transform(highlightStrength)
+            )
+        }
+    }
+
+    val iconAlpha = 0.7f + 0.3f * highlightStrength
 
     Box(
         modifier = Modifier
-            .size(66.dp)
-            .clickable(
-                enabled = !selected,
-                onClick = onClick,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ),
+            .size(itemWidth, itemWidth / 1.25f),
         contentAlignment = Alignment.Center
     ) {
-        Crossfade(
-            targetState = isCovered,
-            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-            label = "iconCrossfade"
-        ) { covered ->
-            Icon(
-                imageVector = if (covered) destination.iconSelected else destination.iconNotSelected,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier
-                    .size(22.dp)
-                    .scale(scale)
-            )
-        }
+        Icon(
+            imageVector = destination.iconSelected,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier
+                .size(itemWidth / 3)
+                .graphicsLayer { alpha = iconAlpha }
+        )
     }
 }

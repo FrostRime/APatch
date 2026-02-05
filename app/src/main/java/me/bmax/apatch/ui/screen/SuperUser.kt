@@ -167,7 +167,6 @@ fun SuperUserScreen(isBottomBarVisible: Boolean) {
                             )
                         }
 
-
                         ProvideMenuShape(MaterialTheme.shapes.medium) {
                             DropdownMenu(expanded = expanded, onDismissRequest = {
                                 resetSUAppsPhase = 0

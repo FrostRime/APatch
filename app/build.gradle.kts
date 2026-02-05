@@ -308,6 +308,8 @@ dependencies {
     implementation(libs.icons.tabler.outline.cmp)
     implementation(libs.icons.tabler.filled.cmp)
 
+    implementation(libs.backdrop)
+
     implementation(libs.ini4j)
 
     compileOnly(libs.cxx)
