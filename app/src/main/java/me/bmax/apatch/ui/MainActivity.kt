@@ -9,7 +9,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
@@ -22,12 +21,12 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -51,7 +51,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,12 +59,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -204,33 +206,15 @@ fun MainScreen(navigator: DestinationsNavigator) {
     )
     val coroutineScope = rememberCoroutineScope()
     var isBottomBarVisible by remember { mutableStateOf(true) }
-    var lastPage by remember { mutableIntStateOf(pagerState.currentPage) }
     var lastTouchY by remember { mutableFloatStateOf(0f) }
     var lastTouchTime by remember { mutableLongStateOf(0L) }
     val minDragThreshold = 85f
 
     val backdrop = rememberLayerBackdrop()
 
-    fun showBottomBar() {
-        isBottomBarVisible = true
-    }
-
     LaunchedEffect(Unit) {
-        showBottomBar()
         if (SuperUserViewModel.apps.isEmpty()) {
             SuperUserViewModel().fetchAppList()
-        }
-    }
-
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage != lastPage) {
-            showBottomBar()
-        }
-    }
-
-    LaunchedEffect(pagerState.isScrollInProgress) {
-        if (pagerState.isScrollInProgress) {
-            showBottomBar()
         }
     }
 
@@ -306,32 +290,23 @@ fun MainScreen(navigator: DestinationsNavigator) {
         }
     }
 
-    AnimatedVisibility(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(bottom = 56.dp),
-        visible = isBottomBarVisible,
-        enter = slideInVertically(
-            initialOffsetY = { fullHeight -> fullHeight }
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { fullHeight -> fullHeight }
-        )
+        contentAlignment = Alignment.BottomCenter
     ) {
-        Box(
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            FloatingBottomBar(
-                visibleDestinations = visibleDestinations,
-                currentPage = pagerState.currentPage,
-                onPageSelected = { page ->
-                    coroutineScope.launch {
-                        pagerState.animateScrollToPage(page)
-                    }
-                },
-                backdrop = backdrop
-            )
-        }
+        FloatingBottomBar(
+            visibleDestinations = visibleDestinations,
+            currentPage = pagerState.currentPage,
+            onPageSelected = { page ->
+                coroutineScope.launch {
+                    pagerState.animateScrollToPage(page)
+                }
+            },
+            visible = isBottomBarVisible,
+            backdrop = backdrop
+        )
     }
 }
 
@@ -341,10 +316,16 @@ private fun FloatingBottomBar(
     visibleDestinations: Set<BottomBarDestination>,
     currentPage: Int,
     onPageSelected: (Int) -> Unit,
+    visible: Boolean,
     backdrop: LayerBackdrop
 ) {
     val itemSize = 66.dp
     val coroutineScope = rememberCoroutineScope()
+
+    val barScale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.2f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+    )
 
     var isPressed by remember { mutableStateOf(false) }
     var isDragging by remember { mutableStateOf(false) }
@@ -366,6 +347,10 @@ private fun FloatingBottomBar(
         animationSpec = tween(durationMillis = 150)
     )
 
+    val indicatorAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f, animationSpec = tween(durationMillis = 150)
+    )
+
     val updatedOnPageSelected by rememberUpdatedState(onPageSelected)
     val updatedVisibleDestinations by rememberUpdatedState(visibleDestinations)
 
@@ -380,7 +365,6 @@ private fun FloatingBottomBar(
             )
         }
     }
-
 
     fun animatePressIn() {
         isPressed = true
@@ -398,12 +382,17 @@ private fun FloatingBottomBar(
     val sliderBackground =
         MaterialTheme.colorScheme.onSurface.copy(0.1f).compositeOver(background)
 
-    Box(contentAlignment = Alignment.CenterStart) {
+    Box(
+        modifier = Modifier.graphicsLayer(
+            scaleX = barScale,
+            scaleY = barScale
+        ), contentAlignment = Alignment.CenterStart
+    ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(
                 modifier = Modifier
                     .width(updatedVisibleDestinations.size * itemSize + 8.dp)
-                    .height(itemSize / 1.25f + 8.dp)
+                    .height(itemSize / 1.25f * (1 - (indicatorScale - 1) / 4) + 8.dp)
                     .drawBackdrop(
                         backdrop = backdrop,
                         highlight = { Highlight(alpha = 0.25f) },
@@ -421,7 +410,7 @@ private fun FloatingBottomBar(
                     modifier = Modifier
                         .padding(4.dp)
                         .matchParentSize()
-                        .pointerInput(Unit) {
+                        .pointerInput(coroutineScope) {
                             detectTapGestures(
                                 onTap = { offset ->
                                     coroutineScope.launch {
@@ -433,7 +422,7 @@ private fun FloatingBottomBar(
                                 },
                             )
                         }
-                        .pointerInput(Unit) {
+                        .pointerInput(coroutineScope) {
                             detectDragGestures(
                                 onDragStart = { _ ->
                                     coroutineScope.launch {
@@ -443,7 +432,8 @@ private fun FloatingBottomBar(
                                 },
                                 onDrag = { _, dragAmount ->
                                     coroutineScope.launch {
-                                        val newOffset = indicatorOffset.value + dragAmount.x.toDp()
+                                        val newOffset =
+                                            indicatorOffset.value + dragAmount.x.toDp()
                                         val clampedOffset = newOffset.coerceIn(
                                             0.dp,
                                             (updatedVisibleDestinations.size - 1) * itemSize
@@ -456,7 +446,10 @@ private fun FloatingBottomBar(
                                         val targetPage =
                                             ((indicatorOffset.value + itemSize / 2) / itemSize)
                                                 .toInt()
-                                                .coerceIn(0, updatedVisibleDestinations.size - 1)
+                                                .coerceIn(
+                                                    0,
+                                                    updatedVisibleDestinations.size - 1
+                                                )
 
                                         animateRelease(targetPage)
                                         indicatorOffset.animateTo(
@@ -479,7 +472,7 @@ private fun FloatingBottomBar(
                 )
             }
 
-            Row {
+            Row(modifier = Modifier.alpha(indicatorAlpha)) {
                 Spacer(Modifier.width(4.dp))
                 Box(
                     modifier = Modifier
@@ -507,7 +500,6 @@ private fun FloatingBottomBar(
 
             if (updatedVisibleDestinations.size > 10) {
                 LazyRow(
-                    modifier = Modifier,
                     horizontalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     items(updatedVisibleDestinations.size) { index ->
@@ -515,7 +507,9 @@ private fun FloatingBottomBar(
                             FloatingBottomBarItem(
                                 destination = it,
                                 sliderOffset = indicatorOffset.value,
+                                visible = visible,
                                 itemWidth = itemSize,
+                                backdrop = backdrop,
                                 index = index
                             )
                         }
@@ -528,7 +522,9 @@ private fun FloatingBottomBar(
                         FloatingBottomBarItem(
                             destination = destination,
                             sliderOffset = indicatorOffset.value,
+                            visible = visible,
                             itemWidth = itemSize,
+                            backdrop = backdrop,
                             index = index
                         )
                     }
@@ -541,8 +537,10 @@ private fun FloatingBottomBar(
 @Composable
 private fun FloatingBottomBarItem(
     destination: BottomBarDestination,
+    visible: Boolean,
     sliderOffset: Dp,
     itemWidth: Dp,
+    backdrop: LayerBackdrop,
     index: Int
 ) {
     val sliderEnd = sliderOffset + itemWidth
@@ -572,20 +570,59 @@ private fun FloatingBottomBarItem(
         }
     }
 
+    val backgroundColor by rememberUpdatedState(MaterialTheme.colorScheme.outline)
+
+    val backgroundAlpha by animateFloatAsState(
+        targetValue = if (visible) 0.0f else 1f,
+    )
+
     val iconAlpha = 0.7f + 0.3f * highlightStrength
 
     Box(
         modifier = Modifier
-            .size(itemWidth, itemWidth / 1.25f),
+            .size(itemWidth, itemWidth / 1.25f)
+            .padding(backgroundAlpha * 4.dp)
+            .padding(horizontal = backgroundAlpha * 6.dp)
+            .clip(CircleShape)
+            .alpha(iconAlpha),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = destination.iconSelected,
-            contentDescription = null,
-            tint = iconColor,
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = destination.iconSelected,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier
+                    .size(itemWidth / 3)
+            )
+            Text(
+                text = stringResource(id = destination.label),
+                style = MaterialTheme.typography.bodySmall,
+                color = iconColor,
+                modifier = Modifier
+                    .padding(4.dp)
+                    .basicMarquee(),
+            )
+        }
+        Box(
             modifier = Modifier
-                .size(itemWidth / 3)
-                .graphicsLayer { alpha = iconAlpha }
+                .matchParentSize()
+                .alpha(backgroundAlpha)
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    highlight = null,
+                    shape = { CircleShape },
+                    effects = {
+                        blur(8.dp.toPx())
+                        lens(16.dp.toPx(), 32.dp.toPx())
+                    },
+                    onDrawSurface = {
+                        drawRect(backgroundColor)
+                    }
+                ),
         )
     }
 }
