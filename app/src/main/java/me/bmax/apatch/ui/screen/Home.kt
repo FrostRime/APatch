@@ -50,18 +50,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -88,6 +91,14 @@ import com.composables.icons.tabler.outline.HelpCircle
 import com.composables.icons.tabler.outline.Refresh
 import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
+import com.kyant.backdrop.backdrops.emptyBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.colorControls
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -490,6 +501,7 @@ private fun KStatusCard(
     navigator: DestinationsNavigator
 ) {
     val showAuthFailedTipDialog = remember { mutableStateOf(false) }
+    val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
     if (showAuthFailedTipDialog.value) {
         AuthFailedTipDialog(showDialog = showAuthFailedTipDialog)
     }
@@ -504,21 +516,30 @@ private fun KStatusCard(
         ResetSUPathDialog(showResetSuPathDialog)
     }
 
-    val cardBackgroundColor =
-        when (kpState) {
+    fun getCardBackgroundColor(): Color {
+        return when (kpState) {
             APApplication.State.KERNELPATCH_INSTALLED -> {
-                MaterialTheme.colorScheme.primary
+                colorScheme.surface.copy(alpha = 0.4f).compositeOver(colorScheme.primary.copy(0.6f))
             }
 
             APApplication.State.KERNELPATCH_NEED_UPDATE,
             APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-                MaterialTheme.colorScheme.secondary
+                colorScheme.secondary
             }
 
             else -> {
-                MaterialTheme.colorScheme.secondaryContainer
+                colorScheme.secondaryContainer
             }
         }
+    }
+
+    var cardBackgroundColor by remember {
+        mutableStateOf(getCardBackgroundColor())
+    }
+
+    LaunchedEffect(kpState) {
+        cardBackgroundColor = getCardBackgroundColor()
+    }
 
     Column {
         Row(
@@ -527,22 +548,31 @@ private fun KStatusCard(
                 .height(intrinsicSize = IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ElevatedCard(
+            Box(
                 modifier = Modifier
                     .aspectRatio(1f, true)
-                    .fillMaxHeight(),
-                shape = Large,
-                onClick = {
-                    if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
-                        navigator.navigate(InstallModeSelectScreenDestination)
-                    }
-                },
-                colors = CardDefaults.elevatedCardColors(containerColor = cardBackgroundColor),
-                elevation =
-                    CardDefaults.cardElevation(
-                        defaultElevation =
-                            if (kpState == APApplication.State.UNKNOWN_STATE) 0.dp else 6.dp
+                    .fillMaxHeight()
+                    .drawBackdrop(
+                        backdrop = emptyBackdrop(), //todo
+                        shape = { ContinuousRoundedRectangle(16.dp) },
+                        highlight = { Highlight(alpha = 0.25f) },
+                        effects = {
+                            vibrancy()
+                            colorControls(brightness = 100f)
+                            blur(8.dp.toPx())
+                            lens(16.dp.toPx(), 32.dp.toPx())
+                        },
+                        onDrawSurface = {
+                            drawRect(
+                                color = colorScheme.tertiaryContainer.copy(alpha = 0.75f),
+                            )
+                        }
                     )
+                    .clickable {
+                        if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
+                            navigator.navigate(InstallModeSelectScreenDestination)
+                        }
+                    },
             ) {
                 Box(
                     propagateMinConstraints = true
@@ -662,9 +692,7 @@ private fun KStatusCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
-                ElevatedCard(
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-                    shape = Large,
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -673,6 +701,21 @@ private fun KStatusCard(
                             onClick = {
                                 showResetSuPathDialog.value = true
                             })
+                        .drawBackdrop(
+                            backdrop = emptyBackdrop(), //todo
+                            shape = { ContinuousRoundedRectangle(16.dp) },
+                            highlight = { Highlight(alpha = 0.25f) },
+                            effects = {
+                                vibrancy()
+                                blur(8.dp.toPx())
+                                lens(16.dp.toPx(), 32.dp.toPx())
+                            },
+                            onDrawSurface = {
+                                drawRect(
+                                    color = colorScheme.tertiaryContainer.copy(alpha = 0.25f),
+                                )
+                            }
+                        )
                 ) {
                     Column(Modifier.padding(12.dp)) {
                         Text(
@@ -691,9 +734,7 @@ private fun KStatusCard(
 
                 val managerUnknown =
                     apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
-                ElevatedCard(
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-                    shape = Large,
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -703,7 +744,22 @@ private fun KStatusCard(
                             } else {
                                 navigator.navigate(AboutScreenDestination)
                             }
-                        }) {
+                        }
+                        .drawBackdrop(
+                            backdrop = emptyBackdrop(), //todo
+                            shape = { ContinuousRoundedRectangle(16.dp) },
+                            highlight = { Highlight(alpha = 0.25f) },
+                            effects = {
+                                vibrancy()
+                                blur(8.dp.toPx())
+                                lens(16.dp.toPx(), 32.dp.toPx())
+                            },
+                            onDrawSurface = {
+                                drawRect(
+                                    color = colorScheme.tertiaryContainer.copy(alpha = 0.25f),
+                                )
+                            }
+                        )) {
                     Column(
                         Modifier
                             .padding(12.dp)

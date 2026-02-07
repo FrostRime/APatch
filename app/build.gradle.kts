@@ -309,6 +309,7 @@ dependencies {
     implementation(libs.icons.tabler.filled.cmp)
 
     implementation(libs.backdrop)
+    implementation(libs.capsule)
 
     implementation(libs.ini4j)
 

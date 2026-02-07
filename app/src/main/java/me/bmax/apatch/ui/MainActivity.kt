@@ -20,6 +20,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -83,8 +84,10 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.colorControls
 import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.opacity
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
+import com.kyant.capsule.ContinuousCapsule
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -304,6 +307,9 @@ fun MainScreen(navigator: DestinationsNavigator) {
                 }
             },
             visible = isBottomBarVisible,
+            showBottomBar = {
+                isBottomBarVisible = true
+            },
             backdrop = backdrop
         )
     }
@@ -316,6 +322,7 @@ private fun FloatingBottomBar(
     currentPage: Int,
     onPageSelected: (Int) -> Unit,
     visible: Boolean,
+    showBottomBar: () -> Unit,
     backdrop: LayerBackdrop
 ) {
     val itemSize = 66.dp
@@ -390,14 +397,18 @@ private fun FloatingBottomBar(
                 scaleY = barScale
             )
             .width(intrinsicSize = IntrinsicSize.Min)
-            .pointerInput(Unit) {
+            .pointerInput(visible) {
                 detectTapGestures(
                     onTap = { offset ->
-                        coroutineScope.launch {
-                            val page = (offset.x.toDp() / itemSize)
-                                .toInt()
-                                .coerceIn(0, updatedVisibleDestinations.size - 1)
-                            animateRelease(page)
+                        if (visible) {
+                            coroutineScope.launch {
+                                val page = (offset.x.toDp() / itemSize)
+                                    .toInt()
+                                    .coerceIn(0, updatedVisibleDestinations.size - 1)
+                                animateRelease(page)
+                            }
+                        } else {
+                            showBottomBar()
                         }
                     },
                 )
@@ -409,21 +420,25 @@ private fun FloatingBottomBar(
                     .padding(4.dp)
                     .width(updatedVisibleDestinations.size * itemSize + 8.dp)
                     .height(itemSize / 1.25f * (1 - (indicatorScale - 1) / 4) + 8.dp)
-                    .layerBackdrop(barLayerBackdrop)
-                    .drawBackdrop(
-                        backdrop = backdrop,
-                        highlight = { Highlight(alpha = 0.25f) },
-                        shape = { CircleShape },
-                        effects = {
-                            vibrancy()
-                            colorControls(brightness = 0.2f)
-                            blur(8f.dp.toPx())
-                            lens(16.dp.toPx(), 32.dp.toPx())
-                        },
-                        onDrawSurface = { drawRect(background) }
-                    ),
+                    .layerBackdrop(barLayerBackdrop),
                 contentAlignment = Alignment.Center
             ) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .drawBackdrop(
+                            backdrop = backdrop,
+                            highlight = { Highlight(alpha = 0.25f) },
+                            shape = { ContinuousCapsule },
+                            effects = {
+                                vibrancy()
+                                colorControls(brightness = 0.2f)
+                                opacity(indicatorAlpha)
+                                blur(8f.dp.toPx())
+                                lens(16.dp.toPx(), 32.dp.toPx())
+                            },
+                            onDrawSurface = { drawRect(background) }
+                        ))
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
@@ -442,118 +457,105 @@ private fun FloatingBottomBar(
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp)
-                    .pointerInput(Unit) {
-                        detectDragGestures(
-                            onDragStart = { _ ->
-                                coroutineScope.launch {
-                                    isDragging = true
-                                    animatePressIn()
-                                }
-                            },
-                            onDrag = { _, dragAmount ->
-                                coroutineScope.launch {
-                                    val newOffset =
-                                        indicatorOffset.value + dragAmount.x.toDp()
-                                    val clampedOffset = newOffset.coerceIn(
-                                        0.dp,
-                                        (updatedVisibleDestinations.size - 1) * itemSize
-                                    )
-                                    indicatorOffset.snapTo(clampedOffset)
-                                }
-                            },
-                            onDragEnd = {
-                                coroutineScope.launch {
-                                    val targetPage =
-                                        ((indicatorOffset.value + itemSize / 2) / itemSize)
-                                            .toInt()
-                                            .coerceIn(
-                                                0,
-                                                updatedVisibleDestinations.size - 1
-                                            )
-
-                                    animateRelease(targetPage)
-                                    indicatorOffset.animateTo(
-                                        targetPage * itemSize,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        )
-                                    )
-                                }
-                            },
-                            onDragCancel = {
-                                coroutineScope.launch {
-                                    val targetPage =
-                                        ((indicatorOffset.value + itemSize / 2) / itemSize)
-                                            .toInt()
-                                            .coerceIn(
-                                                0,
-                                                updatedVisibleDestinations.size - 1
-                                            )
-                                    animateRelease(targetPage)
-                                    indicatorOffset.animateTo(
-                                        targetPage * itemSize,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        )
-                                    )
-                                }
-                            }
-                        )
-                    }) {
-                Box(
+            if (visible) {
+                Row(
                     modifier = Modifier
-                        .offset(x = indicatorOffset.value - itemSize / 2 * (indicatorScale - 1))
-                        .width(itemSize * indicatorScale)
-                        .height(itemSize / 1.25f * indicatorScale)
-                ) {
+                        .fillMaxWidth()
+                        .padding(start = 8.dp)
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { _ ->
+                                    coroutineScope.launch {
+                                        isDragging = true
+                                        animatePressIn()
+                                    }
+                                },
+                                onDrag = { _, dragAmount ->
+                                    coroutineScope.launch {
+                                        val newOffset =
+                                            indicatorOffset.value + dragAmount.x.toDp()
+                                        val clampedOffset = newOffset.coerceIn(
+                                            0.dp,
+                                            (updatedVisibleDestinations.size - 1) * itemSize
+                                        )
+                                        indicatorOffset.snapTo(clampedOffset)
+                                    }
+                                },
+                                onDragEnd = {
+                                    coroutineScope.launch {
+                                        val targetPage =
+                                            ((indicatorOffset.value + itemSize / 2) / itemSize)
+                                                .toInt()
+                                                .coerceIn(
+                                                    0,
+                                                    updatedVisibleDestinations.size - 1
+                                                )
+
+                                        animateRelease(targetPage)
+                                        indicatorOffset.animateTo(
+                                            targetPage * itemSize,
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessLow
+                                            )
+                                        )
+                                    }
+                                },
+                                onDragCancel = {
+                                    coroutineScope.launch {
+                                        val targetPage =
+                                            ((indicatorOffset.value + itemSize / 2) / itemSize)
+                                                .toInt()
+                                                .coerceIn(
+                                                    0,
+                                                    updatedVisibleDestinations.size - 1
+                                                )
+                                        animateRelease(targetPage)
+                                        indicatorOffset.animateTo(
+                                            targetPage * itemSize,
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessLow
+                                            )
+                                        )
+                                    }
+                                }
+                            )
+                        }) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(
-                                alpha = (1 - indicatorState) * indicatorAlpha,
-                            )
-                            .drawBackdrop(
-                                backdrop = barLayerBackdrop,
-                                highlight = { Highlight(alpha = indicatorHighlight) },
-                                shape = { CircleShape },
-                                effects = {
-                                    vibrancy()
-                                },
-                                onDrawSurface = { drawRect(sliderBackground) }
-                            )
-                            .alpha(1 - indicatorState),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(
-                                alpha = indicatorState * indicatorAlpha,
-                            )
-                            .drawBackdrop(
-                                backdrop = backdrop,
-                                highlight = { Highlight(alpha = indicatorHighlight) },
-                                shape = { CircleShape },
-                                effects = {
-                                    lens(8.dp.toPx(), 32.dp.toPx())
-                                },
-                            )
-                            .drawBackdrop(
-                                backdrop = barLayerBackdrop,
-                                highlight = null,
-                                shape = { CircleShape },
-                                effects = {
-                                    vibrancy()
-                                    lens(8.dp.toPx(), 32.dp.toPx())
-                                },
-                                onDrawSurface = { drawRect(sliderBackground) }
-                            )
-                    )
+                            .offset(x = indicatorOffset.value - itemSize / 2 * (indicatorScale - 1))
+                            .width(itemSize * indicatorScale)
+                            .height(itemSize / 1.25f * indicatorScale)
+                            .clip(CircleShape)
+                            .background(sliderBackground)
+
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .drawBackdrop(
+                                    backdrop = backdrop,
+                                    highlight = { Highlight(alpha = indicatorHighlight) },
+                                    shape = { ContinuousCapsule },
+                                    effects = {
+                                        opacity(indicatorState * indicatorAlpha)
+                                        lens(8.dp.toPx(), 32.dp.toPx())
+                                    },
+                                )
+                                .drawBackdrop(
+                                    backdrop = barLayerBackdrop,
+                                    highlight = null,
+                                    shape = { ContinuousCapsule },
+                                    effects = {
+                                        vibrancy()
+                                        opacity(indicatorState * indicatorAlpha)
+                                        lens(8.dp.toPx(), 32.dp.toPx())
+                                    },
+                                    onDrawSurface = { drawRect(sliderBackground) }
+                                )
+                        )
+                    }
                 }
             }
         }
@@ -609,7 +611,7 @@ private fun FloatingBottomBarItem(
             .size(itemWidth, itemWidth / 1.25f)
             .padding(backgroundAlpha * 4.dp)
             .padding(horizontal = backgroundAlpha * 6.dp)
-            .clip(CircleShape)
+            .clip(ContinuousCapsule)
             .alpha(iconAlpha),
         contentAlignment = Alignment.Center
     ) {
@@ -640,7 +642,7 @@ private fun FloatingBottomBarItem(
                 .drawBackdrop(
                     backdrop = backdrop,
                     highlight = null,
-                    shape = { CircleShape },
+                    shape = { ContinuousCapsule },
                     effects = {
                         blur(8.dp.toPx())
                         lens(16.dp.toPx(), 32.dp.toPx())
