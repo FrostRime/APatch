@@ -15,7 +15,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -27,9 +26,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -61,7 +61,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -342,8 +341,8 @@ private fun FloatingBottomBar(
         animationSpec = tween(durationMillis = 150)
     )
 
-    val indicatorBlur by animateDpAsState(
-        targetValue = if (isPressed) 0.dp else 8.dp,
+    val indicatorState by animateFloatAsState(
+        targetValue = if (isPressed) 1f else 0f,
         animationSpec = tween(durationMillis = 150)
     )
 
@@ -380,19 +379,37 @@ private fun FloatingBottomBar(
         MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
 
     val sliderBackground =
-        MaterialTheme.colorScheme.onSurface.copy(0.1f).compositeOver(background)
+        MaterialTheme.colorScheme.onSurface.copy(0.1f)
+
+    val barLayerBackdrop = rememberLayerBackdrop()
 
     Box(
-        modifier = Modifier.graphicsLayer(
-            scaleX = barScale,
-            scaleY = barScale
-        ), contentAlignment = Alignment.CenterStart
+        modifier = Modifier
+            .graphicsLayer(
+                scaleX = barScale,
+                scaleY = barScale
+            )
+            .width(intrinsicSize = IntrinsicSize.Min)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { offset ->
+                        coroutineScope.launch {
+                            val page = (offset.x.toDp() / itemSize)
+                                .toInt()
+                                .coerceIn(0, updatedVisibleDestinations.size - 1)
+                            animateRelease(page)
+                        }
+                    },
+                )
+            }, contentAlignment = Alignment.Center
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(
                 modifier = Modifier
+                    .padding(4.dp)
                     .width(updatedVisibleDestinations.size * itemSize + 8.dp)
                     .height(itemSize / 1.25f * (1 - (indicatorScale - 1) / 4) + 8.dp)
+                    .layerBackdrop(barLayerBackdrop)
                     .drawBackdrop(
                         backdrop = backdrop,
                         highlight = { Highlight(alpha = 0.25f) },
@@ -404,101 +421,9 @@ private fun FloatingBottomBar(
                             lens(16.dp.toPx(), 32.dp.toPx())
                         },
                         onDrawSurface = { drawRect(background) }
-                    )
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .padding(4.dp)
-                        .matchParentSize()
-                        .pointerInput(coroutineScope) {
-                            detectTapGestures(
-                                onTap = { offset ->
-                                    coroutineScope.launch {
-                                        val page = (offset.x.toDp() / itemSize)
-                                            .toInt()
-                                            .coerceIn(0, updatedVisibleDestinations.size - 1)
-                                        animateRelease(page)
-                                    }
-                                },
-                            )
-                        }
-                        .pointerInput(coroutineScope) {
-                            detectDragGestures(
-                                onDragStart = { _ ->
-                                    coroutineScope.launch {
-                                        isDragging = true
-                                        animatePressIn()
-                                    }
-                                },
-                                onDrag = { _, dragAmount ->
-                                    coroutineScope.launch {
-                                        val newOffset =
-                                            indicatorOffset.value + dragAmount.x.toDp()
-                                        val clampedOffset = newOffset.coerceIn(
-                                            0.dp,
-                                            (updatedVisibleDestinations.size - 1) * itemSize
-                                        )
-                                        indicatorOffset.snapTo(clampedOffset)
-                                    }
-                                },
-                                onDragEnd = {
-                                    coroutineScope.launch {
-                                        val targetPage =
-                                            ((indicatorOffset.value + itemSize / 2) / itemSize)
-                                                .toInt()
-                                                .coerceIn(
-                                                    0,
-                                                    updatedVisibleDestinations.size - 1
-                                                )
-
-                                        animateRelease(targetPage)
-                                        indicatorOffset.animateTo(
-                                            targetPage * itemSize,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessLow
-                                            )
-                                        )
-                                    }
-                                },
-                                onDragCancel = {
-                                    coroutineScope.launch {
-                                        isDragging = false
-                                        isPressed = false
-                                    }
-                                }
-                            )
-                        }
-                )
-            }
-
-            Row(modifier = Modifier.alpha(indicatorAlpha)) {
-                Spacer(Modifier.width(4.dp))
-                Box(
-                    modifier = Modifier
-                        .offset(x = indicatorOffset.value)
-                        .width(itemSize)
-                        .height(itemSize / 1.25f)
-                        .graphicsLayer(
-                            scaleX = indicatorScale,
-                            scaleY = indicatorScale
-                        )
-                        .drawBackdrop(
-                            backdrop = backdrop,
-                            highlight = { Highlight(alpha = indicatorHighlight) },
-                            shape = { CircleShape },
-                            effects = {
-                                vibrancy()
-                                colorControls(brightness = 0.2f)
-                                blur(indicatorBlur.toPx())
-                                lens(16.dp.toPx(), 32.dp.toPx())
-                            },
-                            onDrawSurface = { drawRect(sliderBackground) }
-                        ),
-                )
-            }
-
-            if (updatedVisibleDestinations.size > 10) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
@@ -515,19 +440,120 @@ private fun FloatingBottomBar(
                         }
                     }
                 }
-            } else {
-                Row {
-                    Spacer(Modifier.width(4.dp))
-                    updatedVisibleDestinations.forEachIndexed { index, destination ->
-                        FloatingBottomBarItem(
-                            destination = destination,
-                            sliderOffset = indicatorOffset.value,
-                            visible = visible,
-                            itemWidth = itemSize,
-                            backdrop = backdrop,
-                            index = index
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp)
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { _ ->
+                                coroutineScope.launch {
+                                    isDragging = true
+                                    animatePressIn()
+                                }
+                            },
+                            onDrag = { _, dragAmount ->
+                                coroutineScope.launch {
+                                    val newOffset =
+                                        indicatorOffset.value + dragAmount.x.toDp()
+                                    val clampedOffset = newOffset.coerceIn(
+                                        0.dp,
+                                        (updatedVisibleDestinations.size - 1) * itemSize
+                                    )
+                                    indicatorOffset.snapTo(clampedOffset)
+                                }
+                            },
+                            onDragEnd = {
+                                coroutineScope.launch {
+                                    val targetPage =
+                                        ((indicatorOffset.value + itemSize / 2) / itemSize)
+                                            .toInt()
+                                            .coerceIn(
+                                                0,
+                                                updatedVisibleDestinations.size - 1
+                                            )
+
+                                    animateRelease(targetPage)
+                                    indicatorOffset.animateTo(
+                                        targetPage * itemSize,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    )
+                                }
+                            },
+                            onDragCancel = {
+                                coroutineScope.launch {
+                                    val targetPage =
+                                        ((indicatorOffset.value + itemSize / 2) / itemSize)
+                                            .toInt()
+                                            .coerceIn(
+                                                0,
+                                                updatedVisibleDestinations.size - 1
+                                            )
+                                    animateRelease(targetPage)
+                                    indicatorOffset.animateTo(
+                                        targetPage * itemSize,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    )
+                                }
+                            }
                         )
-                    }
+                    }) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = indicatorOffset.value - itemSize / 2 * (indicatorScale - 1))
+                        .width(itemSize * indicatorScale)
+                        .height(itemSize / 1.25f * indicatorScale)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                alpha = (1 - indicatorState) * indicatorAlpha,
+                            )
+                            .drawBackdrop(
+                                backdrop = barLayerBackdrop,
+                                highlight = { Highlight(alpha = indicatorHighlight) },
+                                shape = { CircleShape },
+                                effects = {
+                                    vibrancy()
+                                },
+                                onDrawSurface = { drawRect(sliderBackground) }
+                            )
+                            .alpha(1 - indicatorState),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                alpha = indicatorState * indicatorAlpha,
+                            )
+                            .drawBackdrop(
+                                backdrop = backdrop,
+                                highlight = { Highlight(alpha = indicatorHighlight) },
+                                shape = { CircleShape },
+                                effects = {
+                                    lens(8.dp.toPx(), 32.dp.toPx())
+                                },
+                            )
+                            .drawBackdrop(
+                                backdrop = barLayerBackdrop,
+                                highlight = null,
+                                shape = { CircleShape },
+                                effects = {
+                                    vibrancy()
+                                    lens(8.dp.toPx(), 32.dp.toPx())
+                                },
+                                onDrawSurface = { drawRect(sliderBackground) }
+                            )
+                    )
                 }
             }
         }
@@ -576,7 +602,7 @@ private fun FloatingBottomBarItem(
         targetValue = if (visible) 0.0f else 1f,
     )
 
-    val iconAlpha = 0.7f + 0.3f * highlightStrength
+    val iconAlpha = 0.5f + 0.2f * highlightStrength
 
     Box(
         modifier = Modifier
