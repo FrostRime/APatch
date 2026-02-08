@@ -11,35 +11,23 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -60,33 +48,19 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.times
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.rememberNavController
 import coil.Coil
 import coil.ImageLoader
-import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.colorControls
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.opacity
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
 import com.kyant.capsule.ContinuousCapsule
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
@@ -98,6 +72,8 @@ import com.ramcosta.composedestinations.rememberNavHostEngine
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import kotlinx.coroutines.launch
 import me.bmax.apatch.APApplication
+import me.bmax.apatch.ui.component.LiquidBottomTab
+import me.bmax.apatch.ui.component.LiquidBottomTabs
 import me.bmax.apatch.ui.screen.APModuleScreen
 import me.bmax.apatch.ui.screen.BottomBarDestination
 import me.bmax.apatch.ui.screen.HomeScreen
@@ -110,8 +86,6 @@ import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
 import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
 
@@ -197,14 +171,21 @@ fun MainScreen(navigator: DestinationsNavigator) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady = state == APApplication.State.ANDROIDPATCH_INSTALLED
-    val visibleDestinations = remember(state) {
-        BottomBarDestination.entries.filter { destination ->
-            !(destination.kPatchRequired && !kPatchReady) && !(destination.aPatchRequired && !aPatchReady)
-        }.toSet()
+    val visibleDestinations by remember(kPatchReady, aPatchReady) {
+        derivedStateOf {
+            BottomBarDestination.entries.filter { destination ->
+                !(destination.kPatchRequired && !kPatchReady) &&
+                        !(destination.aPatchRequired && !aPatchReady)
+            }.toSet()
+        }
+    }
+
+    val visibleDestinationsSize = remember(visibleDestinations.size) {
+        visibleDestinations.size
     }
 
     val pagerState = rememberPagerState(
-        pageCount = { visibleDestinations.size }
+        pageCount = { visibleDestinationsSize }
     )
     val coroutineScope = rememberCoroutineScope()
     var isBottomBarVisible by remember { mutableStateOf(true) }
@@ -237,7 +218,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
     }
 
     LaunchedEffect(visibleDestinations) {
-        if (pagerState.currentPage >= visibleDestinations.size) {
+        if (pagerState.currentPage >= visibleDestinationsSize) {
             pagerState.animateScrollToPage(0)
         }
     }
@@ -294,363 +275,96 @@ fun MainScreen(navigator: DestinationsNavigator) {
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 56.dp),
+            .fillMaxHeight()
+            .padding(bottom = 56.dp)
+            .padding(horizontal = 32.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        FloatingBottomBar(
-            visibleDestinations = visibleDestinations,
-            currentPage = pagerState.currentPage,
-            onPageSelected = { page ->
-                coroutineScope.launch {
-                    pagerState.animateScrollToPage(page)
-                }
-            },
-            visible = isBottomBarVisible,
-            showBottomBar = {
-                isBottomBarVisible = true
-            },
-            backdrop = backdrop
-        )
-    }
-}
-
-@Suppress("AssignedValueIsNeverRead")
-@Composable
-private fun FloatingBottomBar(
-    visibleDestinations: Set<BottomBarDestination>,
-    currentPage: Int,
-    onPageSelected: (Int) -> Unit,
-    visible: Boolean,
-    showBottomBar: () -> Unit,
-    backdrop: LayerBackdrop
-) {
-    val itemSize = 66.dp
-    val coroutineScope = rememberCoroutineScope()
-
-    val barScale by animateFloatAsState(
-        targetValue = if (visible) 1f else 0.2f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-    )
-
-    var isPressed by remember { mutableStateOf(false) }
-    var isDragging by remember { mutableStateOf(false) }
-
-    val indicatorOffset = remember { Animatable(0.dp, Dp.VectorConverter) }
-
-    val indicatorScale by animateFloatAsState(
-        targetValue = if (isPressed) 1.5f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-    )
-
-    val indicatorHighlight by animateFloatAsState(
-        targetValue = if (isPressed) 0.25f else 0f,
-        animationSpec = tween(durationMillis = 150)
-    )
-
-    val indicatorState by animateFloatAsState(
-        targetValue = if (isPressed) 1f else 0f,
-        animationSpec = tween(durationMillis = 150)
-    )
-
-    val indicatorAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f, animationSpec = tween(durationMillis = 150)
-    )
-
-    val updatedOnPageSelected by rememberUpdatedState(onPageSelected)
-    val updatedVisibleDestinations by rememberUpdatedState(visibleDestinations)
-
-    LaunchedEffect(currentPage) {
-        if (!isDragging) {
-            indicatorOffset.animateTo(
-                targetValue = currentPage * itemSize,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
+        Box {
+            val barStateProgress by animateFloatAsState(
+                targetValue = if (isBottomBarVisible) 1f else 0f,
+                animationSpec = tween(250)
             )
-        }
-    }
-
-    fun animatePressIn() {
-        isPressed = true
-    }
-
-    fun animateRelease(targetPage: Int) {
-        isPressed = false
-        isDragging = false
-        updatedOnPageSelected(targetPage)
-    }
-
-    val background =
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-
-    val sliderBackground =
-        MaterialTheme.colorScheme.onSurface.copy(0.1f)
-
-    val barLayerBackdrop = rememberLayerBackdrop()
-
-    Box(
-        modifier = Modifier
-            .graphicsLayer(
-                scaleX = barScale,
-                scaleY = barScale
-            )
-            .width(intrinsicSize = IntrinsicSize.Min)
-            .pointerInput(visible) {
-                detectTapGestures(
-                    onTap = { offset ->
-                        if (visible) {
-                            coroutineScope.launch {
-                                val page = (offset.x.toDp() / itemSize)
-                                    .toInt()
-                                    .coerceIn(0, updatedVisibleDestinations.size - 1)
-                                animateRelease(page)
-                            }
-                        } else {
-                            showBottomBar()
-                        }
-                    },
+            LiquidBottomTabs(
+                selectedTabIndex = { pagerState.currentPage },
+                onTabSelected = { index ->
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(index)
+                    }
+                },
+                backdrop = backdrop,
+                tabsCount = visibleDestinationsSize,
+                modifier = Modifier.graphicsLayer(
+                    scaleY = barStateProgress * 0.85f + 0.15f,
+                    scaleX = barStateProgress * 0.85f + 0.15f,
+                    alpha = barStateProgress
                 )
-            }, contentAlignment = Alignment.Center
-    ) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .width(updatedVisibleDestinations.size * itemSize + 8.dp)
-                    .height(itemSize / 1.25f * (1 - (indicatorScale - 1) / 4) + 8.dp)
-                    .layerBackdrop(barLayerBackdrop),
-                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .drawBackdrop(
-                            backdrop = backdrop,
-                            highlight = { Highlight(alpha = 0.25f) },
-                            shape = { ContinuousCapsule },
-                            effects = {
-                                vibrancy()
-                                colorControls(brightness = 0.2f)
-                                opacity(indicatorAlpha)
-                                blur(8f.dp.toPx())
-                                lens(16.dp.toPx(), 32.dp.toPx())
-                            },
-                            onDrawSurface = { drawRect(background) }
-                        ))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    items(updatedVisibleDestinations.size) { index ->
-                        visibleDestinations.elementAtOrNull(index)?.let {
-                            FloatingBottomBarItem(
-                                destination = it,
-                                sliderOffset = indicatorOffset.value,
-                                visible = visible,
-                                itemWidth = itemSize,
-                                backdrop = backdrop,
-                                index = index
+                repeat(visibleDestinationsSize) { index ->
+                    LiquidBottomTab({
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    }) {
+                        val destination = visibleDestinations.elementAtOrNull(index)
+                        if (destination != null) {
+                            Icon(
+                                modifier = Modifier
+                                    .size(28.dp),
+                                imageVector = destination.iconSelected,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = stringResource(id = destination.label),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .padding(horizontal = 4.dp)
+                                    .basicMarquee(),
                             )
                         }
                     }
                 }
             }
-
-            if (visible) {
+            if (barStateProgress < 0.25f) {
+                val selectedColor by rememberUpdatedState(MaterialTheme.colorScheme.onSurface)
+                val unselectedColor by rememberUpdatedState(MaterialTheme.colorScheme.outline)
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 8.dp)
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = { _ ->
-                                    coroutineScope.launch {
-                                        isDragging = true
-                                        animatePressIn()
-                                    }
-                                },
-                                onDrag = { _, dragAmount ->
-                                    coroutineScope.launch {
-                                        val newOffset =
-                                            indicatorOffset.value + dragAmount.x.toDp()
-                                        val clampedOffset = newOffset.coerceIn(
-                                            0.dp,
-                                            (updatedVisibleDestinations.size - 1) * itemSize
-                                        )
-                                        indicatorOffset.snapTo(clampedOffset)
-                                    }
-                                },
-                                onDragEnd = {
-                                    coroutineScope.launch {
-                                        val targetPage =
-                                            ((indicatorOffset.value + itemSize / 2) / itemSize)
-                                                .toInt()
-                                                .coerceIn(
-                                                    0,
-                                                    updatedVisibleDestinations.size - 1
-                                                )
-
-                                        animateRelease(targetPage)
-                                        indicatorOffset.animateTo(
-                                            targetPage * itemSize,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessLow
-                                            )
-                                        )
-                                    }
-                                },
-                                onDragCancel = {
-                                    coroutineScope.launch {
-                                        val targetPage =
-                                            ((indicatorOffset.value + itemSize / 2) / itemSize)
-                                                .toInt()
-                                                .coerceIn(
-                                                    0,
-                                                    updatedVisibleDestinations.size - 1
-                                                )
-                                        animateRelease(targetPage)
-                                        indicatorOffset.animateTo(
-                                            targetPage * itemSize,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessLow
-                                            )
-                                        )
-                                    }
-                                }
-                            )
-                        }) {
-                    Box(
-                        modifier = Modifier
-                            .offset(x = indicatorOffset.value - itemSize / 2 * (indicatorScale - 1))
-                            .width(itemSize * indicatorScale)
-                            .height(itemSize / 1.25f * indicatorScale)
-                            .clip(CircleShape)
-                            .background(sliderBackground)
-
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .drawBackdrop(
-                                    backdrop = backdrop,
-                                    highlight = { Highlight(alpha = indicatorHighlight) },
-                                    shape = { ContinuousCapsule },
-                                    effects = {
-                                        opacity(indicatorState * indicatorAlpha)
-                                        lens(8.dp.toPx(), 32.dp.toPx())
-                                    },
-                                )
-                                .drawBackdrop(
-                                    backdrop = barLayerBackdrop,
-                                    highlight = null,
-                                    shape = { ContinuousCapsule },
-                                    effects = {
-                                        vibrancy()
-                                        opacity(indicatorState * indicatorAlpha)
-                                        lens(8.dp.toPx(), 32.dp.toPx())
-                                    },
-                                    onDrawSurface = { drawRect(sliderBackground) }
-                                )
+                        .matchParentSize()
+                        .padding(4.dp)
+                        .graphicsLayer(
+                            scaleY = barStateProgress * 0.85f + 0.15f,
+                            scaleX = barStateProgress * 0.85f + 0.15f,
+                            alpha = 1 - barStateProgress
                         )
+                        .clip(ContinuousCapsule)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .clickable {
+                            isBottomBarVisible = true
+                        }
+                ) {
+                    visibleDestinations.forEachIndexed { index, _ ->
+                        val iconColor by animateColorAsState(
+                            targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
+                            animationSpec = tween(250)
+                        )
+                        LiquidBottomTab(
+                            {},
+                            modifier = Modifier
+                                .aspectRatio(1f, true)
+                                .padding(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(iconColor)
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun FloatingBottomBarItem(
-    destination: BottomBarDestination,
-    visible: Boolean,
-    sliderOffset: Dp,
-    itemWidth: Dp,
-    backdrop: LayerBackdrop,
-    index: Int
-) {
-    val sliderEnd = sliderOffset + itemWidth
-    val itemStart = index * itemWidth
-    val itemEnd = (index + 1) * itemWidth
-
-    val overlapStart = max(sliderOffset.value, itemStart.value)
-    val overlapEnd = min(sliderEnd.value, itemEnd.value)
-    val overlapLength = max(0f, overlapEnd - overlapStart)
-    val overlapRatio = overlapLength / itemWidth.value
-
-    val highlightStrength by animateFloatAsState(
-        targetValue = overlapRatio.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 100, easing = FastOutSlowInEasing),
-        label = "highlightStrengthAnimation"
-    )
-
-    val selectedColor by rememberUpdatedState(MaterialTheme.colorScheme.primary)
-    val unselectedColor by rememberUpdatedState(MaterialTheme.colorScheme.onSurface)
-    val iconColor by remember {
-        derivedStateOf {
-            lerp(
-                unselectedColor,
-                selectedColor,
-                FastOutSlowInEasing.transform(highlightStrength)
-            )
-        }
-    }
-
-    val backgroundColor by rememberUpdatedState(MaterialTheme.colorScheme.outline)
-
-    val backgroundAlpha by animateFloatAsState(
-        targetValue = if (visible) 0.0f else 1f,
-    )
-
-    val iconAlpha = 0.5f + 0.2f * highlightStrength
-
-    Box(
-        modifier = Modifier
-            .size(itemWidth, itemWidth / 1.25f)
-            .padding(backgroundAlpha * 4.dp)
-            .padding(horizontal = backgroundAlpha * 6.dp)
-            .clip(ContinuousCapsule)
-            .alpha(iconAlpha),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = destination.iconSelected,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier
-                    .size(itemWidth / 3)
-            )
-            Text(
-                text = stringResource(id = destination.label),
-                style = MaterialTheme.typography.bodySmall,
-                color = iconColor,
-                modifier = Modifier
-                    .padding(4.dp)
-                    .basicMarquee(),
-            )
-        }
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .alpha(backgroundAlpha)
-                .drawBackdrop(
-                    backdrop = backdrop,
-                    highlight = null,
-                    shape = { ContinuousCapsule },
-                    effects = {
-                        blur(8.dp.toPx())
-                        lens(16.dp.toPx(), 32.dp.toPx())
-                    },
-                    onDrawSurface = {
-                        drawRect(backgroundColor)
-                    }
-                ),
-        )
     }
 }
