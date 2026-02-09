@@ -7,10 +7,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,17 +18,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -52,7 +47,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +58,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.outline.PackageImport
+import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -80,6 +75,7 @@ import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.KPModuleRemoveButton
+import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.component.ListItemData
 import me.bmax.apatch.ui.component.LoadingDialogHandle
 import me.bmax.apatch.ui.component.ModuleSettingsButton
@@ -102,7 +98,10 @@ private lateinit var targetKPMToControl: KPModel.KPMInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KPModuleScreen(navigator: DestinationsNavigator, isBottomBarVisible: Boolean) {
+fun KPModuleScreen(
+    navigator: DestinationsNavigator,
+    setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit
+) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     if (state == APApplication.State.UNKNOWN_STATE) {
         Column(
@@ -169,17 +168,8 @@ fun KPModuleScreen(navigator: DestinationsNavigator, isBottomBarVisible: Boolean
         if (viewModel.moduleList.isEmpty() || viewModel.isNeedRefresh) {
             viewModel.fetchModuleList()
         }
-    }
 
-    Scaffold(topBar = {
-        SearchAppBar(
-            searchText = viewModel.search,
-            onSearchTextChange = { viewModel.search = it },
-            scrollBehavior = scrollBehavior,
-            searchBarPlaceHolderText = stringResource(R.string.search_modules)
-        )
-    }, floatingActionButton = run {
-        {
+        setFab { backdrop ->
             val scope = rememberCoroutineScope()
             val context = LocalContext.current
 
@@ -253,72 +243,66 @@ fun KPModuleScreen(navigator: DestinationsNavigator, isBottomBarVisible: Boolean
             var expanded by remember { mutableStateOf(false) }
             val options = listOf(moduleEmbed, moduleInstall, moduleLoad)
 
-            AnimatedVisibility(
-                isBottomBarVisible,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Column(
-                    Modifier
-                        .padding(horizontal = 16.dp)
-                        .padding(vertical = 56.dp * 2)
+            Column {
+                LiquidButton(
+                    backdrop = backdrop,
+                    modifier = Modifier.size(56.dp),
+                    onClick = {
+                        expanded = !expanded
+                    },
+                    tint = MaterialTheme.colorScheme.primary,
                 ) {
-                    FloatingActionButton(
-                        shape = CircleShape,
-                        modifier = Modifier
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
-                                CircleShape
-                            )
-                            .alpha(0.8f),
-                        onClick = {
-                            expanded = !expanded
-                        },
-                        containerColor = MaterialTheme.colorScheme.primary,
+                    Icon(
+                        modifier = Modifier.size(28.dp),
+                        imageVector = Tabler.Outline.PackageImport,
+                        contentDescription = null
+                    )
+                }
+
+                ProvideMenuShape(MaterialTheme.shapes.medium) {
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        properties = PopupProperties(focusable = true)
                     ) {
-                        Icon(
-                            imageVector = Tabler.Outline.PackageImport,
-                            contentDescription = null
-                        )
-                    }
+                        options.forEach { label ->
+                            DropdownMenuItem(text = { Text(label) }, onClick = {
+                                expanded = false
+                                when (label) {
+                                    moduleEmbed -> {
+                                        navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_AND_INSTALL))
+                                    }
 
-                    ProvideMenuShape(MaterialTheme.shapes.medium) {
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            properties = PopupProperties(focusable = true)
-                        ) {
-                            options.forEach { label ->
-                                DropdownMenuItem(text = { Text(label) }, onClick = {
-                                    expanded = false
-                                    when (label) {
-                                        moduleEmbed -> {
-                                            navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_AND_INSTALL))
-                                        }
-
-                                        moduleInstall -> {
+                                    moduleInstall -> {
 //                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
 //                                        intent.type = "application/zip"
 //                                        selectZipLauncher.launch(intent)
-                                            val intent = Intent(Intent.ACTION_GET_CONTENT)
-                                            intent.type = "*/*"
-                                            selectKpmInstallLauncher.launch(intent)
-                                        }
-
-                                        moduleLoad -> {
-                                            val intent = Intent(Intent.ACTION_GET_CONTENT)
-                                            intent.type = "*/*"
-                                            selectKpmLauncher.launch(intent)
-                                        }
+                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
+                                        intent.type = "*/*"
+                                        selectKpmInstallLauncher.launch(intent)
                                     }
-                                })
-                            }
+
+                                    moduleLoad -> {
+                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
+                                        intent.type = "*/*"
+                                        selectKpmLauncher.launch(intent)
+                                    }
+                                }
+                            })
                         }
                     }
                 }
             }
         }
+    }
+
+    Scaffold(topBar = {
+        SearchAppBar(
+            searchText = viewModel.search,
+            onSearchTextChange = { viewModel.search = it },
+            scrollBehavior = scrollBehavior,
+            searchBarPlaceHolderText = stringResource(R.string.search_modules)
+        )
     }) { innerPadding ->
         val uiListData =
             remember(viewModel.moduleList, viewModel.installedModuleList, viewModel.search) {
@@ -584,4 +568,3 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
         )
     }
 }
-

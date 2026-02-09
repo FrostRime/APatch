@@ -36,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -69,6 +70,7 @@ import com.composables.icons.tabler.outline.DeviceFloppy
 import com.composables.icons.tabler.outline.Language
 import com.composables.icons.tabler.outline.ReportAnalytics
 import com.composables.icons.tabler.outline.Share
+import com.kyant.backdrop.backdrops.LayerBackdrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -93,7 +95,7 @@ import java.util.Locale
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SettingScreen() {
+fun SettingScreen(setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
@@ -109,6 +111,10 @@ fun SettingScreen() {
     }
 
     val snackBarHost = LocalSnackbarHost.current
+
+    LaunchedEffect(Unit) {
+        setFab {}
+    }
 
     Scaffold(
         topBar = {

@@ -1,5 +1,7 @@
 package me.bmax.apatch.ui.component
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -24,8 +27,11 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.capsule.ContinuousCapsule
 import me.bmax.apatch.util.InteractiveHighlight
+import me.bmax.apatch.util.rememberUISensor
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -49,6 +55,13 @@ fun LiquidButton(
             animationScope = animationScope
         )
     }
+
+    val uiSensor = rememberUISensor()
+
+    val highlightAngle by animateFloatAsState(
+        targetValue = uiSensor?.gravityAngle ?: 45f,
+        animationSpec = tween(400)
+    )
 
     Row(
         modifier
@@ -87,6 +100,15 @@ fun LiquidButton(
                     }
                 } else {
                     null
+                },
+                highlight = {
+                    val progress = interactiveHighlight.pressProgress
+                    Highlight(
+                        style = HighlightStyle.Default(
+                            angle = highlightAngle
+                        ),
+                        alpha = progress * 0.2f + 0.6f
+                    )
                 },
                 onDrawSurface = {
                     if (tint.isSpecified) {
