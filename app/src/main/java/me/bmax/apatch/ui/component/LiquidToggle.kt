@@ -42,7 +42,7 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousCapsule
 import kotlinx.coroutines.flow.collectLatest
-import me.bmax.apatch.util.DampedDragAnimation
+import me.bmax.apatch.util.ui.DampedDragAnimation
 
 @Suppress("AssignedValueIsNeverRead")
 @Composable

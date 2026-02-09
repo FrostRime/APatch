@@ -1,5 +1,4 @@
-package me.bmax.apatch.util
-
+package me.bmax.apatch.util.ui
 
 import android.graphics.RuntimeShader
 import android.os.Build
@@ -7,7 +6,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -96,9 +94,9 @@ half4 main(float2 coord) {
 
     val gestureModifier: Modifier =
         Modifier.pointerInput(animationScope) {
-            detectDragGestures(
+            inspectDragGestures(
                 onDragStart = { down ->
-                    startPosition = down
+                    startPosition = down.position
                     animationScope.launch {
                         launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
                         launch { positionAnimation.snapTo(startPosition) }

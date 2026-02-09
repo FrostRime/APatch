@@ -1,4 +1,4 @@
-package me.bmax.apatch.util
+package me.bmax.apatch.util.ui
 
 import android.content.Context
 import android.hardware.Sensor

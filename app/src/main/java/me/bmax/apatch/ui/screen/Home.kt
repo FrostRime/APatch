@@ -91,7 +91,6 @@ import com.composables.icons.tabler.outline.HelpCircle
 import com.composables.icons.tabler.outline.Refresh
 import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
-import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.emptyBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
@@ -109,6 +108,7 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
+import me.bmax.apatch.ui.FabProvider
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.WarningCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -125,13 +125,13 @@ private val managerVersion = getManagerVersion()
 @Composable
 fun HomeScreen(
     navigator: DestinationsNavigator,
-    setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit
+    setFab: FabProvider
 ) {
     val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
 
     LaunchedEffect(Unit) {
-        setFab {}
+        setFab(null)
     }
 
     Scaffold(

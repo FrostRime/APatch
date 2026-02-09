@@ -2,7 +2,6 @@ package me.bmax.apatch.ui.screen
 
 import android.content.pm.ApplicationInfo
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -60,16 +57,16 @@ import com.composables.icons.tabler.outline.LayoutGrid
 import com.composables.icons.tabler.outline.User
 import com.composables.icons.tabler.outline.UserCode
 import com.composables.icons.tabler.outline.UserX
-import com.kyant.backdrop.backdrops.LayerBackdrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
-import me.bmax.apatch.ui.component.LiquidButton
+import me.bmax.apatch.ui.Fab
+import me.bmax.apatch.ui.FabProvider
+import me.bmax.apatch.ui.MenuItem
 import me.bmax.apatch.ui.component.ListItemData
-import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UIList
 import me.bmax.apatch.ui.component.pinnedScrollBehavior
@@ -82,7 +79,7 @@ import me.bmax.apatch.util.ui.LocalSnackbarHost
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SuperUserScreen(setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit) {
+fun SuperUserScreen(setFab: FabProvider) {
     val viewModel = viewModel<SuperUserViewModel>()
     val scrollBehavior = pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
@@ -110,6 +107,12 @@ fun SuperUserScreen(setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit) {
         )
     }
 
+    val suRefresh = stringResource(R.string.su_refresh)
+    val suHideSystemApps = stringResource(R.string.su_hide_system_apps)
+    val suShowSystemApps = stringResource(R.string.su_show_system_apps)
+    val systemDefault = stringResource(R.string.system_default)
+    val settingsClearSuperKeyDialog = stringResource(R.string.settings_clear_super_key_dialog)
+
     LaunchedEffect(Unit) {
         if (kPatchReady && aPatchReady) {
             whiteListMode = getWhiteListMode()
@@ -118,74 +121,54 @@ fun SuperUserScreen(setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit) {
             viewModel.fetchAppList()
         }
 
-        setFab { backdrop ->
-            var expanded by remember { mutableStateOf(false) }
-            Column {
-                LiquidButton(
-                    backdrop = backdrop,
-                    modifier = Modifier.size(56.dp),
-                    onClick = {
-                        expanded = !expanded
-                    },
-                    tint = MaterialTheme.colorScheme.primary,
-                ) {
-                    Icon(
-                        modifier = Modifier.size(28.dp),
-                        imageVector = Tabler.Outline.UserCode,
-                        contentDescription = null
-                    )
-                }
+        resetSUAppsPhase = 0
+    }
 
-                ProvideMenuShape(MaterialTheme.shapes.medium) {
-                    DropdownMenu(expanded = expanded, onDismissRequest = {
-                        resetSUAppsPhase = 0
-                        expanded = false
-                    }) {
-                        DropdownMenuItem(text = {
-                            Text(stringResource(R.string.su_refresh))
-                        }, onClick = {
-                            scope.launch {
-                                viewModel.fetchAppList()
-                            }
-                            expanded = false
-                        })
-
-                        DropdownMenuItem(text = {
-                            Text(
-                                if (viewModel.showSystemApps) {
-                                    stringResource(R.string.su_hide_system_apps)
+    LaunchedEffect(Unit, resetSUAppsPhase, viewModel.showSystemApps) {
+        setFab(run {
+            Fab(
+                icon = Tabler.Outline.UserCode,
+                menuItems = (
+                        listOf(
+                            MenuItem(
+                                title = suRefresh,
+                                onClick = {
+                                    scope.launch {
+                                        viewModel.fetchAppList()
+                                    }
+                                }
+                            ),
+                            MenuItem(
+                                title = if (viewModel.showSystemApps) {
+                                    suHideSystemApps
                                 } else {
-                                    stringResource(R.string.su_show_system_apps)
+                                    suShowSystemApps
+                                },
+                                onClick = { viewModel.showSystemApps = !viewModel.showSystemApps }
+                            ),
+                            MenuItem(
+                                title = if (resetSUAppsPhase == 0) {
+                                    systemDefault
+                                } else {
+                                    settingsClearSuperKeyDialog
+                                },
+                                onClick = {
+                                    if (resetSUAppsPhase == 0) {
+                                        @Suppress("AssignedValueIsNeverRead")
+                                        resetSUAppsPhase++
+                                    } else {
+                                        setWhiteListMode(-1)
+                                        whiteListMode = -1
+                                        scope.launch { viewModel.resetAppList() }
+                                        @Suppress("AssignedValueIsNeverRead")
+                                        resetSUAppsPhase = 0
+                                    }
                                 }
                             )
-                        }, onClick = {
-                            viewModel.showSystemApps = !viewModel.showSystemApps
-                            expanded = false
-                        })
-
-                        DropdownMenuItem(text = {
-                            Text(
-                                if (resetSUAppsPhase == 0) {
-                                    stringResource(R.string.system_default)
-                                } else {
-                                    stringResource(R.string.settings_clear_super_key_dialog)
-                                }
-                            )
-                        }, onClick = {
-                            if (resetSUAppsPhase == 0) {
-                                resetSUAppsPhase++
-                            } else {
-                                expanded = false
-                                setWhiteListMode(-1)
-                                whiteListMode = -1
-                                scope.launch { viewModel.resetAppList() }
-                                resetSUAppsPhase = 0
-                            }
-                        })
-                    }
-                }
-            }
-        }
+                        )
+                        )
+            )
+        })
     }
 
     Scaffold(

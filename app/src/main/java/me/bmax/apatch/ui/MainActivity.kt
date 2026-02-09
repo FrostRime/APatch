@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
@@ -19,8 +20,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -29,8 +32,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -52,12 +58,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -65,10 +74,10 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.rememberNavController
 import coil.Coil
 import coil.ImageLoader
-import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.capsule.ContinuousCapsule
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -81,6 +90,7 @@ import kotlinx.coroutines.launch
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.ui.component.LiquidBottomTab
 import me.bmax.apatch.ui.component.LiquidBottomTabs
+import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.screen.APModuleScreen
 import me.bmax.apatch.ui.screen.BottomBarDestination
 import me.bmax.apatch.ui.screen.HomeScreen
@@ -93,8 +103,23 @@ import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
-typealias ScreenEntry = @Composable (DestinationsNavigator, (@Composable (LayerBackdrop) -> Unit) -> Unit) -> Unit
+typealias FabProvider = (Fab?) -> Unit
+typealias ScreenEntry = @Composable (DestinationsNavigator, FabProvider) -> Unit
+
+data class Fab(
+    val icon: ImageVector,
+    val menuItems: List<MenuItem>? = null,
+    val onClick: (() -> Unit)? = null,
+)
+
+data class MenuItem(
+    val icon: ImageVector? = null,
+    val title: String? = null,
+    val onClick: () -> Unit,
+)
 
 class MainActivity : AppCompatActivity() {
 
@@ -204,20 +229,26 @@ fun MainScreen(navigator: DestinationsNavigator) {
 
     val backdrop = rememberLayerBackdrop()
 
+    var fabExpanded by remember {
+        mutableStateOf(false)
+    }
+
     LaunchedEffect(Unit) {
         if (SuperUserViewModel.apps.isEmpty()) {
             SuperUserViewModel().fetchAppList()
         }
+        fabExpanded = false
     }
 
     LaunchedEffect(visibleDestinations) {
         if (pagerState.currentPage >= visibleDestinationsSize) {
             pagerState.animateScrollToPage(0)
         }
+        fabExpanded = false
     }
 
     val fabStates =
-        remember { mutableStateMapOf<BottomBarDestination, @Composable (LayerBackdrop) -> Unit>() }
+        remember { mutableStateMapOf<BottomBarDestination, Fab?>() }
 
     val screenRegistry: Map<BottomBarDestination, ScreenEntry> = mapOf(
         BottomBarDestination.Home to { nav, setFab ->
@@ -285,13 +316,6 @@ fun MainScreen(navigator: DestinationsNavigator) {
         }
     }
 
-    var currentPage by remember { mutableStateOf(pagerState.currentPage) }
-
-    LaunchedEffect(visibleDestinations) {
-        if (currentPage >= visibleDestinationsSize) {
-            currentPage = 0
-        }
-    }
     val barStateProgress by animateFloatAsState(
         targetValue = if (isBottomBarVisible) 1f else 0f,
         animationSpec = tween(250)
@@ -304,18 +328,116 @@ fun MainScreen(navigator: DestinationsNavigator) {
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
-            Box(Modifier.zIndex(1f)) {
-                visibleDestinations.elementAtOrNull(currentPage)
-                    ?.let { fabStates[it]?.invoke(backdrop) }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+            visibleDestinations.elementAtOrNull(pagerState.currentPage)
+                ?.let {
+                    fabStates[it]?.let { fab ->
+                        Column(
+                            modifier = Modifier.wrapContentWidth(),
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
+                        ) {
+                            if (fab.menuItems != null) {
+                                val alpha by animateFloatAsState(
+                                    targetValue = if (fabExpanded) 2f else 0f,
+                                    animationSpec = tween(500)
+                                )
+                                if (fabExpanded) {
+                                    LiquidButton(
+                                        backdrop = backdrop,
+                                        tint = MaterialTheme.colorScheme.surface,
+                                        modifier = Modifier
+                                            .zIndex(1f)
+                                            .alpha(min(alpha, 1f)),
+                                        shape = ContinuousRoundedRectangle(16.dp),
+                                        onClick = {
+                                        },
+                                        shadowAlpha = max(0f, alpha - 1)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .padding(horizontal = 16.dp)
+                                                .padding(vertical = 8.dp)
+                                                .width(IntrinsicSize.Max),
+                                            horizontalAlignment = Alignment.End
+                                        ) {
+                                            fab.menuItems.forEachIndexed { index, item ->
+                                                if (index > 0) {
+                                                    HorizontalDivider(
+                                                        color = MaterialTheme.colorScheme.outline.copy(
+                                                            alpha = 0.2f
+                                                        ),
+                                                        thickness = 1.dp,
+                                                    )
+                                                }
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 8.dp)
+                                                        .clickable(
+                                                            interactionSource = null,
+                                                            indication = null,
+                                                            role = Role.Button,
+                                                            onClick = {
+                                                                item.onClick()
+                                                                fabExpanded = false
+                                                            }
+                                                        ),
+                                                    horizontalArrangement = Arrangement.End) {
+                                                    item.icon?.let { imageVector ->
+                                                        Icon(
+                                                            imageVector = imageVector,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.onSurface,
+                                                        )
+                                                    }
+                                                    item.title?.let { text ->
+                                                        Text(
+                                                            text = text,
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            LiquidButton(
+                                backdrop = backdrop,
+                                modifier = Modifier.size(56.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                                shape = ContinuousCapsule,
+                                onClick = {
+                                    if (fab.menuItems == null) {
+                                        fab.onClick?.let { it1 -> it1() }
+                                    } else {
+                                        fabExpanded = !fabExpanded
+                                    }
+                                }
+                            ) {
+                                Crossfade(
+                                    targetState = fab.icon,
+                                    animationSpec = tween(500)
+                                ) { targetIcon ->
+                                    Icon(
+                                        imageVector = targetIcon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            Spacer(modifier = Modifier.height(32.dp * barStateProgress))
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxWidth()) {
                 if (barStateProgress >= 0.25f) {
                     LiquidBottomTabs(
-                        selectedTabIndex = { currentPage },
+                        selectedTabIndex = { pagerState.currentPage },
                         onTabSelected = { index ->
                             coroutineScope.launch {
-                                currentPage = index
+                                fabExpanded = false
                                 pagerState.animateScrollToPage(index)
                             }
                         },
@@ -330,7 +452,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
                         repeat(visibleDestinationsSize) { index ->
                             LiquidBottomTab({
                                 coroutineScope.launch {
-                                    currentPage = index
+                                    fabExpanded = false
                                     pagerState.animateScrollToPage(index)
                                 }
                             }) {
@@ -356,7 +478,8 @@ fun MainScreen(navigator: DestinationsNavigator) {
                         }
                     }
                 }
-                if (barStateProgress < 0.5f) {
+
+                if (!isBottomBarVisible || barStateProgress < 0.25f) {
                     val selectedColor by rememberUpdatedState(MaterialTheme.colorScheme.onSurface)
                     val unselectedColor by rememberUpdatedState(MaterialTheme.colorScheme.outline)
                     Row(

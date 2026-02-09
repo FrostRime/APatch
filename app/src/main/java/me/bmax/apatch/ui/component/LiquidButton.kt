@@ -7,8 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -17,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -29,9 +28,9 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.highlight.HighlightStyle
-import com.kyant.capsule.ContinuousCapsule
-import me.bmax.apatch.util.InteractiveHighlight
-import me.bmax.apatch.util.rememberUISensor
+import com.kyant.backdrop.shadow.Shadow
+import me.bmax.apatch.util.ui.InteractiveHighlight
+import me.bmax.apatch.util.ui.rememberUISensor
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -43,10 +42,12 @@ fun LiquidButton(
     onClick: () -> Unit,
     backdrop: Backdrop,
     modifier: Modifier = Modifier,
+    shape: Shape,
     isInteractive: Boolean = true,
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
-    content: @Composable RowScope.() -> Unit
+    shadowAlpha: Float = 1f,
+    content: @Composable RowScope.() -> Unit,
 ) {
     val animationScope = rememberCoroutineScope()
 
@@ -67,7 +68,7 @@ fun LiquidButton(
         modifier
             .drawBackdrop(
                 backdrop = backdrop,
-                shape = { ContinuousCapsule },
+                shape = { shape },
                 effects = {
                     vibrancy()
                     blur(2f.dp.toPx())
@@ -110,6 +111,11 @@ fun LiquidButton(
                         alpha = progress * 0.2f + 0.6f
                     )
                 },
+                shadow = {
+                    Shadow(
+                        alpha = shadowAlpha
+                    )
+                },
                 onDrawSurface = {
                     if (tint.isSpecified) {
                         drawRect(tint, blendMode = BlendMode.Hue)
@@ -134,9 +140,7 @@ fun LiquidButton(
                 } else {
                     Modifier
                 }
-            )
-            .height(48f.dp)
-            .padding(horizontal = 16f.dp),
+            ),
         horizontalArrangement = Arrangement.spacedBy(8f.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
         content = content

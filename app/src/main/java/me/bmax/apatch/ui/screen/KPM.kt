@@ -18,17 +18,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -54,11 +50,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.outline.PackageImport
-import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -73,13 +67,14 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
+import me.bmax.apatch.ui.Fab
+import me.bmax.apatch.ui.FabProvider
+import me.bmax.apatch.ui.MenuItem
 import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.KPModuleRemoveButton
-import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.component.ListItemData
 import me.bmax.apatch.ui.component.LoadingDialogHandle
 import me.bmax.apatch.ui.component.ModuleSettingsButton
-import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UIList
 import me.bmax.apatch.ui.component.pinnedScrollBehavior
@@ -100,7 +95,7 @@ private lateinit var targetKPMToControl: KPModel.KPMInfo
 @Composable
 fun KPModuleScreen(
     navigator: DestinationsNavigator,
-    setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit
+    setFab: FabProvider
 ) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     if (state == APApplication.State.UNKNOWN_STATE) {
@@ -164,119 +159,95 @@ fun KPModuleScreen(
         }
     }
 
+    val context = LocalContext.current
+
+    val moduleLoad = stringResource(id = R.string.kpm_load)
+    val moduleInstall = stringResource(id = R.string.kpm_install)
+    val moduleEmbed = stringResource(id = R.string.kpm_embed)
+    val successToastText = stringResource(id = R.string.kpm_load_toast_succ)
+    val failToastText = stringResource(id = R.string.kpm_load_toast_failed)
+
+    rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (it.resultCode != RESULT_OK) {
+            return@rememberLauncherForActivityResult
+        }
+        val data = it.data ?: return@rememberLauncherForActivityResult
+        val uri = data.data ?: return@rememberLauncherForActivityResult
+
+        Log.i(TAG, "select zip result: $uri")
+
+        navigator.navigate(InstallScreenDestination(uri, ModuleType.KPM))
+    }
+
+    val selectKpmLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (it.resultCode != RESULT_OK) {
+            return@rememberLauncherForActivityResult
+        }
+        val data = it.data ?: return@rememberLauncherForActivityResult
+        val uri = data.data ?: return@rememberLauncherForActivityResult
+
+        // todo: args
+        scope.launch {
+            val rc = loadModule(loadingDialog, uri, "")
+            val toastText = if (rc == 0) successToastText else "$failToastText: $rc"
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context, toastText, Toast.LENGTH_SHORT
+                ).show()
+            }
+            viewModel.markNeedRefresh()
+            viewModel.fetchModuleList()
+        }
+    }
+
+    val selectKpmInstallLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (it.resultCode != RESULT_OK) {
+            return@rememberLauncherForActivityResult
+        }
+        val data = it.data ?: return@rememberLauncherForActivityResult
+        val uri = data.data ?: return@rememberLauncherForActivityResult
+
+        // todo: args
+        scope.launch {
+            val rc = installModule(loadingDialog, uri, "") == 0
+            val toastText = if (rc) successToastText else failToastText
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context, toastText, Toast.LENGTH_SHORT
+                ).show()
+            }
+            viewModel.markNeedRefresh()
+            viewModel.fetchModuleList()
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (viewModel.moduleList.isEmpty() || viewModel.isNeedRefresh) {
             viewModel.fetchModuleList()
         }
 
-        setFab { backdrop ->
-            val scope = rememberCoroutineScope()
-            val context = LocalContext.current
-
-            val moduleLoad = stringResource(id = R.string.kpm_load)
-            val moduleInstall = stringResource(id = R.string.kpm_install)
-            val moduleEmbed = stringResource(id = R.string.kpm_embed)
-            val successToastText = stringResource(id = R.string.kpm_load_toast_succ)
-            val failToastText = stringResource(id = R.string.kpm_load_toast_failed)
-            val loadingDialog = rememberLoadingDialog()
-
-            rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) {
-                if (it.resultCode != RESULT_OK) {
-                    return@rememberLauncherForActivityResult
-                }
-                val data = it.data ?: return@rememberLauncherForActivityResult
-                val uri = data.data ?: return@rememberLauncherForActivityResult
-
-                Log.i(TAG, "select zip result: $uri")
-
-                navigator.navigate(InstallScreenDestination(uri, ModuleType.KPM))
-            }
-
-            val selectKpmLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) {
-                if (it.resultCode != RESULT_OK) {
-                    return@rememberLauncherForActivityResult
-                }
-                val data = it.data ?: return@rememberLauncherForActivityResult
-                val uri = data.data ?: return@rememberLauncherForActivityResult
-
-                // todo: args
-                scope.launch {
-                    val rc = loadModule(loadingDialog, uri, "")
-                    val toastText = if (rc == 0) successToastText else "$failToastText: $rc"
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context, toastText, Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    viewModel.markNeedRefresh()
-                    viewModel.fetchModuleList()
-                }
-            }
-
-            val selectKpmInstallLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) {
-                if (it.resultCode != RESULT_OK) {
-                    return@rememberLauncherForActivityResult
-                }
-                val data = it.data ?: return@rememberLauncherForActivityResult
-                val uri = data.data ?: return@rememberLauncherForActivityResult
-
-                // todo: args
-                scope.launch {
-                    val rc = installModule(loadingDialog, uri, "") == 0
-                    val toastText = if (rc) successToastText else failToastText
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context, toastText, Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    viewModel.markNeedRefresh()
-                    viewModel.fetchModuleList()
-                }
-            }
-
-            var expanded by remember { mutableStateOf(false) }
+        setFab(run {
             val options = listOf(moduleEmbed, moduleInstall, moduleLoad)
-
-            Column {
-                LiquidButton(
-                    backdrop = backdrop,
-                    modifier = Modifier.size(56.dp),
-                    onClick = {
-                        expanded = !expanded
-                    },
-                    tint = MaterialTheme.colorScheme.primary,
-                ) {
-                    Icon(
-                        modifier = Modifier.size(28.dp),
-                        imageVector = Tabler.Outline.PackageImport,
-                        contentDescription = null
-                    )
-                }
-
-                ProvideMenuShape(MaterialTheme.shapes.medium) {
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        properties = PopupProperties(focusable = true)
-                    ) {
-                        options.forEach { label ->
-                            DropdownMenuItem(text = { Text(label) }, onClick = {
-                                expanded = false
+            Fab(
+                icon = Tabler.Outline.PackageImport,
+                menuItems = (
+                        options.map { label ->
+                            MenuItem(title = label, onClick = {
                                 when (label) {
                                     moduleEmbed -> {
                                         navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_AND_INSTALL))
                                     }
 
                                     moduleInstall -> {
-//                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
-//                                        intent.type = "application/zip"
-//                                        selectZipLauncher.launch(intent)
+                                        //                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
+                                        //                                        intent.type = "application/zip"
+                                        //                                        selectZipLauncher.launch(intent)
                                         val intent = Intent(Intent.ACTION_GET_CONTENT)
                                         intent.type = "*/*"
                                         selectKpmInstallLauncher.launch(intent)
@@ -290,10 +261,9 @@ fun KPModuleScreen(
                                 }
                             })
                         }
-                    }
-                }
-            }
-        }
+                        )
+            )
+        })
     }
 
     Scaffold(topBar = {

@@ -54,9 +54,9 @@ import com.kyant.capsule.ContinuousCapsule
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
-import me.bmax.apatch.util.DampedDragAnimation
-import me.bmax.apatch.util.InteractiveHighlight
-import me.bmax.apatch.util.rememberUISensor
+import me.bmax.apatch.util.ui.DampedDragAnimation
+import me.bmax.apatch.util.ui.InteractiveHighlight
+import me.bmax.apatch.util.ui.rememberUISensor
 import kotlin.math.abs
 import kotlin.math.sign
 
@@ -152,13 +152,17 @@ fun LiquidBottomTabs(
                 }
         }
 
+        val currentDragValue by rememberUpdatedState(dampedDragAnimation.value)
+        val currentPanelOffset by rememberUpdatedState(panelOffset)
+        val currentTabWidth by rememberUpdatedState(tabWidth)
+
         val interactiveHighlight = remember(animationScope) {
             InteractiveHighlight(
                 animationScope = animationScope,
                 position = { size, _ ->
                     Offset(
-                        if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset
-                        else size.width - (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset,
+                        if (isLtr) (currentDragValue + 0.5f) * currentTabWidth + currentPanelOffset
+                        else size.width - (currentDragValue + 0.5f) * currentTabWidth + currentPanelOffset,
                         size.height / 2f
                     )
                 }

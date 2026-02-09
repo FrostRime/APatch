@@ -1,9 +1,8 @@
-package me.bmax.apatch.util
+package me.bmax.apatch.util.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.MutatorMutex
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -62,10 +61,10 @@ class DampedDragAnimation(
     val scaleY: Float get() = scaleYAnimation.value
     val velocity: Float get() = velocityAnimation.value
 
-    val modifier: Modifier = Modifier.pointerInput(valueRange) {
-        detectDragGestures(
+    val modifier: Modifier = Modifier.pointerInput(Unit) {
+        inspectDragGestures(
             onDragStart = { down ->
-                onDragStarted(down)
+                onDragStarted(down.position)
                 press()
             },
             onDragEnd = {

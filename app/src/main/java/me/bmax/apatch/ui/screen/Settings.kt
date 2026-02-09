@@ -70,13 +70,13 @@ import com.composables.icons.tabler.outline.DeviceFloppy
 import com.composables.icons.tabler.outline.Language
 import com.composables.icons.tabler.outline.ReportAnalytics
 import com.composables.icons.tabler.outline.Share
-import com.kyant.backdrop.backdrops.LayerBackdrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
+import me.bmax.apatch.ui.FabProvider
 import me.bmax.apatch.ui.component.SwitchItem
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
@@ -95,7 +95,7 @@ import java.util.Locale
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun SettingScreen(setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit) {
+fun SettingScreen(setFab: FabProvider) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady =
@@ -113,7 +113,7 @@ fun SettingScreen(setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit) {
     val snackBarHost = LocalSnackbarHost.current
 
     LaunchedEffect(Unit) {
-        setFab {}
+        setFab(null)
     }
 
     Scaffold(

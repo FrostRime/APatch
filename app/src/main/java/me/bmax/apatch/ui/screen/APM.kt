@@ -65,7 +65,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.PlayerPlay
 import com.composables.icons.tabler.outline.PackageImport
-import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.ramcosta.composedestinations.generated.destinations.ExecuteAPMActionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -76,9 +75,10 @@ import kotlinx.coroutines.withContext
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
+import me.bmax.apatch.ui.Fab
+import me.bmax.apatch.ui.FabProvider
 import me.bmax.apatch.ui.WebUIActivity
 import me.bmax.apatch.ui.component.ConfirmResult
-import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.component.ListItemData
 import me.bmax.apatch.ui.component.ModuleRemoveButton
 import me.bmax.apatch.ui.component.ModuleSettingsButton
@@ -103,7 +103,7 @@ import okhttp3.Request
 @Composable
 fun APModuleScreen(
     navigator: DestinationsNavigator,
-    setFab: (@Composable (LayerBackdrop) -> Unit) -> Unit
+    setFab: FabProvider
 ) {
     val snackBarHost = LocalSnackbarHost.current
     val context = LocalContext.current
@@ -162,41 +162,31 @@ fun APModuleScreen(
         navigator.navigate(InstallScreenDestination(uri, ModuleType.APM))
     }
 
+    val selectZipLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val uri = result.data?.data ?: return@rememberLauncherForActivityResult
+            navigator.navigate(InstallScreenDestination(uri, ModuleType.APM))
+            viewModel.markNeedRefresh()
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (viewModel.moduleList.isEmpty() || viewModel.isNeedRefresh) {
             viewModel.fetchModuleList()
         }
-        setFab { backdrop ->
-            if (hideInstallButton) return@setFab
-
-            val selectZipLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) { result ->
-                if (result.resultCode == RESULT_OK) {
-                    val uri = result.data?.data ?: return@rememberLauncherForActivityResult
-                    navigator.navigate(InstallScreenDestination(uri, ModuleType.APM))
-                    viewModel.markNeedRefresh()
-                }
-            }
-
-            LiquidButton(
-                backdrop = backdrop,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(56.dp),
+        setFab(if (hideInstallButton) null else run {
+            Fab(
+                icon = Tabler.Outline.PackageImport,
                 onClick = {
                     val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                         type = "application/zip"
                     }
                     selectZipLauncher.launch(intent)
                 }
-            ) {
-                Icon(
-                    modifier = Modifier.size(28.dp),
-                    imageVector = Tabler.Outline.PackageImport,
-                    contentDescription = null
-                )
-            }
-        }
+            )
+        })
     }
 
     suspend fun onModuleUpdate(
