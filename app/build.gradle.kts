@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.lsplugin.resopt)
     id("kotlin-parcelize")
     alias(libs.plugins.kotlin)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 val androidCompileSdkVersion: Int by rootProject.extra
@@ -296,6 +297,7 @@ dependencies {
     implementation(libs.io.coil.kt.coil.compose)
 
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.me.zhanghai.android.appiconloader.coil)
 

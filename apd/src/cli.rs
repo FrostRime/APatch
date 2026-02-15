@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 
 use crate::{defs, event, module, supercall, utils};
 
-pub static SUPERCALL: LazyLock<SuperCall> = LazyLock::new(|| SuperCall::new(0, 0, 0));
+pub static SUPERCALL: LazyLock<SuperCall> = LazyLock::new(|| SuperCall::new(0, 13, 0));
 
 /// APatch cli
 #[derive(Parser, Debug)]

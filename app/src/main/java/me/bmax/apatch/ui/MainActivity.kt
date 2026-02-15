@@ -49,6 +49,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -268,6 +269,16 @@ fun MainScreen(navigator: DestinationsNavigator) {
         }
     )
 
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(selectedTab) {
+        pagerState.animateScrollToPage(selectedTab)
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        selectedTab = pagerState.currentPage
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -434,11 +445,11 @@ fun MainScreen(navigator: DestinationsNavigator) {
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxWidth()) {
                 if (barStateProgress >= 0.25f) {
                     LiquidBottomTabs(
-                        selectedTabIndex = { pagerState.currentPage },
+                        selectedTabIndex = { selectedTab },
                         onTabSelected = { index ->
                             coroutineScope.launch {
                                 fabExpanded = false
-                                pagerState.animateScrollToPage(index)
+                                selectedTab = index
                             }
                         },
                         backdrop = backdrop,
@@ -453,7 +464,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
                             LiquidBottomTab({
                                 coroutineScope.launch {
                                     fabExpanded = false
-                                    pagerState.animateScrollToPage(index)
+                                    selectedTab = index
                                 }
                             }) {
                                 val destination = visibleDestinations.elementAtOrNull(index)

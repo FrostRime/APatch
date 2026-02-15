@@ -12,10 +12,28 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonIgnoreUnknownKeys
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.longOrNull
 import me.bmax.apatch.apApp
 import me.bmax.apatch.util.listModules
-import org.json.JSONArray
-import org.json.JSONObject
 import java.text.Collator
 import java.util.Locale
 
@@ -25,29 +43,35 @@ class APModuleViewModel : ViewModel() {
         private var modules by mutableStateOf<List<ModuleInfo>>(emptyList())
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
+    @Serializable
+    @JsonIgnoreUnknownKeys
     data class ModuleInfo(
-        val id: String,
-        val name: String,
-        val author: String,
-        val version: String,
-        val versionCode: Int,
-        val description: String,
-        val enabled: Boolean,
-        val update: Boolean,
-        val remove: Boolean,
-        val updateJson: String,
-        val hasWebUi: Boolean,
-        val hasActionScript: Boolean,
-        val metamodule: Boolean,
-        val updateInfo: ModuleUpdateInfo? = null,
+        @SerialName("id") val id: String,
+        @SerialName("name") val name: String = "",
+        @SerialName("author") val author: String = "Unknown",
+        @SerialName("version") val version: String = "Unknown",
+        @SerialName("versionCode") val versionCode: Int = 0,
+        @SerialName("description") val description: String = "",
+        @SerialName("enabled") @Serializable(with = BooleanCompatSerializer::class) val enabled: Boolean,
+        @SerialName("update") @Serializable(with = BooleanCompatSerializer::class) val update: Boolean,
+        @SerialName("remove") @Serializable(with = BooleanCompatSerializer::class) val remove: Boolean,
+        @SerialName("updateJson") val updateJson: String = "",
+        @SerialName("web") @Serializable(with = BooleanCompatSerializer::class) val hasWebUi: Boolean,
+        @SerialName("action") @Serializable(with = BooleanCompatSerializer::class) val hasActionScript: Boolean,
+        @SerialName("metamodule") @Serializable(with = BooleanCompatSerializer::class) val metamodule: Boolean = false,
+        @Transient val updateInfo: ModuleUpdateInfo? = null,
     )
 
+    @OptIn(ExperimentalSerializationApi::class)
+    @Serializable
+    @JsonIgnoreUnknownKeys
     @Suppress("unused")
     data class ModuleUpdateInfo(
-        val version: String,
-        val versionCode: Int,
-        val zipUrl: String,
-        val changelog: String,
+        @SerialName("version") @Serializable(with = SanitizedVersionSerializer::class) val version: String = "",
+        @SerialName("versionCode") val versionCode: Int = 0,
+        @SerialName("zipUrl") val zipUrl: String = "",
+        @SerialName("changelog") val changelog: String = "",
     )
 
     var search by mutableStateOf("")
@@ -90,25 +114,7 @@ class APModuleViewModel : ViewModel() {
                 }.getOrNull() ?: return@launch
 
             try {
-                val array = JSONArray(result)
-                val newModules = List(array.length()) { i ->
-                    val obj = array.getJSONObject(i)
-                    ModuleInfo(
-                        id = obj.getString("id"),
-                        name = obj.optString("name"),
-                        author = obj.optString("author", "Unknown"),
-                        version = obj.optString("version", "Unknown"),
-                        versionCode = obj.optInt("versionCode", 0),
-                        description = obj.optString("description"),
-                        enabled = obj.getBoolean("enabled"),
-                        update = obj.getBoolean("update"),
-                        remove = obj.getBoolean("remove"),
-                        updateJson = obj.optString("updateJson"),
-                        hasWebUi = obj.getBooleanCompat("web"),
-                        hasActionScript = obj.getBooleanCompat("action"),
-                        metamodule = obj.getBooleanCompat("metamodule")
-                    )
-                }
+                val newModules = Json.decodeFromString<List<ModuleInfo>>(result)
 
                 if (oldModules != newModules) modules = newModules
                 isNeedRefresh = false
@@ -138,10 +144,6 @@ class APModuleViewModel : ViewModel() {
         }
     }
 
-    private fun sanitizeVersionString(version: String): String {
-        return version.replace(Regex("[^a-zA-Z0-9.\\-_]"), "_")
-    }
-
     fun checkUpdate(m: ModuleInfo): ModuleUpdateInfo? {
         if (m.updateJson.isEmpty() || m.remove || m.update || !m.enabled) {
             return null
@@ -169,28 +171,65 @@ class APModuleViewModel : ViewModel() {
             return null
         }
 
-        val updateJson = kotlin.runCatching {
-            JSONObject(result)
-        }.getOrNull() ?: return null
-
-        val version = sanitizeVersionString(updateJson.optString("version", ""))
-        val versionCode = updateJson.optInt("versionCode", 0)
-        val zipUrl = updateJson.optString("zipUrl", "")
-        val changelog = updateJson.optString("changelog", "")
-        if (versionCode <= m.versionCode || zipUrl.isEmpty()) {
+        val updateInfo = try {
+            Json.decodeFromString<ModuleUpdateInfo>(result)
+        } catch (e: Exception) {
+            Log.e(TAG, "parse module update info failed", e)
             return null
         }
 
-        return ModuleUpdateInfo(version, versionCode, zipUrl, changelog)
+        if (updateInfo.versionCode <= m.versionCode || updateInfo.zipUrl.isEmpty()) {
+            return null
+        }
+
+        return updateInfo
     }
 }
 
-private fun JSONObject.getBooleanCompat(key: String, default: Boolean = false): Boolean {
-    if (!has(key)) return default
-    return when (val value = opt(key)) {
-        is Boolean -> value
-        is String -> value.equals("true", ignoreCase = true) || value == "1"
-        is Number -> value.toInt() != 0
-        else -> default
+private object BooleanCompatSerializer : KSerializer<Boolean> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("BooleanCompat", PrimitiveKind.BOOLEAN)
+
+    override fun deserialize(decoder: Decoder): Boolean {
+        val input = decoder as? JsonDecoder ?: return decoder.decodeBoolean()
+        return when (val element = input.decodeJsonElement()) {
+            is JsonPrimitive -> {
+                when {
+                    element.isString -> {
+                        val str = element.content.lowercase()
+                        str == "true" || str == "1"
+                    }
+
+                    element.booleanOrNull != null -> element.boolean
+                    element.intOrNull != null -> element.int != 0
+                    element.longOrNull != null -> element.long != 0L
+                    else -> false
+                }
+            }
+
+            else -> false
+        }
     }
+
+    override fun serialize(encoder: Encoder, value: Boolean) {
+        encoder.encodeBoolean(value)
+    }
+}
+
+private object SanitizedVersionSerializer : KSerializer<String> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("SanitizedVersion", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): String {
+        val original = decoder.decodeString()
+        return sanitizeVersionString(original)
+    }
+
+    override fun serialize(encoder: Encoder, value: String) {
+        encoder.encodeString(value)
+    }
+}
+
+private fun sanitizeVersionString(version: String): String {
+    return version.replace(Regex("[^a-zA-Z0-9.\\-_]"), "_")
 }
