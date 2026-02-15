@@ -120,7 +120,7 @@ class APModuleViewModel : ViewModel() {
                 if (oldModules != newModules) modules = newModules
                 isNeedRefresh = false
 
-                checkUpdateJob =  viewModelScope.launch {
+                checkUpdateJob = viewModelScope.launch {
                     val limitedDispatcher = Dispatchers.IO.limitedParallelism(4)
                     newModules.forEachIndexed { index, module ->
                         if (module.enabled && module.updateJson.isNotEmpty() && !module.update && !module.remove) {

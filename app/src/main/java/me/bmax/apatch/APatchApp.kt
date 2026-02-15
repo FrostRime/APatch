@@ -151,7 +151,6 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                 "chmod +x $KPTOOLS_BIN_PATH",
 
 
-
                 "touch $PACKAGE_CONFIG_FILE",
                 "touch $SU_PATH_FILE",
                 "[ -s $SU_PATH_FILE ] || echo $LEGACY_SU_PATH > $SU_PATH_FILE",

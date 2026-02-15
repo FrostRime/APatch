@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -17,6 +18,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -26,7 +29,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -346,109 +348,122 @@ fun MainScreen(navigator: DestinationsNavigator) {
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
+            var fab: Fab? by remember {
+                mutableStateOf(null)
+            }
             visibleDestinations.elementAtOrNull(pagerState.currentPage)
                 ?.let {
-                    fabStates[it]?.let { fab ->
-                        Column(
-                            modifier = Modifier.wrapContentWidth(),
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
-                        ) {
-                            if (fab.menuItems != null) {
-                                val alpha by animateFloatAsState(
-                                    targetValue = if (fabExpanded) 2f else 0f,
-                                    animationSpec = tween(500)
-                                )
-                                if (fabExpanded) {
-                                    LiquidButton(
-                                        backdrop = backdrop,
-                                        tint = MaterialTheme.colorScheme.surface,
-                                        modifier = Modifier
-                                            .zIndex(1f)
-                                            .alpha(min(alpha, 1f)),
-                                        shape = ContinuousRoundedRectangle(16.dp),
-                                        onClick = {
-                                        },
-                                        shadowAlpha = max(0f, alpha - 1)
-                                    ) {
-                                        Column(
+                    val currentFab = fabStates[it]
+                    AnimatedVisibility(
+                        visible = currentFab != null,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
+                    ) {
+                        currentFab?.let { currentFab ->
+                            fab = currentFab
+                        }
+                        fab?.let { fab ->
+                            Column(
+                                modifier = Modifier.wrapContentWidth(),
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
+                            ) {
+                                if (fab.menuItems != null) {
+                                    val alpha by animateFloatAsState(
+                                        targetValue = if (fabExpanded) 2f else 0f,
+                                        animationSpec = tween(500)
+                                    )
+                                    if (fabExpanded) {
+                                        LiquidButton(
+                                            backdrop = backdrop,
+                                            tint = MaterialTheme.colorScheme.surface,
                                             modifier = Modifier
-                                                .padding(horizontal = 16.dp)
-                                                .padding(vertical = 8.dp)
-                                                .width(IntrinsicSize.Max),
-                                            horizontalAlignment = Alignment.End
+                                                .zIndex(1f)
+                                                .alpha(min(alpha, 1f)),
+                                            shape = ContinuousRoundedRectangle(16.dp),
+                                            onClick = {
+                                            },
+                                            shadowAlpha = max(0f, alpha - 1)
                                         ) {
-                                            fab.menuItems.forEachIndexed { index, item ->
-                                                if (index > 0) {
-                                                    HorizontalDivider(
-                                                        color = MaterialTheme.colorScheme.outline.copy(
-                                                            alpha = 0.2f
-                                                        ),
-                                                        thickness = 1.dp,
-                                                    )
-                                                }
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(vertical = 8.dp)
-                                                        .clickable(
-                                                            interactionSource = null,
-                                                            indication = null,
-                                                            role = Role.Button,
-                                                            onClick = {
-                                                                item.onClick()
-                                                                fabExpanded = false
-                                                            }
-                                                        ),
-                                                    horizontalArrangement = Arrangement.End) {
-                                                    item.icon?.let { imageVector ->
-                                                        Icon(
-                                                            imageVector = imageVector,
-                                                            contentDescription = null,
-                                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            Column(
+                                                modifier = Modifier
+                                                    .padding(horizontal = 16.dp)
+                                                    .padding(vertical = 8.dp)
+                                                    .width(IntrinsicSize.Max),
+                                                horizontalAlignment = Alignment.End
+                                            ) {
+                                                fab.menuItems.forEachIndexed { index, item ->
+                                                    if (index > 0) {
+                                                        HorizontalDivider(
+                                                            color = MaterialTheme.colorScheme.outline.copy(
+                                                                alpha = 0.2f
+                                                            ),
+                                                            thickness = 1.dp,
                                                         )
                                                     }
-                                                    item.title?.let { text ->
-                                                        Text(
-                                                            text = text,
-                                                            color = MaterialTheme.colorScheme.onSurface,
-                                                        )
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(vertical = 8.dp)
+                                                            .clickable(
+                                                                interactionSource = null,
+                                                                indication = null,
+                                                                role = Role.Button,
+                                                                onClick = {
+                                                                    item.onClick()
+                                                                    fabExpanded = false
+                                                                }
+                                                            ),
+                                                        horizontalArrangement = Arrangement.End) {
+                                                        item.icon?.let { imageVector ->
+                                                            Icon(
+                                                                imageVector = imageVector,
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                            )
+                                                        }
+                                                        item.title?.let { text ->
+                                                            Text(
+                                                                text = text,
+                                                                color = MaterialTheme.colorScheme.onSurface,
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
-                            LiquidButton(
-                                backdrop = backdrop,
-                                modifier = Modifier.size(56.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                                shape = ContinuousCapsule,
-                                onClick = {
-                                    if (fab.menuItems == null) {
-                                        fab.onClick?.let { it1 -> it1() }
-                                    } else {
-                                        fabExpanded = !fabExpanded
+                                LiquidButton(
+                                    backdrop = backdrop,
+                                    modifier = Modifier.size(56.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    shape = ContinuousCapsule,
+                                    onClick = {
+                                        if (fab.menuItems == null) {
+                                            fab.onClick?.let { it1 -> it1() }
+                                        } else {
+                                            fabExpanded = !fabExpanded
+                                        }
                                     }
-                                }
-                            ) {
-                                Crossfade(
-                                    targetState = fab.icon,
-                                    animationSpec = tween(500)
-                                ) { targetIcon ->
-                                    Icon(
-                                        imageVector = targetIcon,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(28.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                    )
+                                ) {
+                                    Crossfade(
+                                        targetState = fab.icon,
+                                        animationSpec = tween(500)
+                                    ) { targetIcon ->
+                                        Icon(
+                                            imageVector = targetIcon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            Spacer(modifier = Modifier.height(32.dp * barStateProgress))
+            Spacer(modifier = Modifier.height(32.dp))
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxWidth()) {
                 if (barStateProgress >= 0.25f) {
                     LiquidBottomTabs(
@@ -522,7 +537,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
                             LiquidBottomTab(
                                 { isBottomBarVisible = true },
                                 modifier = Modifier
-                                    .aspectRatio(1f, true)
+                                    .size(28.dp)
                                     .padding(4.dp)
                             ) {
                                 Box(
