@@ -1,8 +1,5 @@
 package me.bmax.apatch.ui.component
 
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalContentColor
@@ -10,10 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import com.kyant.backdrop.backdrops.emptyBackdrop
 
 @Composable
@@ -22,20 +16,9 @@ fun SwitchItem(
     title: String,
     summary: String? = null,
     checked: Boolean,
-    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
     ListItem(
-        modifier = Modifier.toggleable(
-            value = checked,
-            interactionSource = interactionSource,
-            role = Role.Switch,
-            enabled = enabled,
-            indication = LocalIndication.current,
-            onValueChange = onCheckedChange
-        ),
         headlineContent = {
             Text(
                 title,
@@ -49,10 +32,8 @@ fun SwitchItem(
         trailingContent = {
             LiquidToggle(
                 selected = { checked },
-//                enabled = enabled,
                 onSelect = onCheckedChange,
                 backdrop = emptyBackdrop() // todo
-//                interactionSource = interactionSource
             )
         },
         supportingContent = {

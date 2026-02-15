@@ -2,10 +2,12 @@ package me.bmax.apatch.ui.component
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -20,13 +22,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceIn
@@ -45,6 +47,7 @@ import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousCapsule
 import kotlinx.coroutines.flow.collectLatest
 import me.bmax.apatch.util.ui.DampedDragAnimation
+import kotlin.math.roundToInt
 
 @Suppress("AssignedValueIsNeverRead")
 @Composable
@@ -67,7 +70,8 @@ fun LiquidToggle(
     val dragWidth = with(density) { 20f.dp.toPx() }
     val animationScope = rememberCoroutineScope()
     var didDrag by remember { mutableStateOf(false) }
-    var fraction by remember { mutableFloatStateOf(if (selected()) 1f else 0f) }
+    var isSelected by remember { mutableStateOf(selected()) }
+    var fraction by remember { mutableFloatStateOf(if (isSelected) 1f else 0f) }
     val dampedDragAnimation = remember(animationScope) {
         DampedDragAnimation(
             animationScope = animationScope,
@@ -80,12 +84,12 @@ fun LiquidToggle(
             onDragStopped = {
                 if (didDrag) {
                     fraction = if (targetValue >= 0.5f) 1f else 0f
-                    onSelect(fraction == 1f)
                     didDrag = false
                 } else {
-                    fraction = if (selected()) 0f else 1f
-                    onSelect(fraction == 1f)
+                    fraction = if (isSelected) 0f else 1f
                 }
+                isSelected = fraction == 1f
+                onSelect(isSelected)
             },
             onDrag = { change, _, dragAmount ->
                 change.consume()
@@ -106,6 +110,7 @@ fun LiquidToggle(
             }
     }
     LaunchedEffect(selected) {
+        isSelected = selected()
         snapshotFlow { selected() }
             .collectLatest { isSelected ->
                 val target = if (isSelected) 1f else 0f
@@ -132,16 +137,17 @@ fun LiquidToggle(
                 }
                 .size(64f.dp, 28f.dp)
         )
-
+        val padding = density.run { 2.dp.toPx() }
+        val translationX by remember(dampedDragAnimation.value, isLtr) {
+            derivedStateOf {
+                val fraction = dampedDragAnimation.value
+                if (isLtr) lerp(padding, padding + dragWidth, fraction)
+                else lerp(-padding, -(padding + dragWidth), fraction)
+            }
+        }
         Box(
             Modifier
-                .graphicsLayer {
-                    val fraction = dampedDragAnimation.value
-                    val padding = 2f.dp.toPx()
-                    translationX =
-                        if (isLtr) lerp(padding, padding + dragWidth, fraction)
-                        else lerp(-padding, -(padding + dragWidth), fraction)
-                }
+                .offset { IntOffset(x = translationX.roundToInt(), y = 0) }
                 .semantics {
                     role = Role.Switch
                 }
