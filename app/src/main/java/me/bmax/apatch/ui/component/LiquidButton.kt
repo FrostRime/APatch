@@ -47,7 +47,7 @@ fun LiquidButton(
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
     shadowAlpha: Float = 1f,
-    content: @Composable RowScope.() -> Unit,
+    content: @Composable RowScope.() -> Unit
 ) {
     val animationScope = rememberCoroutineScope()
 
@@ -106,7 +106,7 @@ fun LiquidButton(
                     val progress = interactiveHighlight.pressProgress
                     Highlight(
                         style = HighlightStyle.Default(
-                            angle = highlightAngle
+                            angle = highlightAngle,
                         ),
                         alpha = progress * 0.2f + 0.6f
                     )

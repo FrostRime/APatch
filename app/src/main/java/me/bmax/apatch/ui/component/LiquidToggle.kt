@@ -1,8 +1,9 @@
 package me.bmax.apatch.ui.component
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -10,6 +11,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -52,13 +54,13 @@ fun LiquidToggle(
     backdrop: Backdrop,
     modifier: Modifier = Modifier
 ) {
-    val isLightTheme = !isSystemInDarkTheme()
-    val accentColor =
-        if (isLightTheme) Color(0xFF34C759)
-        else Color(0xFF30D158)
-    val trackColor =
-        if (isLightTheme) Color(0xFF787878).copy(0.2f)
-        else Color(0xFF787880).copy(0.36f)
+    val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
+    val accentColor = colorScheme.primary
+    val trackColor = colorScheme.surfaceContainerHighest
+
+    val handleColor by animateColorAsState(
+        targetValue = if (selected()) colorScheme.onPrimary else colorScheme.outline
+    )
 
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
@@ -85,7 +87,8 @@ fun LiquidToggle(
                     onSelect(fraction == 1f)
                 }
             },
-            onDrag = { _, dragAmount ->
+            onDrag = { change, _, dragAmount ->
+                change.consume()
                 if (!didDrag) {
                     didDrag = dragAmount.x != 0f
                 }
@@ -195,7 +198,7 @@ fun LiquidToggle(
                     },
                     onDrawSurface = {
                         val progress = dampedDragAnimation.pressProgress
-                        drawRect(Color.White.copy(alpha = 1f - progress))
+                        drawRect(handleColor.copy(alpha = 1f - progress))
                     }
                 )
                 .size(40f.dp, 24f.dp)

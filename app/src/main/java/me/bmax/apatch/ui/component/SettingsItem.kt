@@ -8,13 +8,13 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import com.kyant.backdrop.backdrops.emptyBackdrop
 
 @Composable
 fun SwitchItem(
@@ -47,11 +47,12 @@ fun SwitchItem(
             { Icon(icon, title) }
         },
         trailingContent = {
-            Switch(
-                checked = checked,
-                enabled = enabled,
-                onCheckedChange = onCheckedChange,
-                interactionSource = interactionSource
+            LiquidToggle(
+                selected = { checked },
+//                enabled = enabled,
+                onSelect = onCheckedChange,
+                backdrop = emptyBackdrop() // todo
+//                interactionSource = interactionSource
             )
         },
         supportingContent = {

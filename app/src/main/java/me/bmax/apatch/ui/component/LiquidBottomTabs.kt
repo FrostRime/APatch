@@ -126,7 +126,7 @@ fun LiquidBottomTabs(
                         )
                     }
                 },
-                onDrag = { _, dragAmount ->
+                onDrag = { _, _, dragAmount ->
                     updateValue(
                         (targetValue + dragAmount.x / tabWidth * if (isLtr) 1f else -1f)
                             .fastCoerceIn(0f, (tabsCount - 1).toFloat())

@@ -95,7 +95,6 @@ import com.composables.icons.tabler.outline.Wand
 import com.kyant.backdrop.backdrops.emptyBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.colorControls
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
@@ -110,6 +109,7 @@ import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.FabProvider
+import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.WarningCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -154,7 +154,7 @@ fun HomeScreen(
                     .padding(horizontal = 12.dp)
                     .padding(bottom = 12.dp)
                     .fillMaxWidth()
-                    .clip(Large),
+                    .clip(ContinuousRoundedRectangle(16.dp)),
         ) {
             item {
                 WarningCard()
@@ -557,31 +557,19 @@ private fun KStatusCard(
                 .height(intrinsicSize = IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
+            LiquidButton(
+                backdrop = emptyBackdrop(), // todo
                 modifier = Modifier
                     .aspectRatio(1f, true)
-                    .fillMaxHeight()
-                    .drawBackdrop(
-                        backdrop = emptyBackdrop(), //todo
-                        shape = { ContinuousRoundedRectangle(16.dp) },
-                        highlight = { Highlight(alpha = 0.25f) },
-                        effects = {
-                            vibrancy()
-                            colorControls(brightness = 100f)
-                            blur(8.dp.toPx())
-                            lens(16.dp.toPx(), 32.dp.toPx())
-                        },
-                        onDrawSurface = {
-                            drawRect(
-                                color = colorScheme.tertiaryContainer.copy(alpha = 0.75f),
-                            )
-                        }
-                    )
-                    .clickable {
-                        if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
-                            navigator.navigate(InstallModeSelectScreenDestination)
-                        }
-                    },
+                    .fillMaxHeight(),
+                onClick = {
+                    if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
+                        navigator.navigate(InstallModeSelectScreenDestination)
+                    }
+                },
+                isInteractive = false,
+                surfaceColor = colorScheme.tertiaryContainer/*.copy(alpha = 0.75f)*/,
+                shape = ContinuousRoundedRectangle(16.dp)
             ) {
                 Box(
                     propagateMinConstraints = true

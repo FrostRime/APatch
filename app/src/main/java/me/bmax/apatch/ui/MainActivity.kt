@@ -23,6 +23,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -250,6 +251,10 @@ fun MainScreen(navigator: DestinationsNavigator) {
         fabExpanded = false
     }
 
+    LaunchedEffect(pagerState.isScrollInProgress) {
+        fabExpanded = false
+    }
+
     val fabStates =
         remember { mutableStateMapOf<BottomBarDestination, Fab?>() }
 
@@ -326,20 +331,39 @@ fun MainScreen(navigator: DestinationsNavigator) {
     var selectedTab by remember {
         mutableStateOf(pagerState.currentPage)
     }
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage to pagerState.isScrollInProgress }
-            .collect { (page, isScrolling) ->
-                if (!isScrolling && page != selectedTab) {
-                    selectedTab = page
-                }
+    var isUserDragging by remember { mutableStateOf(false) }
+    LaunchedEffect(pagerState.interactionSource) {
+        pagerState.interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is DragInteraction.Start -> isUserDragging = true
             }
-    }
-
-    LaunchedEffect(selectedTab) {
-        if (selectedTab != pagerState.currentPage) {
-            pagerState.animateScrollToPage(selectedTab)
         }
     }
+    LaunchedEffect(pagerState.currentPage) {
+        if (isUserDragging) {
+            selectedTab = pagerState.currentPage
+        }
+    }
+    LaunchedEffect(pagerState) {
+        launch {
+            snapshotFlow { pagerState.isScrollInProgress }
+                .collect { isScrolling ->
+                    if (!isScrolling) {
+                        isUserDragging = false
+                    }
+                }
+        }
+
+        launch {
+            snapshotFlow { pagerState.currentPage to pagerState.isScrollInProgress }
+                .collect { (page, isScrolling) ->
+                    if (!isScrolling && page != selectedTab) {
+                        selectedTab = page
+                    }
+                }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -470,8 +494,8 @@ fun MainScreen(navigator: DestinationsNavigator) {
                         selectedTabIndex = { selectedTab },
                         onTabSelected = { index ->
                             coroutineScope.launch {
-                                fabExpanded = false
                                 selectedTab = index
+                                pagerState.animateScrollToPage(index)
                             }
                         },
                         backdrop = backdrop,
@@ -485,8 +509,8 @@ fun MainScreen(navigator: DestinationsNavigator) {
                         repeat(visibleDestinationsSize) { index ->
                             LiquidBottomTab({
                                 coroutineScope.launch {
-                                    fabExpanded = false
                                     selectedTab = index
+                                    pagerState.animateScrollToPage(index)
                                 }
                             }) {
                                 val destination = visibleDestinations.elementAtOrNull(index)

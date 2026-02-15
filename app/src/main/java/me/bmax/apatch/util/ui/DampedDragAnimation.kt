@@ -6,6 +6,7 @@ import androidx.compose.foundation.MutatorMutex
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.IntSize
@@ -25,7 +26,7 @@ class DampedDragAnimation(
     val pressedScale: Float,
     val onDragStarted: DampedDragAnimation.(position: Offset) -> Unit,
     val onDragStopped: DampedDragAnimation.() -> Unit,
-    val onDrag: DampedDragAnimation.(size: IntSize, dragAmount: Offset) -> Unit,
+    val onDrag: DampedDragAnimation.(change: PointerInputChange, size: IntSize, dragAmount: Offset) -> Unit,
 ) {
 
     private val valueAnimationSpec =
@@ -75,8 +76,8 @@ class DampedDragAnimation(
                 onDragStopped()
                 release()
             }
-        ) { _, dragAmount ->
-            onDrag(size, dragAmount)
+        ) { change, dragAmount ->
+            onDrag(change, size, dragAmount)
         }
     }
 
