@@ -9,8 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -40,6 +39,7 @@ import java.util.Locale
 class APModuleViewModel : ViewModel() {
     companion object {
         private const val TAG = "ModuleViewModel"
+        private var checkUpdateJob: Job? = null
         private var modules by mutableStateOf<List<ModuleInfo>>(emptyList())
     }
 
@@ -103,6 +103,7 @@ class APModuleViewModel : ViewModel() {
 
     fun fetchModuleList() {
         viewModelScope.launch(Dispatchers.IO) {
+            checkUpdateJob?.cancel()
             isRefreshing = true
             val start = SystemClock.elapsedRealtime()
             val oldModules = modules
@@ -119,19 +120,21 @@ class APModuleViewModel : ViewModel() {
                 if (oldModules != newModules) modules = newModules
                 isNeedRefresh = false
 
-                val updatedModules = coroutineScope {
-                    newModules.map { module ->
+                checkUpdateJob =  viewModelScope.launch {
+                    val limitedDispatcher = Dispatchers.IO.limitedParallelism(4)
+                    newModules.forEachIndexed { index, module ->
                         if (module.enabled && module.updateJson.isNotEmpty() && !module.update && !module.remove) {
-                            async(Dispatchers.IO) {
-                                module.copy(updateInfo = runCatching { checkUpdate(module) }.getOrNull())
+                            launch(limitedDispatcher) {
+                                val updateInfo = runCatching { checkUpdate(module) }.getOrNull()
+                                if (updateInfo != null) {
+                                    modules = modules.mapIndexed { i, m ->
+                                        if (i == index) m.copy(updateInfo = updateInfo) else m
+                                    }
+                                }
                             }
-                        } else null
-                    }.mapIndexed { index, deferred ->
-                        deferred?.await() ?: newModules[index]
+                        }
                     }
                 }
-
-                modules = updatedModules
             } catch (e: Exception) {
                 Log.e(TAG, "parse modules failed", e)
             } finally {
