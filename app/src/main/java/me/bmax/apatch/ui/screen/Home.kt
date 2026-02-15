@@ -82,6 +82,7 @@ import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.AlertTriangle
 import com.composables.icons.tabler.filled.Eye
 import com.composables.icons.tabler.outline.ArrowAutofitDown
+import com.composables.icons.tabler.outline.Check
 import com.composables.icons.tabler.outline.Checks
 import com.composables.icons.tabler.outline.CircleDashedX
 import com.composables.icons.tabler.outline.DeviceUnknown
@@ -600,7 +601,7 @@ private fun KStatusCard(
                         APApplication.State.KERNELPATCH_NEED_UPDATE,
                         APApplication.State.KERNELPATCH_NEED_REBOOT -> {
                             Icon(
-                                Tabler.Outline.ArrowAutofitDown,
+                                Tabler.Outline.Check,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(16.dp),

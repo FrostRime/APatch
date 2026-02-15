@@ -49,7 +49,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -269,16 +269,6 @@ fun MainScreen(navigator: DestinationsNavigator) {
         }
     )
 
-    var selectedTab by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(selectedTab) {
-        pagerState.animateScrollToPage(selectedTab)
-    }
-
-    LaunchedEffect(pagerState.currentPage) {
-        selectedTab = pagerState.currentPage
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -331,6 +321,23 @@ fun MainScreen(navigator: DestinationsNavigator) {
         targetValue = if (isBottomBarVisible) 1f else 0f,
         animationSpec = tween(250)
     )
+    var selectedTab by remember {
+        mutableStateOf(pagerState.currentPage)
+    }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage to pagerState.isScrollInProgress }
+            .collect { (page, isScrolling) ->
+                if (!isScrolling && page != selectedTab) {
+                    selectedTab = page
+                }
+            }
+    }
+
+    LaunchedEffect(selectedTab) {
+        if (selectedTab != pagerState.currentPage) {
+            pagerState.animateScrollToPage(selectedTab)
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
