@@ -4,6 +4,7 @@ mod cli;
 mod defs;
 mod event;
 mod kpm;
+mod lua;
 mod metamodule;
 mod module;
 mod package;
