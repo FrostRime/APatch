@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui.component
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,18 +18,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBarScrollBehavior
-import androidx.compose.material3.ShapeDefaults.ExtraLarge
-import androidx.compose.material3.ShapeDefaults.ExtraSmall
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,9 +40,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.outline.InfoCircle
+import com.composables.icons.tabler.outline.Plus
+import com.kyant.capsule.ContinuousRoundedRectangle
 
 data class ListItemData(
     val background: Color = Color.Unspecified,
@@ -56,10 +64,7 @@ data class ListItemData(
     val showCheckBox: Boolean = false
 )
 
-val bottomShape = ExtraSmall.copy(
-    bottomStart = ExtraLarge.bottomStart,
-    bottomEnd = ExtraLarge.bottomEnd
-)
+val bottomShape = ContinuousRoundedRectangle(4.dp, 4.dp, 28.dp, 28.dp)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,13 +85,13 @@ fun UIList(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(ExtraLarge)
+                .clip(ContinuousRoundedRectangle(28.dp))
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             state = state,
             verticalArrangement = Arrangement.spacedBy(4.dp),
             contentPadding = remember {
                 PaddingValues(
-                    bottom = 16.dp + 56.dp /*  Scaffold Fab Spacing + Fab container height */
+                    bottom = 56.dp + 56.dp + 84.dp
                 )
             }
         ) {
@@ -102,7 +107,7 @@ fun UIList(
                         val isLastest = index == items.lastIndex
                         GenericItem(
                             data = item,
-                            shape = if (isLastest) bottomShape else ExtraSmall,
+                            shape = if (isLastest) bottomShape else ContinuousRoundedRectangle(4.dp),
                             expandedContent = {
                                 item.actions()
                             }
@@ -202,4 +207,79 @@ private fun GenericItem(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true, heightDp = 600)
+@Composable
+fun PreviewUIList() {
+    rememberSearchBarState()
+    val scrollBehavior = remember {
+        object : SearchBarScrollBehavior {
+            override var scrollOffset: Float
+                get() = 0f
+                set(_) {}
+            override var scrollOffsetLimit: Float
+                get() = 0f
+                set(_) {}
+            override var contentOffset: Float
+                get() = 0f
+                set(_) {}
+            override val nestedScrollConnection: NestedScrollConnection =
+                object : NestedScrollConnection {}
+
+            @SuppressLint("ModifierFactoryUnreferencedReceiver")
+            override fun Modifier.searchBarScrollBehavior(): Modifier {
+                TODO("Not yet implemented")
+            }
+        }
+    }
+    val items = listOf(
+        ListItemData(
+            title = { Text("1111111") },
+            subtitle = "22222222",
+            description = "33333333",
+            label = { Text("444", color = MaterialTheme.colorScheme.primary) },
+            headerIcon = { Icon(Tabler.Outline.Plus, null) }, // 示例图标
+            actions = {
+            },
+            checked = true,
+            showCheckBox = true,
+            onCheckChange = {}
+        ),
+        ListItemData(
+            title = { Text("55555555") },
+            subtitle = "666666666",
+            description = "777777777",
+            headerIcon = { Icon(Tabler.Outline.InfoCircle, null) },
+            actions = {
+                Text("888888888888888", modifier = Modifier.padding(16.dp))
+            },
+            checked = false,
+            showCheckBox = true,
+            onCheckChange = {}
+        ),
+        ListItemData(
+            title = { Text("999999999") },
+            actions = {},
+            checked = false
+        ),
+        ListItemData(
+            title = { Text("1010101010") },
+            subtitle = "11111111111111",
+            background = MaterialTheme.colorScheme.secondaryContainer,
+            actions = {},
+            checked = false
+        )
+    )
+
+    // 构建 UIList
+    UIList(
+        items = items,
+        onRefresh = {}, // 预览中无实际刷新
+        isRefreshing = false,
+        scrollBehavior = scrollBehavior,
+        state = rememberLazyListState(),
+        emptyContent = { Text("暂无数据") }
+    )
 }

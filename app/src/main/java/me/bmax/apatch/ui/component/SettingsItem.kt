@@ -2,6 +2,7 @@ package me.bmax.apatch.ui.component
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -15,10 +16,13 @@ fun SwitchItem(
     icon: ImageVector? = null,
     title: String,
     summary: String? = null,
-    checked: Boolean,
+    checked: () -> Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
     ListItem(
+        colors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
         headlineContent = {
             Text(
                 title,
@@ -31,7 +35,7 @@ fun SwitchItem(
         },
         trailingContent = {
             LiquidToggle(
-                selected = { checked },
+                selected = checked,
                 onSelect = onCheckedChange,
                 backdrop = emptyBackdrop() // todo
             )
