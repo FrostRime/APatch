@@ -10,6 +10,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -622,6 +623,9 @@ private fun KStatusCard(
                             APApplication.State.KERNELPATCH_INSTALLED -> {
                                 Text(
                                     text = stringResource(R.string.home_working),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .basicMarquee(),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -631,6 +635,9 @@ private fun KStatusCard(
                             APApplication.State.KERNELPATCH_NEED_REBOOT -> {
                                 Text(
                                     text = stringResource(R.string.home_need_update),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .basicMarquee(),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -642,6 +649,9 @@ private fun KStatusCard(
                                             Version.installedKPVString(),
                                             Version.buildKPVString()
                                         ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .basicMarquee(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -650,12 +660,18 @@ private fun KStatusCard(
                             else -> {
                                 Text(
                                     text = stringResource(R.string.home_install_unknown),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .basicMarquee(),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = contentColorFor(cardBackgroundColor)
                                 )
                                 Text(
                                     text = stringResource(R.string.home_install_unknown_summary),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .basicMarquee(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = contentColorFor(cardBackgroundColor)
@@ -676,6 +692,9 @@ private fun KStatusCard(
                                             )
                                                 "[FULL]"
                                             else "[HALF]",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .basicMarquee(),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium
                             )

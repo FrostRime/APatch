@@ -75,6 +75,7 @@ import me.bmax.apatch.util.PkgConfig
 import me.bmax.apatch.util.getWhiteListMode
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.setWhiteListMode
+import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,7 +173,12 @@ fun SuperUserScreen(setFab: FabProvider) {
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackBarHost) },
+        snackbarHost = {
+            SnackbarHost(
+                snackBarHost,
+                modifier = Modifier.padding(LocalInnerPadding.current)
+            )
+        },
         topBar = {
             SearchAppBar(
                 searchText = viewModel.search,

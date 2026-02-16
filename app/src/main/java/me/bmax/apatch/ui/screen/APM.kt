@@ -95,6 +95,7 @@ import me.bmax.apatch.util.download
 import me.bmax.apatch.util.hasMagisk
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.toggleModule
+import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.uninstallModule
 import okhttp3.Request
@@ -297,7 +298,13 @@ fun APModuleScreen(
                 scrollBehavior = scrollBehavior,
                 searchBarPlaceHolderText = stringResource(R.string.search_modules)
             )
-        }, snackbarHost = { SnackbarHost(snackBarHost) }) { innerPadding ->
+        },
+        snackbarHost = {
+            SnackbarHost(
+                snackBarHost,
+                modifier = Modifier.padding(LocalInnerPadding.current)
+            )
+        }) { innerPadding ->
         when {
             hasMagisk -> {
                 Box(

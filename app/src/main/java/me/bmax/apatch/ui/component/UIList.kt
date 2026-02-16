@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -49,6 +48,7 @@ import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.outline.InfoCircle
 import com.composables.icons.tabler.outline.Plus
 import com.kyant.capsule.ContinuousRoundedRectangle
+import me.bmax.apatch.util.ui.LocalInnerPadding
 
 data class ListItemData(
     val background: Color = Color.Unspecified,
@@ -89,11 +89,7 @@ fun UIList(
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             state = state,
             verticalArrangement = Arrangement.spacedBy(4.dp),
-            contentPadding = remember {
-                PaddingValues(
-                    bottom = 56.dp + 56.dp + 84.dp
-                )
-            }
+            contentPadding = LocalInnerPadding.current
         ) {
             when {
                 items.isEmpty() -> {

@@ -14,6 +14,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -28,11 +29,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,11 +47,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -103,6 +103,8 @@ import me.bmax.apatch.ui.screen.SettingScreen
 import me.bmax.apatch.ui.screen.SuperUserScreen
 import me.bmax.apatch.ui.theme.APatchTheme
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
+import me.bmax.apatch.util.ui.LocalInnerPadding
+import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
@@ -129,9 +131,6 @@ class MainActivity : AppCompatActivity() {
 
     private var isLoading = true
 
-    val localNavigator = compositionLocalOf<DestinationsNavigator> {
-        error("No DestinationsNavigator provided! Make sure to wrap your composable with NavigationLocalProvider")
-    }
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -151,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                 val navigator = navController.rememberDestinationsNavigator()
                 val snackBarHostState = remember { SnackbarHostState() }
                 CompositionLocalProvider(
-                    localNavigator provides navigator,
+                    LocalNavigator provides navigator,
                     LocalSnackbarHost provides snackBarHostState,
                 ) {
                     val defaultTransitions = object : NavHostAnimatedDestinationStyle() {
@@ -255,6 +254,20 @@ fun MainScreen(navigator: DestinationsNavigator) {
         fabExpanded = false
     }
 
+    val fabBottomPadding by animateDpAsState(
+        targetValue = if (isBottomBarVisible) {
+            160.dp
+        } else {
+            84.dp
+        }
+    )
+
+    val innerPadding by remember(fabBottomPadding) {
+        derivedStateOf {
+            PaddingValues(bottom = fabBottomPadding + 40.dp)
+        }
+    }
+
     val fabStates =
         remember { mutableStateMapOf<BottomBarDestination, Fab?>() }
 
@@ -302,23 +315,27 @@ fun MainScreen(navigator: DestinationsNavigator) {
                 }
             },
     ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .layerBackdrop(backdrop),
-            key = { page ->
-                visibleDestinations.elementAtOrNull(page)?.name ?: "unknown"
-            },
-            pageSpacing = 0.dp
-        ) { page ->
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                val destination =
-                    visibleDestinations.elementAtOrNull(page) ?: BottomBarDestination.Home
-                screenRegistry[destination]?.invoke(navigator) { fabComposable ->
-                    fabStates[destination] = fabComposable
+        CompositionLocalProvider(
+            LocalInnerPadding provides innerPadding,
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .layerBackdrop(backdrop),
+                key = { page ->
+                    visibleDestinations.elementAtOrNull(page)?.name ?: "unknown"
+                },
+                pageSpacing = 0.dp
+            ) { page ->
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    val destination =
+                        visibleDestinations.elementAtOrNull(page) ?: BottomBarDestination.Home
+                    screenRegistry[destination]?.invoke(navigator) { fabComposable ->
+                        fabStates[destination] = fabComposable
+                    }
                 }
             }
         }
@@ -329,7 +346,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
         animationSpec = tween(250)
     )
     var selectedTab by remember {
-        mutableStateOf(pagerState.currentPage)
+        mutableIntStateOf(pagerState.currentPage)
     }
     var isUserDragging by remember { mutableStateOf(false) }
     LaunchedEffect(pagerState.interactionSource) {
@@ -367,14 +384,18 @@ fun MainScreen(navigator: DestinationsNavigator) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 48.dp * barStateProgress + 8.dp)
             .padding(horizontal = 32.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
-            var fab: Fab? by remember {
-                mutableStateOf(null)
-            }
+        var fab: Fab? by remember {
+            mutableStateOf(null)
+        }
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = fabBottomPadding)
+        ) {
             visibleDestinations.elementAtOrNull(pagerState.currentPage)
                 ?.let {
                     val currentFab = fabStates[it]
@@ -487,89 +508,93 @@ fun MainScreen(navigator: DestinationsNavigator) {
                         }
                     }
                 }
-            Spacer(modifier = Modifier.height(32.dp))
-            Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxWidth()) {
-                if (barStateProgress >= 0.25f) {
-                    LiquidBottomTabs(
-                        selectedTabIndex = { selectedTab },
-                        onTabSelected = { index ->
+        }
+        Box(
+            contentAlignment = Alignment.BottomCenter,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 48.dp * barStateProgress + 8.dp)
+        ) {
+            if (barStateProgress >= 0.25f) {
+                LiquidBottomTabs(
+                    selectedTabIndex = { selectedTab },
+                    onTabSelected = { index ->
+                        coroutineScope.launch {
+                            selectedTab = index
+                            pagerState.animateScrollToPage(index)
+                        }
+                    },
+                    backdrop = backdrop,
+                    tabsCount = visibleDestinationsSize,
+                    modifier = Modifier
+                        .scale(barStateProgress * 0.85f + 0.15f)
+                        .graphicsLayer(
+                            alpha = barStateProgress
+                        )
+                ) {
+                    repeat(visibleDestinationsSize) { index ->
+                        LiquidBottomTab({
                             coroutineScope.launch {
                                 selectedTab = index
                                 pagerState.animateScrollToPage(index)
                             }
-                        },
-                        backdrop = backdrop,
-                        tabsCount = visibleDestinationsSize,
-                        modifier = Modifier
-                            .scale(barStateProgress * 0.85f + 0.15f)
-                            .graphicsLayer(
-                                alpha = barStateProgress
-                            )
-                    ) {
-                        repeat(visibleDestinationsSize) { index ->
-                            LiquidBottomTab({
-                                coroutineScope.launch {
-                                    selectedTab = index
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            }) {
-                                val destination = visibleDestinations.elementAtOrNull(index)
-                                if (destination != null) {
-                                    Icon(
-                                        modifier = Modifier
-                                            .size(28.dp),
-                                        imageVector = destination.iconSelected,
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        contentDescription = null,
-                                    )
-                                    Text(
-                                        text = stringResource(id = destination.label),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier
-                                            .padding(horizontal = 4.dp)
-                                            .basicMarquee(),
-                                    )
-                                }
+                        }) {
+                            val destination = visibleDestinations.elementAtOrNull(index)
+                            if (destination != null) {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(28.dp),
+                                    imageVector = destination.iconSelected,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    contentDescription = null,
+                                )
+                                Text(
+                                    text = stringResource(id = destination.label),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp)
+                                        .basicMarquee(),
+                                )
                             }
                         }
                     }
                 }
+            }
 
-                if (!isBottomBarVisible || barStateProgress < 0.25f) {
-                    val selectedColor by rememberUpdatedState(MaterialTheme.colorScheme.onSurface)
-                    val unselectedColor by rememberUpdatedState(MaterialTheme.colorScheme.outline)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(4.dp)
-                            .scale(barStateProgress * 0.85f + 0.15f)
-                            .graphicsLayer(
-                                alpha = 1 - barStateProgress
-                            )
-                            .clip(ContinuousCapsule)
-                            .background(MaterialTheme.colorScheme.surface)
-                            .clickable {
-                                isBottomBarVisible = true
-                            }
-                    ) {
-                        visibleDestinations.forEachIndexed { index, _ ->
-                            val iconColor by animateColorAsState(
-                                targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
-                                animationSpec = tween(250)
-                            )
-                            LiquidBottomTab(
-                                { isBottomBarVisible = true },
+            if (!isBottomBarVisible || barStateProgress < 0.25f) {
+                val selectedColor by rememberUpdatedState(MaterialTheme.colorScheme.onSurface)
+                val unselectedColor by rememberUpdatedState(MaterialTheme.colorScheme.outline)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp)
+                        .scale(barStateProgress * 0.85f + 0.15f)
+                        .graphicsLayer(
+                            alpha = 1 - barStateProgress
+                        )
+                        .clip(ContinuousCapsule)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .clickable {
+                            isBottomBarVisible = true
+                        }
+                ) {
+                    visibleDestinations.forEachIndexed { index, _ ->
+                        val iconColor by animateColorAsState(
+                            targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
+                            animationSpec = tween(250)
+                        )
+                        LiquidBottomTab(
+                            { isBottomBarVisible = true },
+                            modifier = Modifier
+                                .size(28.dp)
+                                .padding(4.dp)
+                        ) {
+                            Box(
                                 modifier = Modifier
-                                    .size(28.dp)
-                                    .padding(4.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(iconColor)
-                                )
-                            }
+                                    .fillMaxSize()
+                                    .background(iconColor)
+                            )
                         }
                     }
                 }

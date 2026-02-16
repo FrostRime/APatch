@@ -13,7 +13,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -89,6 +88,7 @@ import me.bmax.apatch.util.getBugreportFile
 import me.bmax.apatch.util.isGlobalNamespaceEnabled
 import me.bmax.apatch.util.outputStream
 import me.bmax.apatch.util.setGlobalNamespaceEnabled
+import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.ui.NavigationBarsSpacer
 import java.time.LocalDateTime
@@ -125,7 +125,12 @@ fun SettingScreen(setFab: FabProvider) {
                 title = { Text(stringResource(R.string.settings)) },
             )
         },
-        snackbarHost = { SnackbarHost(snackBarHost) }
+        snackbarHost = {
+            SnackbarHost(
+                snackBarHost,
+                modifier = Modifier.padding(LocalInnerPadding.current)
+            )
+        }
     ) { paddingValues ->
 
         val loadingDialog = rememberLoadingDialog()
@@ -173,7 +178,7 @@ fun SettingScreen(setFab: FabProvider) {
                 .padding(horizontal = 12.dp)
                 .clip(ContinuousRoundedRectangle(16.dp)),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 56.dp + 56.dp + 84.dp)
+            contentPadding = LocalInnerPadding.current
         ) {
             val prefs = APApplication.sharedPreferences
 
