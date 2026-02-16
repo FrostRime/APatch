@@ -339,7 +339,10 @@ fun SettingScreen(setFab: FabProvider) {
                         }
 
                         AnimatedVisibility(visible = !useSystemDynamicColor) {
-                            ListItem(headlineContent = {
+                            ListItem(
+                                colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            ), headlineContent = {
                                 Text(text = stringResource(id = R.string.settings_custom_color_theme))
                             }, modifier = Modifier.clickable {
                                 showThemeChooseDialog.value = true
@@ -353,7 +356,10 @@ fun SettingScreen(setFab: FabProvider) {
                             }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
                         }
                     } else {
-                        ListItem(headlineContent = {
+                        ListItem(
+                            colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ), headlineContent = {
                             Text(text = stringResource(id = R.string.settings_custom_color_theme))
                         }, modifier = Modifier.clickable {
                             showThemeChooseDialog.value = true
