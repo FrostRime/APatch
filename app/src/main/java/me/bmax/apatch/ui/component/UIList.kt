@@ -59,9 +59,9 @@ data class ListItemData(
     val headerIcon: @Composable (() -> Unit)? = null,
     val trailingContent: @Composable (() -> Unit)? = null,
     val actions: @Composable () -> Unit,
-    val checked: Boolean,
+    val checked: () -> Boolean,
     val onCheckChange: ((Boolean) -> Unit)? = null,
-    val showCheckBox: Boolean = false
+    val showCheckBox: () -> Boolean = { false }
 )
 
 val bottomShape = ContinuousRoundedRectangle(4.dp, 4.dp, 28.dp, 28.dp)
@@ -69,7 +69,7 @@ val bottomShape = ContinuousRoundedRectangle(4.dp, 4.dp, 28.dp, 28.dp)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UIList(
-    items: List<ListItemData>,
+    items: () -> List<ListItemData>,
     onRefresh: () -> Unit,
     isRefreshing: Boolean,
     modifier: Modifier = Modifier,
@@ -77,6 +77,7 @@ fun UIList(
     state: LazyListState,
     emptyContent: @Composable () -> Unit = {}
 ) {
+    val items = items()
     PullToRefreshBox(
         modifier = modifier,
         onRefresh = onRefresh,
@@ -129,7 +130,7 @@ private fun GenericItem(
     }
     Surface(
         shape = shape,
-        tonalElevation = if (data.checked) 4.dp else 1.dp,
+        tonalElevation = if (data.checked()) 4.dp else 1.dp,
         color = backgroundColor
     ) {
         Column(
@@ -185,13 +186,13 @@ private fun GenericItem(
                     }
                 },
                 trailingContent = {
-                    if (data.showCheckBox) {
+                    if (data.showCheckBox()) {
                         Column(verticalArrangement = Arrangement.Center) {
                             Checkbox(
-                                checked = data.checked,
+                                checked = data.checked(),
                                 enabled = data.onCheckChange != null,
                                 onCheckedChange = {
-                                    data.onCheckChange?.invoke(!data.checked)
+                                    data.onCheckChange?.invoke(!data.checked())
                                 }
                             )
                         }
@@ -239,8 +240,8 @@ fun PreviewUIList() {
             headerIcon = { Icon(Tabler.Outline.Plus, null) }, // 示例图标
             actions = {
             },
-            checked = true,
-            showCheckBox = true,
+            checked = { true },
+            showCheckBox = { true },
             onCheckChange = {}
         ),
         ListItemData(
@@ -251,27 +252,27 @@ fun PreviewUIList() {
             actions = {
                 Text("888888888888888", modifier = Modifier.padding(16.dp))
             },
-            checked = false,
-            showCheckBox = true,
+            checked = { false },
+            showCheckBox = { true },
             onCheckChange = {}
         ),
         ListItemData(
             title = { Text("999999999") },
             actions = {},
-            checked = false
+            checked = { false }
         ),
         ListItemData(
             title = { Text("1010101010") },
             subtitle = "11111111111111",
             background = MaterialTheme.colorScheme.secondaryContainer,
             actions = {},
-            checked = false
+            checked = { false }
         )
     )
 
     // 构建 UIList
     UIList(
-        items = items,
+        items = { items },
         onRefresh = {}, // 预览中无实际刷新
         isRefreshing = false,
         scrollBehavior = scrollBehavior,

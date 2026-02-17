@@ -341,6 +341,23 @@ fun SettingScreen(setFab: FabProvider) {
                         AnimatedVisibility(visible = !useSystemDynamicColor) {
                             ListItem(
                                 colors = ListItemDefaults.colors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                                ), headlineContent = {
+                                    Text(text = stringResource(id = R.string.settings_custom_color_theme))
+                                }, modifier = Modifier.clickable {
+                                    showThemeChooseDialog.value = true
+                                }, supportingContent = {
+                                    val colorMode = prefs.getString("custom_color", "blue")
+                                    Text(
+                                        text = stringResource(colorNameToString(colorMode.toString())),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
+                        }
+                    } else {
+                        ListItem(
+                            colors = ListItemDefaults.colors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             ), headlineContent = {
                                 Text(text = stringResource(id = R.string.settings_custom_color_theme))
@@ -354,23 +371,6 @@ fun SettingScreen(setFab: FabProvider) {
                                     color = MaterialTheme.colorScheme.outline
                                 )
                             }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
-                        }
-                    } else {
-                        ListItem(
-                            colors = ListItemDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        ), headlineContent = {
-                            Text(text = stringResource(id = R.string.settings_custom_color_theme))
-                        }, modifier = Modifier.clickable {
-                            showThemeChooseDialog.value = true
-                        }, supportingContent = {
-                            val colorMode = prefs.getString("custom_color", "blue")
-                            Text(
-                                text = stringResource(colorNameToString(colorMode.toString())),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
                     }
                 }
             }

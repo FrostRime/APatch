@@ -274,8 +274,14 @@ fun KPModuleScreen(
             searchBarPlaceHolderText = stringResource(R.string.search_modules)
         )
     }) { innerPadding ->
-        val uiListData =
-            remember(viewModel.moduleList, viewModel.installedModuleList, viewModel.search) {
+        UIList(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 8.dp),
+            onRefresh = { viewModel.fetchModuleList() },
+            isRefreshing = viewModel.isRefreshing,
+            items = {
                 val allModules =
                     viewModel.installedModuleList + viewModel.moduleList.filter { !it.isInstalled }
                 allModules.map { module ->
@@ -290,7 +296,7 @@ fun KPModuleScreen(
                         },
                         subtitle = "${module.version}, $moduleAuthor ${module.author}",
                         description = module.description,
-                        showCheckBox = module.isInstalled,
+                        showCheckBox = { module.isInstalled },
                         onCheckChange = if (module.isInstalled) {
                             { checked ->
                                 scope.launch {
@@ -313,7 +319,7 @@ fun KPModuleScreen(
                                 }
                             }
                         } else null,
-                        checked = module.isInstalled && module in viewModel.moduleList,
+                        checked = { module.isInstalled && module in viewModel.moduleList },
                         actions = {
                             Row(
                                 modifier = Modifier
@@ -345,15 +351,7 @@ fun KPModuleScreen(
                         }
                     )
                 }
-            }
-        UIList(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 12.dp)
-                .padding(bottom = 8.dp),
-            onRefresh = { viewModel.fetchModuleList() },
-            isRefreshing = viewModel.isRefreshing,
-            items = uiListData,
+            },
             scrollBehavior = scrollBehavior,
             state = kpModuleListState
         )

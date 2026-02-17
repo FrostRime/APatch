@@ -29,7 +29,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -90,7 +89,6 @@ fun SuperUserScreen(setFab: FabProvider) {
     val rebootToApply = stringResource(id = R.string.apm_reboot_to_apply)
     val whiteListModes = listOf(-1, 0, 1, 2)
     val context = LocalContext.current
-    var showEditWhiteListMode by remember { mutableStateOf(false) }
     var whiteListMode by remember { mutableIntStateOf(-1) }
     var resetSUAppsPhase by remember { mutableIntStateOf(0) }
 
@@ -190,217 +188,6 @@ fun SuperUserScreen(setFab: FabProvider) {
     ) { innerPadding ->
         val filteredList =
             viewModel.appList.filter { it.packageName != apApp.packageName }
-        val uiListData = remember(filteredList, showEditWhiteListMode, whiteListMode) {
-            val list = mutableListOf<ListItemData>()
-            if (kPatchReady && aPatchReady) {
-                list.add(
-                    ListItemData(
-                        title = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(
-                                    stringResource(R.string.su_pkg_excluded_setting_title),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.tertiary
-                                ) {
-                                    Text(
-                                        text = "AUTO",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 8.sp
-                                        ),
-                                        modifier = Modifier.padding(
-                                            horizontal = 4.dp,
-                                            vertical = 0.5.dp
-                                        ),
-                                        color = MaterialTheme.colorScheme.onTertiary,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        },
-                        headerIcon = {
-                            Icon(Tabler.Outline.Automation, null)
-                        },
-                        checked = true,
-                        actions = {
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(4.dp)
-                            ) {
-                                whiteListModes.forEachIndexed { _, modeId ->
-                                    val isSelected = whiteListMode == modeId
-                                    val icons = modeIcons[modeId]
-                                    SegmentedButton(
-                                        shape = ExtraLarge,
-                                        border = SegmentedButtonDefaults.borderStroke(
-                                            Color.Transparent,
-                                            0.dp
-                                        ),
-                                        onClick = {
-                                            setWhiteListMode(modeId)
-                                            whiteListMode = modeId
-                                            scope.launch {
-                                                val result = snackBarHost.showSnackbar(
-                                                    message = rebootToApply,
-                                                    actionLabel = reboot,
-                                                    duration = SnackbarDuration.Long
-                                                )
-                                                if (result == SnackbarResult.ActionPerformed) {
-                                                    reboot()
-                                                }
-                                            }
-                                        },
-                                        selected = isSelected,
-                                        icon = {},
-                                        label = {
-                                            Icon(
-                                                imageVector = (if (isSelected) icons?.first else icons?.second)!!,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    )
-                )
-            }
-            list.addAll(
-                filteredList.map { app ->
-                    ListItemData(
-                        title = {
-                            Text(
-                                app.label,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        },
-                        subtitle = app.packageName,
-                        showCheckBox = true,
-                        headerIcon = {
-                            val imageRequest =
-                                remember(app.packageName, app.packageInfo.lastUpdateTime) {
-                                    ImageRequest.Builder(context)
-                                        .data(app.packageInfo)
-                                        .memoryCacheKey("${app.packageName}-${app.packageInfo.lastUpdateTime}")
-                                        .crossfade(true)
-                                        .decoderDispatcher(Dispatchers.IO)
-                                        .fetcherDispatcher(Dispatchers.IO)
-                                        .interceptorDispatcher(Dispatchers.IO)
-                                        .transformationDispatcher(Dispatchers.IO)
-                                        .build()
-                                }
-
-                            AsyncImage(
-                                model = imageRequest,
-                                contentDescription = app.label,
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .size(48.dp),
-                            )
-                        },
-                        label = {
-                            if (app.excludeApp == 1) {
-                                LabelText(label = stringResource(id = R.string.su_pkg_excluded_label))
-                            }
-                            if (app.config.allow != 0) {
-                                FlowRow {
-                                    LabelText(label = app.config.profile.uid.toString())
-                                    LabelText(label = app.config.profile.toUid.toString())
-                                    LabelText(
-                                        label = when {
-                                            // todo: valid scontext ?
-                                            app.config.profile.scontext.isNotEmpty() -> app.config.profile.scontext
-                                            else -> stringResource(id = R.string.su_selinux_via_hook)
-                                        }
-                                    )
-                                }
-                            }
-                        },
-                        onCheckChange = { checked ->
-                            scope.launch {
-                                if (checked) {
-                                    app.excludeApp = 0
-                                    app.config.allow = 1
-                                    app.config.exclude = 0
-                                    app.config.profile.scontext = APApplication.MAGISK_SCONTEXT
-                                } else {
-                                    app.config.allow = 0
-                                }
-                                app.config.profile.uid = app.uid
-                                PkgConfig.changeConfig(app.config)
-                                if (app.config.allow == 1) {
-                                    Natives.grantSu(app.uid, 0, app.config.profile.scontext)
-                                    Natives.setUidExclude(app.uid, 0)
-                                } else {
-                                    Natives.revokeSu(app.uid)
-                                    val mode = getWhiteListMode()
-                                    val isSystem =
-                                        (app.packageInfo.applicationInfo?.flags?.and(ApplicationInfo.FLAG_SYSTEM) != 0)
-
-                                    val shouldExclude = when (mode) {
-                                        0 -> !isSystem
-                                        1 -> isSystem
-                                        2 -> true
-                                        else -> false
-                                    }
-
-                                    if (shouldExclude) {
-                                        Natives.setUidExclude(app.uid, 1)
-                                    }
-                                }
-                                viewModel.fetchAppList()
-                            }
-                        },
-                        checked = app.config.allow != 0,
-                        actions = {
-                            if (!app.rootGranted) {
-                                ListItem(
-                                    modifier = Modifier
-                                        .padding(horizontal = 16.dp)
-                                        .padding(bottom = 16.dp),
-                                    headlineContent = { Text(stringResource(id = R.string.su_pkg_excluded_setting_title)) },
-                                    leadingContent = {
-                                        Icon(
-                                            Tabler.Outline.UserX,
-                                            contentDescription = stringResource(id = R.string.su_pkg_excluded_setting_title)
-                                        )
-                                    },
-                                    supportingContent = { Text(stringResource(id = R.string.su_pkg_excluded_setting_summary)) },
-                                    trailingContent = {
-                                        Switch(
-                                            checked = app.excludeApp == 1,
-                                            onCheckedChange = {
-                                                scope.launch {
-                                                    if (it) {
-                                                        app.excludeApp = 1
-                                                        app.config.allow = 0
-                                                        app.config.profile.scontext =
-                                                            APApplication.DEFAULT_SCONTEXT
-                                                        Natives.revokeSu(app.uid)
-                                                    } else {
-                                                        app.excludeApp = 0
-                                                    }
-                                                    app.config.exclude = app.excludeApp
-                                                    app.config.profile.uid = app.uid
-                                                    PkgConfig.changeConfig(app.config)
-                                                    Natives.setUidExclude(app.uid, app.excludeApp)
-                                                }
-                                            },
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    )
-                })
-            list
-        }
         UIList(
             modifier = Modifier
                 .padding(innerPadding)
@@ -408,7 +195,222 @@ fun SuperUserScreen(setFab: FabProvider) {
                 .padding(bottom = 8.dp),
             onRefresh = { scope.launch { viewModel.fetchAppList() } },
             isRefreshing = viewModel.isRefreshing,
-            items = uiListData,
+            items = {
+                val list = mutableListOf<ListItemData>()
+                if (kPatchReady && aPatchReady) {
+                    list.add(
+                        ListItemData(
+                            title = {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        stringResource(R.string.su_pkg_excluded_setting_title),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    ) {
+                                        Text(
+                                            text = "AUTO",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 8.sp
+                                            ),
+                                            modifier = Modifier.padding(
+                                                horizontal = 4.dp,
+                                                vertical = 0.5.dp
+                                            ),
+                                            color = MaterialTheme.colorScheme.onTertiary,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            },
+                            headerIcon = {
+                                Icon(Tabler.Outline.Automation, null)
+                            },
+                            checked = { true },
+                            actions = {
+                                SingleChoiceSegmentedButtonRow(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(4.dp)
+                                ) {
+                                    whiteListModes.forEachIndexed { _, modeId ->
+                                        val isSelected = whiteListMode == modeId
+                                        val icons = modeIcons[modeId]
+                                        SegmentedButton(
+                                            shape = ExtraLarge,
+                                            border = SegmentedButtonDefaults.borderStroke(
+                                                Color.Transparent,
+                                                0.dp
+                                            ),
+                                            onClick = {
+                                                setWhiteListMode(modeId)
+                                                whiteListMode = modeId
+                                                scope.launch {
+                                                    val result = snackBarHost.showSnackbar(
+                                                        message = rebootToApply,
+                                                        actionLabel = reboot,
+                                                        duration = SnackbarDuration.Long
+                                                    )
+                                                    if (result == SnackbarResult.ActionPerformed) {
+                                                        reboot()
+                                                    }
+                                                }
+                                            },
+                                            selected = isSelected,
+                                            icon = {},
+                                            label = {
+                                                Icon(
+                                                    imageVector = (if (isSelected) icons?.first else icons?.second)!!,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    )
+                }
+                list.addAll(
+                    filteredList.map { app ->
+                        ListItemData(
+                            title = {
+                                Text(
+                                    app.label,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
+                            subtitle = app.packageName,
+                            showCheckBox = { true },
+                            headerIcon = {
+                                val imageRequest =
+                                    remember(app.packageName, app.packageInfo.lastUpdateTime) {
+                                        ImageRequest.Builder(context)
+                                            .data(app.packageInfo)
+                                            .memoryCacheKey("${app.packageName}-${app.packageInfo.lastUpdateTime}")
+                                            .crossfade(true)
+                                            .decoderDispatcher(Dispatchers.IO)
+                                            .fetcherDispatcher(Dispatchers.IO)
+                                            .interceptorDispatcher(Dispatchers.IO)
+                                            .transformationDispatcher(Dispatchers.IO)
+                                            .build()
+                                    }
+
+                                AsyncImage(
+                                    model = imageRequest,
+                                    contentDescription = app.label,
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .size(48.dp),
+                                )
+                            },
+                            label = {
+                                if (app.excludeApp == 1) {
+                                    LabelText(label = stringResource(id = R.string.su_pkg_excluded_label))
+                                }
+                                if (app.config.allow != 0) {
+                                    FlowRow {
+                                        LabelText(label = app.config.profile.uid.toString())
+                                        LabelText(label = app.config.profile.toUid.toString())
+                                        LabelText(
+                                            label = when {
+                                                // todo: valid scontext ?
+                                                app.config.profile.scontext.isNotEmpty() -> app.config.profile.scontext
+                                                else -> stringResource(id = R.string.su_selinux_via_hook)
+                                            }
+                                        )
+                                    }
+                                }
+                            },
+                            onCheckChange = { checked ->
+                                scope.launch {
+                                    if (checked) {
+                                        app.excludeApp = 0
+                                        app.config.allow = 1
+                                        app.config.exclude = 0
+                                        app.config.profile.scontext = APApplication.MAGISK_SCONTEXT
+                                    } else {
+                                        app.config.allow = 0
+                                    }
+                                    app.config.profile.uid = app.uid
+                                    PkgConfig.changeConfig(app.config)
+                                    if (app.config.allow == 1) {
+                                        Natives.grantSu(app.uid, 0, app.config.profile.scontext)
+                                        Natives.setUidExclude(app.uid, 0)
+                                    } else {
+                                        Natives.revokeSu(app.uid)
+                                        val mode = getWhiteListMode()
+                                        val isSystem =
+                                            (app.packageInfo.applicationInfo?.flags?.and(
+                                                ApplicationInfo.FLAG_SYSTEM
+                                            ) != 0)
+
+                                        val shouldExclude = when (mode) {
+                                            0 -> !isSystem
+                                            1 -> isSystem
+                                            2 -> true
+                                            else -> false
+                                        }
+
+                                        if (shouldExclude) {
+                                            Natives.setUidExclude(app.uid, 1)
+                                        }
+                                    }
+                                    viewModel.fetchAppList()
+                                }
+                            },
+                            checked = { app.config.allow != 0 },
+                            actions = {
+                                if (!app.rootGranted) {
+                                    ListItem(
+                                        modifier = Modifier
+                                            .padding(horizontal = 16.dp)
+                                            .padding(bottom = 16.dp),
+                                        headlineContent = { Text(stringResource(id = R.string.su_pkg_excluded_setting_title)) },
+                                        leadingContent = {
+                                            Icon(
+                                                Tabler.Outline.UserX,
+                                                contentDescription = stringResource(id = R.string.su_pkg_excluded_setting_title)
+                                            )
+                                        },
+                                        supportingContent = { Text(stringResource(id = R.string.su_pkg_excluded_setting_summary)) },
+                                        trailingContent = {
+                                            Switch(
+                                                checked = app.excludeApp == 1,
+                                                onCheckedChange = {
+                                                    scope.launch {
+                                                        if (it) {
+                                                            app.excludeApp = 1
+                                                            app.config.allow = 0
+                                                            app.config.profile.scontext =
+                                                                APApplication.DEFAULT_SCONTEXT
+                                                            Natives.revokeSu(app.uid)
+                                                        } else {
+                                                            app.excludeApp = 0
+                                                        }
+                                                        app.config.exclude = app.excludeApp
+                                                        app.config.profile.uid = app.uid
+                                                        PkgConfig.changeConfig(app.config)
+                                                        Natives.setUidExclude(
+                                                            app.uid,
+                                                            app.excludeApp
+                                                        )
+                                                    }
+                                                },
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        )
+                    })
+                list
+            },
             scrollBehavior = scrollBehavior,
             state = superUserListState
         )

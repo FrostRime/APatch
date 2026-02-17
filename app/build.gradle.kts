@@ -12,6 +12,7 @@ plugins {
     id("kotlin-parcelize")
     alias(libs.plugins.kotlin)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.aboutLibraries.plugin.android)
 }
 
 val androidCompileSdkVersion: Int by rootProject.extra
@@ -314,6 +315,9 @@ dependencies {
     implementation(libs.capsule)
 
     implementation(libs.ini4j)
+
+    implementation(libs.aboutlibraries.core)
+    implementation(libs.aboutlibraries.compose.m3)
 
     compileOnly(libs.cxx)
 }
