@@ -7,7 +7,6 @@ import android.util.Log
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -32,7 +31,7 @@ class SuperUserViewModel : ViewModel() {
         private const val TAG = "SuperUserViewModel"
         private val appsLock = Any()
 
-        var apps = mutableStateListOf<AppInfo>()
+        var apps by mutableStateOf<List<AppInfo>>(emptyList())
     }
 
     @Immutable
@@ -90,7 +89,9 @@ class SuperUserViewModel : ViewModel() {
             Su.exec {
                 Pkg.readPackages().list.forEach {
                     val uid = it.applicationInfo!!.uid
-                    Natives.revokeSu(uid)
+                    if (uid != 2000) {
+                        Natives.revokeSu(uid)
+                    }
                     Natives.setUidExclude(uid, 0)
                 }
 
@@ -99,6 +100,15 @@ class SuperUserViewModel : ViewModel() {
                 FileChannel.open(file.toPath(), StandardOpenOption.WRITE).use { channel ->
                     channel.truncate(0)
                 }
+                Natives.grantSu(2000, 0, APApplication.MAGISK_SCONTEXT)
+                PkgConfig.changeConfig(
+                    PkgConfig.Config(
+                        "com.android.shell",
+                        0,
+                        1,
+                        Natives.Profile(uid = 2000, scontext = APApplication.MAGISK_SCONTEXT)
+                    )
+                )
             }
         } finally {
             fetchAppList()
@@ -157,8 +167,7 @@ class SuperUserViewModel : ViewModel() {
             }
 
             synchronized(appsLock) {
-                apps.clear()
-                apps.addAll(newApps)
+                apps = newApps
             }
         } catch (_: Exception) {
         } finally {
