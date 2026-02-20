@@ -89,7 +89,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.core.content.edit
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.dropUnlessResumed
+import androidx.lifecycle.lifecycleScope
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.AlertTriangle
 import com.composables.icons.tabler.filled.Eye
@@ -118,6 +120,7 @@ import com.topjohnwu.superuser.nio.ExtendedFile
 import com.topjohnwu.superuser.nio.FileSystemManager
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
@@ -462,6 +465,7 @@ private fun TopBar(
     val prefs = APApplication.sharedPreferences
     val widgetOpacity = LocalWidgetOpacity.current
     val wallpaper = LocalWallpaper.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val ucropLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             result.data?.let { data ->
@@ -470,13 +474,14 @@ private fun TopBar(
                     if (output == null) {
                         wallpaper.value = null
                     } else {
-                        val wallpaperImageBitmap =
-                            BitmapFactory.decodeStream(output.inputStream()).asImageBitmap()
-                        val seedColor = wallpaperImageBitmap.themeColor(Color.Blue)
-                        prefs.edit {
-                            putInt("theme_seed_color", seedColor.toArgb())
+                        lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                            val bitmap = BitmapFactory.decodeStream(output.inputStream()).asImageBitmap()
+                            val seedColor = bitmap.themeColor(fallback = Color.Blue)
+                            withContext(Dispatchers.Main) {
+                                wallpaper.value = bitmap
+                                prefs.edit { putInt("theme_seed_color", seedColor.toArgb()) }
+                            }
                         }
-                        wallpaper.value = wallpaperImageBitmap
                     }
                     Log.d(TAG, "Crop success: ${data.data}")
                 } else if (result.resultCode == UCrop.RESULT_ERROR) {
