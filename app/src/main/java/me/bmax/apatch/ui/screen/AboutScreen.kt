@@ -113,6 +113,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     modifier = Modifier.padding(start = 4.dp),
                     text = author,
                     fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
                 )
             },

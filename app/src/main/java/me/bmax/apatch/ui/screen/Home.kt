@@ -41,17 +41,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ShapeDefaults.Large
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -111,6 +109,7 @@ import com.composables.icons.tabler.outline.Refresh
 import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
 import com.kyant.backdrop.backdrops.emptyBackdrop
+import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.materialkolor.ktx.themeColor
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
@@ -128,6 +127,7 @@ import me.bmax.apatch.R
 import me.bmax.apatch.TAG
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.FabProvider
+import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.component.LiquidSlider
 import me.bmax.apatch.ui.component.LiquidSurface
 import me.bmax.apatch.ui.component.ProvideMenuShape
@@ -475,7 +475,8 @@ private fun TopBar(
                         wallpaper.value = null
                     } else {
                         lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                            val bitmap = BitmapFactory.decodeStream(output.inputStream()).asImageBitmap()
+                            val bitmap =
+                                BitmapFactory.decodeStream(output.inputStream()).asImageBitmap()
                             val seedColor = bitmap.themeColor(fallback = Color.Blue)
                             withContext(Dispatchers.Main) {
                                 wallpaper.value = bitmap
@@ -715,7 +716,7 @@ private fun KStatusCard(
                     .aspectRatio(1f, true)
                     .widthIn(min = 0.dp)
                     .fillMaxHeight(),
-                tint = colorScheme.tertiaryContainer/*.copy(alpha = 0.75f)*/,
+                tint = colorScheme.tertiaryContainer,
                 shape = ContinuousRoundedRectangle(16.dp)
             ) {
                 Box(
@@ -766,9 +767,7 @@ private fun KStatusCard(
                             .padding(16.dp)
                             .matchParentSize()
                     ) {
-                        if (kpState != APApplication.State.UNKNOWN_STATE
-
-                        ) {
+                        if (kpState != APApplication.State.UNKNOWN_STATE) {
                             Text(
                                 text = "${Version.installedKPVString()} " +
                                         if (apState !=
@@ -780,8 +779,7 @@ private fun KStatusCard(
                                 modifier = Modifier
                                     .fillMaxWidth(),
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = colorScheme.onSurface
+                                fontWeight = FontWeight.Medium
                             )
                         }
                         Text(
@@ -803,8 +801,7 @@ private fun KStatusCard(
                             modifier = Modifier
                                 .fillMaxWidth(),
                             style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colorScheme.onSurface
+                            fontWeight = FontWeight.Bold
                         )
                         if (kpState == APApplication.State.UNKNOWN_STATE || kpState == APApplication.State.KERNELPATCH_NEED_UPDATE ||
                             kpState == APApplication.State.KERNELPATCH_NEED_REBOOT
@@ -823,8 +820,7 @@ private fun KStatusCard(
                                     .fillMaxWidth()
                                     .basicMarquee(),
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = colorScheme.onSurface
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
@@ -855,7 +851,6 @@ private fun KStatusCard(
                         Text(
                             text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
                             style = MaterialTheme.typography.titleLarge,
-                            color = colorScheme.onSurface,
                             modifier = Modifier.basicMarquee(),
                             fontWeight = FontWeight.SemiBold
                         )
@@ -865,7 +860,6 @@ private fun KStatusCard(
                                 .basicMarquee(),
                             text = stringResource(R.string.home_su_path),
                             style = MaterialTheme.typography.titleSmall,
-                            color = colorScheme.onSurface,
                             fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.End
                         )
@@ -897,7 +891,6 @@ private fun KStatusCard(
                         Text(
                             text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
                             style = MaterialTheme.typography.titleLarge,
-                            color = colorScheme.onSurface,
                             modifier = Modifier.basicMarquee(),
                             fontWeight = FontWeight.SemiBold
                         )
@@ -907,7 +900,6 @@ private fun KStatusCard(
                                 .basicMarquee(),
                             text = stringResource(R.string.home_apatch_version),
                             style = MaterialTheme.typography.titleSmall,
-                            color = colorScheme.onSurface,
                             fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.End
                         )
@@ -915,18 +907,20 @@ private fun KStatusCard(
                 }
             }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AStatusCard(apState: APApplication.State) {
-    ElevatedCard(
-        colors =
-            CardDefaults.elevatedCardColors(
-                containerColor = run { MaterialTheme.colorScheme.secondaryContainer }
-            ),
-        shape = Large
+    val wallpaperBackdrop = LocalWallpaperBackdrop.current
+    LiquidSurface(
+        backdrop = wallpaperBackdrop,
+        tint = MaterialTheme.colorScheme.secondaryContainer,
+        shape = ContinuousRoundedRectangle(16.dp),
+        isInteractive = false,
+        onClick = {}
     ) {
         Column(
             modifier = Modifier
@@ -937,7 +931,8 @@ private fun AStatusCard(apState: APApplication.State) {
             Row {
                 Text(
                     text = stringResource(R.string.android_patch),
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
             Row(
@@ -1022,7 +1017,10 @@ private fun AStatusCard(apState: APApplication.State) {
                             apState == APApplication.State.ANDROIDPATCH_NEED_UPDATE)
                 ) {
                     Column(modifier = Modifier.align(Alignment.CenterVertically)) {
-                        Button(
+                        LiquidButton(
+                            backdrop = it,
+                            shape = ContinuousCapsule,
+                            tint = MaterialTheme.colorScheme.primary,
                             onClick = {
                                 when (apState) {
                                     APApplication.State.ANDROIDPATCH_NOT_INSTALLED,
@@ -1068,9 +1066,10 @@ private fun AStatusCard(apState: APApplication.State) {
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
         }
     }
+
+    Spacer(Modifier.height(8.dp))
 }
 
 @Suppress("AssignedValueIsNeverRead")
@@ -1078,21 +1077,25 @@ private fun AStatusCard(apState: APApplication.State) {
 fun WarningCard() {
     var show by rememberSaveable { mutableStateOf(apApp.getBackupWarningState()) }
     if (show) {
-        ElevatedCard(
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-            colors =
-                CardDefaults.elevatedCardColors(
-                    containerColor = run { MaterialTheme.colorScheme.error }
-                ),
-            shape = Large
+        val wallpaperBackdrop = LocalWallpaperBackdrop.current
+        LiquidSurface(
+            backdrop = wallpaperBackdrop,
+            tint = MaterialTheme.colorScheme.error,
+            shape = ContinuousRoundedRectangle(16.dp),
+            tonalElevation = 6.dp,
+            isInteractive = false,
+            onClick = {}
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(12.dp)
+                    .height(intrinsicSize = IntrinsicSize.Min)
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .fillMaxHeight(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) { Icon(Tabler.Filled.AlertTriangle, contentDescription = "warning") }
@@ -1108,7 +1111,7 @@ fun WarningCard() {
                     ) {
                         Text(
                             modifier = Modifier.weight(1f),
-                            text = stringResource(id = R.string.patch_warnning),
+                            text = stringResource(id = R.string.patch_warnning)
                         )
 
                         Spacer(Modifier.width(12.dp))
@@ -1120,13 +1123,14 @@ fun WarningCard() {
                                 Modifier.clickable {
                                     show = false
                                     apApp.updateBackupWarningState(false)
-                                },
+                                }
                         )
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
         }
+
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -1147,6 +1151,7 @@ private fun getDeviceInfo(): String {
 @Composable
 private fun InfoCard() {
     val wallpaperBackdrop = LocalWallpaperBackdrop.current
+    Spacer(Modifier.height(4.dp))
     LiquidSurface(
         backdrop = wallpaperBackdrop,
         shape = ContinuousRoundedRectangle(16.dp),
@@ -1168,7 +1173,7 @@ private fun InfoCard() {
                 contents.appendLine(label).appendLine(content).appendLine()
                 Text(
                     text = label, style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
@@ -1218,21 +1223,25 @@ fun UpdateCard() {
         exit = shrinkVertically() + fadeOut()
     ) {
         val updateDialog = rememberConfirmDialog(onConfirm = { uriHandler.openUri(newVersionUrl) })
-        WarningCard(
-            message =
-                stringResource(id = R.string.home_new_apatch_found).format(newVersionCode),
-            MaterialTheme.colorScheme.outlineVariant
-        ) {
-            if (changelog.isEmpty()) {
-                uriHandler.openUri(newVersionUrl)
-            } else {
-                updateDialog.showConfirm(
-                    title = title,
-                    content = changelog,
-                    markdown = true,
-                    confirm = updateText
-                )
+        Column {
+            WarningCard(
+                message =
+                    stringResource(id = R.string.home_new_apatch_found).format(newVersionCode),
+                MaterialTheme.colorScheme.outlineVariant
+            ) {
+                if (changelog.isEmpty()) {
+                    uriHandler.openUri(newVersionUrl)
+                } else {
+                    updateDialog.showConfirm(
+                        title = title,
+                        content = changelog,
+                        markdown = true,
+                        confirm = updateText
+                    )
+                }
             }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

@@ -579,13 +579,11 @@ fun MainScreen(navigator: DestinationsNavigator) {
                                                             Icon(
                                                                 imageVector = imageVector,
                                                                 contentDescription = null,
-                                                                tint = MaterialTheme.colorScheme.onSurface,
                                                             )
                                                         }
                                                         item.title?.let { text ->
                                                             Text(
-                                                                text = text,
-                                                                color = MaterialTheme.colorScheme.onSurface,
+                                                                text = text
                                                             )
                                                         }
                                                     }
@@ -614,8 +612,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
                                         Icon(
                                             imageVector = targetIcon,
                                             contentDescription = null,
-                                            modifier = Modifier.size(28.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
                                 }

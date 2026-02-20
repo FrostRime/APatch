@@ -45,9 +45,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
@@ -66,6 +68,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.PlayerPlay
 import com.composables.icons.tabler.outline.PackageImport
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.capsule.ContinuousCapsule
 import com.ramcosta.composedestinations.generated.destinations.ExecuteAPMActionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -385,6 +395,7 @@ fun APModuleScreen(
                                     checked = { module.enabled },
                                     actions = {
                                         ModuleActionButtons(
+                                            backdrop = it,
                                             module = module,
                                             updateUrl = module.updateInfo?.zipUrl ?: "",
                                             navigator = navigator,
@@ -514,6 +525,7 @@ private fun ModuleTitleWithMeta(module: APModuleViewModel.ModuleInfo) {
 
 @Composable
 private fun ModuleActionButtons(
+    backdrop: Backdrop,
     module: APModuleViewModel.ModuleInfo,
     updateUrl: String,
     navigator: DestinationsNavigator,
@@ -532,7 +544,31 @@ private fun ModuleActionButtons(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (module.hasActionScript) {
+            val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
             FilledTonalButton(
+                modifier = Modifier.drawBackdrop(
+                backdrop = backdrop,
+                effects = {
+                    vibrancy()
+                    blur(2f.dp.toPx())
+                    lens(12f.dp.toPx(), 24f.dp.toPx())
+                },
+                highlight = {
+                    Highlight(
+                        alpha = 0f
+                    )
+                },
+                shape = { ContinuousCapsule },
+                shadow = {
+                    Shadow(
+                        alpha = 0f
+                    )
+                },
+                onDrawSurface = {
+                    drawRect(colorScheme.secondaryContainer, blendMode = BlendMode.Hue)
+                    drawRect(colorScheme.secondaryContainer.copy(alpha = 0.75f))
+                }
+            ),
                 onClick = {
                     navigator.navigate(ExecuteAPMActionScreenDestination(module.id))
                     viewModel.markNeedRefresh()
@@ -549,15 +585,16 @@ private fun ModuleActionButtons(
         }
         Spacer(modifier = Modifier.weight(1f))
         if (module.hasWebUi) {
-            ModuleSettingsButton(onClick = { onSettings(module) })
+            ModuleSettingsButton(backdrop = backdrop, onClick = { onSettings(module) })
         }
         Spacer(modifier = Modifier.width(12.dp))
         if (updateUrl.isNotEmpty()) {
-            ModuleUpdateButton(onClick = { onUpdate(module) })
+            ModuleUpdateButton(backdrop = backdrop, onClick = { onUpdate(module) })
 
             Spacer(modifier = Modifier.width(12.dp))
         }
         ModuleRemoveButton(
+            backdrop = backdrop,
             enabled = !module.remove,
             onClick = { onUninstall(module) })
     }

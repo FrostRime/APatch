@@ -333,23 +333,26 @@ fun KPModuleScreen(
                             ) {
                                 Spacer(modifier = Modifier.weight(1f))
 
-                                ModuleSettingsButton(onClick = {
-                                    targetKPMToControl = module
-                                    showKPMControlDialog.value = true
-                                })
+                                ModuleSettingsButton(
+                                    backdrop = it,
+                                    onClick = {
+                                        targetKPMToControl = module
+                                        showKPMControlDialog.value = true
+                                    })
 
                                 Spacer(modifier = Modifier.width(12.dp))
 
-                                KPModuleRemoveButton(enabled = true, onClick = {
-                                    scope.launch {
-                                        if (module.isInstalled) {
-                                            Su.exec {
-                                                Natives.uninstallKpmModule(module.name)
+                                KPModuleRemoveButton(
+                                    backdrop = it, enabled = true, onClick = {
+                                        scope.launch {
+                                            if (module.isInstalled) {
+                                                Su.exec {
+                                                    Natives.uninstallKpmModule(module.name)
+                                                }
                                             }
+                                            onModuleUninstall(module)
                                         }
-                                        onModuleUninstall(module)
-                                    }
-                                })
+                                    })
                             }
                         }
                     )

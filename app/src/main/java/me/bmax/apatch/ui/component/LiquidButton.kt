@@ -5,9 +5,16 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,6 +44,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.tanh
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LiquidButton(
     onClick: () -> Unit,
@@ -47,6 +55,7 @@ fun LiquidButton(
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
     shadowAlpha: Float = 1f,
+    contentPadding: PaddingValues = ButtonDefaults.contentPaddingFor(ButtonDefaults.MinHeight),
     content: @Composable RowScope.() -> Unit
 ) {
     val animationScope = rememberCoroutineScope()
@@ -62,6 +71,14 @@ fun LiquidButton(
     val highlightAngle by animateFloatAsState(
         targetValue = uiSensor?.gravityAngle ?: 45f,
         animationSpec = tween(400)
+    )
+
+    val contentColor = contentColorFor(
+        when {
+            tint.isSpecified -> tint
+            surfaceColor.isSpecified -> surfaceColor
+            else -> LocalContentColor.current
+        }
     )
 
     Row(
@@ -140,9 +157,15 @@ fun LiquidButton(
                 } else {
                     Modifier
                 }
-            ),
+            )
+            .padding(contentPadding),
         horizontalArrangement = Arrangement.spacedBy(8f.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content
-    )
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CompositionLocalProvider(
+            LocalContentColor provides contentColor
+        ) {
+            content()
+        }
+    }
 }
