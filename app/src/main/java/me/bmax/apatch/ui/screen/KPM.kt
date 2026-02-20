@@ -43,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -77,7 +78,6 @@ import me.bmax.apatch.ui.component.LoadingDialogHandle
 import me.bmax.apatch.ui.component.ModuleSettingsButton
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UIList
-import me.bmax.apatch.ui.component.pinnedScrollBehavior
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.ui.viewmodel.KPModel
@@ -85,6 +85,7 @@ import me.bmax.apatch.ui.viewmodel.KPModuleViewModel
 import me.bmax.apatch.ui.viewmodel.PatchesViewModel
 import me.bmax.apatch.util.Su
 import me.bmax.apatch.util.inputStream
+import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
 import me.bmax.apatch.util.writeTo
 import java.io.IOException
 
@@ -117,7 +118,6 @@ fun KPModuleScreen(
     }
 
     val viewModel = viewModel<KPModuleViewModel>()
-    val scrollBehavior = pinnedScrollBehavior()
     val kpModuleListState = rememberLazyListState()
     val moduleAuthor = stringResource(id = R.string.kpm_author)
     val scope = rememberCoroutineScope()
@@ -160,6 +160,7 @@ fun KPModuleScreen(
     }
 
     val context = LocalContext.current
+    val wallpaperBackdrop = LocalWallpaperBackdrop.current
 
     val moduleLoad = stringResource(id = R.string.kpm_load)
     val moduleInstall = stringResource(id = R.string.kpm_install)
@@ -266,19 +267,21 @@ fun KPModuleScreen(
         })
     }
 
-    Scaffold(topBar = {
-        SearchAppBar(
-            searchText = viewModel.search,
-            onSearchTextChange = { viewModel.search = it },
-            scrollBehavior = scrollBehavior,
-            searchBarPlaceHolderText = stringResource(R.string.search_modules)
-        )
-    }) { innerPadding ->
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            SearchAppBar(
+                searchText = viewModel.search,
+                onSearchTextChange = { viewModel.search = it },
+                searchBarPlaceHolderText = stringResource(R.string.search_modules),
+                wallpaperBackdrop = wallpaperBackdrop
+            )
+        }) { innerPadding ->
         UIList(
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(horizontal = 12.dp)
-                .padding(bottom = 8.dp),
+                .padding(top = 8.dp),
             onRefresh = { viewModel.fetchModuleList() },
             isRefreshing = viewModel.isRefreshing,
             items = {
@@ -352,7 +355,7 @@ fun KPModuleScreen(
                     )
                 }
             },
-            scrollBehavior = scrollBehavior,
+            backdrop = wallpaperBackdrop,
             state = kpModuleListState
         )
     }

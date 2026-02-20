@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -22,7 +23,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,10 +65,10 @@ import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.Fab
 import me.bmax.apatch.ui.FabProvider
 import me.bmax.apatch.ui.MenuItem
+import me.bmax.apatch.ui.component.LiquidToggle
 import me.bmax.apatch.ui.component.ListItemData
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UIList
-import me.bmax.apatch.ui.component.pinnedScrollBehavior
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
 import me.bmax.apatch.util.PkgConfig
 import me.bmax.apatch.util.getWhiteListMode
@@ -76,18 +76,19 @@ import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.setWhiteListMode
 import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalSnackbarHost
+import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SuperUserScreen(setFab: FabProvider) {
     val viewModel = viewModel<SuperUserViewModel>()
-    val scrollBehavior = pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
     val superUserListState = rememberLazyListState()
     val snackBarHost = LocalSnackbarHost.current
     val reboot = stringResource(id = R.string.reboot)
     val rebootToApply = stringResource(id = R.string.apm_reboot_to_apply)
     val whiteListModes = listOf(-1, 0, 1, 2)
+    val wallpaperBackdrop = LocalWallpaperBackdrop.current
     val context = LocalContext.current
     var whiteListMode by remember { mutableIntStateOf(-1) }
     var resetSUAppsPhase by remember { mutableIntStateOf(0) }
@@ -171,6 +172,7 @@ fun SuperUserScreen(setFab: FabProvider) {
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         snackbarHost = {
             SnackbarHost(
                 snackBarHost,
@@ -181,8 +183,8 @@ fun SuperUserScreen(setFab: FabProvider) {
             SearchAppBar(
                 searchText = viewModel.search,
                 onSearchTextChange = { viewModel.search = it },
-                scrollBehavior = scrollBehavior,
                 searchBarPlaceHolderText = stringResource(R.string.search_apps),
+                wallpaperBackdrop = wallpaperBackdrop
             )
         }
     ) { innerPadding ->
@@ -192,7 +194,7 @@ fun SuperUserScreen(setFab: FabProvider) {
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(horizontal = 12.dp)
-                .padding(bottom = 8.dp),
+                .padding(top = 8.dp),
             onRefresh = { scope.launch { viewModel.fetchAppList() } },
             isRefreshing = viewModel.isRefreshing,
             items = {
@@ -332,7 +334,7 @@ fun SuperUserScreen(setFab: FabProvider) {
                                     if (checked) {
                                         app.excludeApp = 0
                                         app.config.allow = 1
-                                        app.config.exclude = 0
+                                        app.excludeApp = 0
                                         app.config.profile.scontext = APApplication.MAGISK_SCONTEXT
                                     } else {
                                         app.config.allow = 0
@@ -364,13 +366,14 @@ fun SuperUserScreen(setFab: FabProvider) {
                                     viewModel.fetchAppList()
                                 }
                             },
-                            checked = { app.config.allow != 0 },
-                            actions = {
-                                if (!app.rootGranted) {
+                            checked = { app.rootGranted() },
+                            actions = { backdrop ->
+                                if (!app.rootGranted()) {
                                     ListItem(
                                         modifier = Modifier
                                             .padding(horizontal = 16.dp)
                                             .padding(bottom = 16.dp),
+                                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                                         headlineContent = { Text(stringResource(id = R.string.su_pkg_excluded_setting_title)) },
                                         leadingContent = {
                                             Icon(
@@ -380,9 +383,10 @@ fun SuperUserScreen(setFab: FabProvider) {
                                         },
                                         supportingContent = { Text(stringResource(id = R.string.su_pkg_excluded_setting_summary)) },
                                         trailingContent = {
-                                            Switch(
-                                                checked = app.excludeApp == 1,
-                                                onCheckedChange = {
+                                            LiquidToggle(
+                                                selected = { app.excludeApp == 1 },
+                                                backdrop = backdrop,
+                                                onSelect = {
                                                     scope.launch {
                                                         if (it) {
                                                             app.excludeApp = 1
@@ -411,7 +415,7 @@ fun SuperUserScreen(setFab: FabProvider) {
                     })
                 list
             },
-            scrollBehavior = scrollBehavior,
+            backdrop = wallpaperBackdrop,
             state = superUserListState
         )
     }

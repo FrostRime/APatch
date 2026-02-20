@@ -91,7 +91,11 @@ fun AboutScreen(navigator: DestinationsNavigator) {
             libraries = libraries,
             modifier = Modifier.fillMaxWidth(),
             onLibraryClick = { lib ->
-                lib.website?.let { uriHandler.openUri(it) }
+                try {
+                    lib.website?.let { uriHandler.openUri(it) }
+                } catch (_: Exception) {
+                    // no-op
+                }
             },
             shapes = LibraryDefaults.libraryShapes(ContinuousRoundedRectangle(4.dp)),
             license = { license ->

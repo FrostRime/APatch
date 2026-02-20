@@ -1,6 +1,6 @@
 package me.bmax.apatch.ui.webui
 
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,8 +21,7 @@ object MonetColorsProvider {
     }
 
     @Composable
-    fun UpdateCss() {
-        val colorScheme = MaterialTheme.colorScheme
+    fun UpdateCss(colorScheme: ColorScheme) {
 
         LaunchedEffect(colorScheme) {
             // Generate CSS only when colorScheme changes

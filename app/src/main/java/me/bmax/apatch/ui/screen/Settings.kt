@@ -35,6 +35,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -48,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -79,6 +81,7 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.FabProvider
+import me.bmax.apatch.ui.component.LiquidSurface
 import me.bmax.apatch.ui.component.SwitchItem
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
@@ -88,8 +91,10 @@ import me.bmax.apatch.util.getBugreportFile
 import me.bmax.apatch.util.isGlobalNamespaceEnabled
 import me.bmax.apatch.util.outputStream
 import me.bmax.apatch.util.setGlobalNamespaceEnabled
+import me.bmax.apatch.util.ui.InteractiveHighlight
 import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalSnackbarHost
+import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
 import me.bmax.apatch.util.ui.NavigationBarsSpacer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -115,14 +120,25 @@ fun SettingScreen(setFab: FabProvider) {
 
     val snackBarHost = LocalSnackbarHost.current
 
+    val wallpaperBackdrop = LocalWallpaperBackdrop.current
     LaunchedEffect(Unit) {
         setFab(null)
     }
 
+    val animationScope = rememberCoroutineScope()
+
+    remember(animationScope) {
+        InteractiveHighlight(
+            animationScope = animationScope
+        )
+    }
+
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                title = { Text(stringResource(R.string.settings)) }
             )
         },
         snackbarHost = {
@@ -176,6 +192,7 @@ fun SettingScreen(setFab: FabProvider) {
                 .padding(paddingValues)
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp)
+                .padding(top = 8.dp)
                 .clip(ContinuousRoundedRectangle(16.dp)),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = LocalInnerPadding.current
@@ -183,165 +200,205 @@ fun SettingScreen(setFab: FabProvider) {
             val prefs = APApplication.sharedPreferences
 
             item {
-                Column(modifier = Modifier.clip(ContinuousRoundedRectangle(16.dp))) {
-                    // clear key
-                    if (kPatchReady) {
-                        val clearKeyDialogTitle = stringResource(id = R.string.clear_super_key)
-                        val clearKeyDialogContent =
-                            stringResource(id = R.string.settings_clear_super_key_dialog)
-                        ListItem(
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            ),
-                            leadingContent = {
-                                Icon(
-                                    Tabler.Filled.Key, stringResource(id = R.string.super_key)
-                                )
-                            },
-                            headlineContent = { Text(stringResource(id = R.string.clear_super_key)) },
-                            modifier = Modifier.clickable {
-                                clearKeyDialog.showConfirm(
-                                    title = clearKeyDialogTitle,
-                                    content = clearKeyDialogContent,
-                                    markdown = false,
-                                )
+                LiquidSurface(
+                    backdrop = wallpaperBackdrop,
+                    shape = ContinuousRoundedRectangle(16.dp),
+                    isInteractive = false,
+                    onClick = {},
+                    tint = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Column {
+                        // clear key
+                        if (kPatchReady) {
+                            val clearKeyDialogTitle = stringResource(id = R.string.clear_super_key)
+                            val clearKeyDialogContent =
+                                stringResource(id = R.string.settings_clear_super_key_dialog)
+                            ListItem(
+                                colors = ListItemDefaults.colors(
+                                    containerColor = Color.Transparent
+                                ),
+                                leadingContent = {
+                                    Icon(
+                                        Tabler.Filled.Key, stringResource(id = R.string.super_key)
+                                    )
+                                },
+                                headlineContent = { Text(stringResource(id = R.string.clear_super_key)) },
+                                modifier = Modifier.clickable {
+                                    clearKeyDialog.showConfirm(
+                                        title = clearKeyDialogTitle,
+                                        content = clearKeyDialogContent,
+                                        markdown = false,
+                                    )
 
+                                })
+                        }
+
+                        // store key local?
+                        SwitchItem(
+                            icon = Tabler.Filled.Key,
+                            title = stringResource(id = R.string.settings_donot_store_superkey),
+                            summary = stringResource(id = R.string.settings_donot_store_superkey_summary),
+                            checked = { bSkipStoreSuperKey },
+                            onCheckedChange = {
+                                bSkipStoreSuperKey = it
+                                APatchKeyHelper.setShouldSkipStoreSuperKey(bSkipStoreSuperKey)
                             })
                     }
-
-                    // store key local?
-                    SwitchItem(
-                        icon = Tabler.Filled.Key,
-                        title = stringResource(id = R.string.settings_donot_store_superkey),
-                        summary = stringResource(id = R.string.settings_donot_store_superkey_summary),
-                        checked = { bSkipStoreSuperKey },
-                        onCheckedChange = {
-                            bSkipStoreSuperKey = it
-                            APatchKeyHelper.setShouldSkipStoreSuperKey(bSkipStoreSuperKey)
-                        })
                 }
             }
 
             // Global mount
             item {
-                Column(modifier = Modifier.clip(ContinuousRoundedRectangle(16.dp))) {
-                    if (kPatchReady && aPatchReady) {
-                        SwitchItem(
-                            icon = Tabler.Filled.Globe,
-                            title = stringResource(id = R.string.settings_global_namespace_mode),
-                            summary = stringResource(id = R.string.settings_global_namespace_mode_summary),
-                            checked = { isGlobalNamespaceEnabled },
-                            onCheckedChange = {
-                                setGlobalNamespaceEnabled(
-                                    if (isGlobalNamespaceEnabled) {
-                                        "0"
-                                    } else {
-                                        "1"
-                                    }
-                                )
-                                isGlobalNamespaceEnabled = it
-                            })
-                    }
+                LiquidSurface(
+                    backdrop = wallpaperBackdrop,
+                    shape = ContinuousRoundedRectangle(16.dp),
+                    isInteractive = false,
+                    onClick = {},
+                    tint = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Column {
+                        if (kPatchReady && aPatchReady) {
+                            SwitchItem(
+                                icon = Tabler.Filled.Globe,
+                                title = stringResource(id = R.string.settings_global_namespace_mode),
+                                summary = stringResource(id = R.string.settings_global_namespace_mode_summary),
+                                checked = { isGlobalNamespaceEnabled },
+                                onCheckedChange = {
+                                    setGlobalNamespaceEnabled(
+                                        if (isGlobalNamespaceEnabled) {
+                                            "0"
+                                        } else {
+                                            "1"
+                                        }
+                                    )
+                                    isGlobalNamespaceEnabled = it
+                                })
+                        }
 
-                    // WebView Debug
-                    if (aPatchReady) {
-                        var enableWebDebugging by rememberSaveable {
+                        // WebView Debug
+                        if (aPatchReady) {
+                            var enableWebDebugging by rememberSaveable {
+                                mutableStateOf(
+                                    prefs.getBoolean("enable_web_debugging", false)
+                                )
+                            }
+                            SwitchItem(
+                                icon = Tabler.Filled.FileCode,
+                                title = stringResource(id = R.string.enable_web_debugging),
+                                summary = stringResource(id = R.string.enable_web_debugging_summary),
+                                checked = { enableWebDebugging }
+                            ) {
+                                APApplication.sharedPreferences.edit {
+                                    putBoolean("enable_web_debugging", it)
+                                }
+                                enableWebDebugging = it
+                            }
+                        }
+
+                        // Check Update
+                        var checkUpdate by rememberSaveable {
                             mutableStateOf(
-                                prefs.getBoolean("enable_web_debugging", false)
+                                prefs.getBoolean("check_update", true)
                             )
                         }
+
                         SwitchItem(
-                            icon = Tabler.Filled.FileCode,
-                            title = stringResource(id = R.string.enable_web_debugging),
-                            summary = stringResource(id = R.string.enable_web_debugging_summary),
-                            checked = { enableWebDebugging }
+                            icon = Tabler.Filled.FileTime,
+                            title = stringResource(id = R.string.settings_check_update),
+                            summary = stringResource(id = R.string.settings_check_update_summary),
+                            checked = { checkUpdate }
                         ) {
-                            APApplication.sharedPreferences.edit {
-                                putBoolean("enable_web_debugging", it)
-                            }
-                            enableWebDebugging = it
+                            prefs.edit { putBoolean("check_update", it) }
+                            checkUpdate = it
                         }
-                    }
-
-                    // Check Update
-                    var checkUpdate by rememberSaveable {
-                        mutableStateOf(
-                            prefs.getBoolean("check_update", true)
-                        )
-                    }
-
-                    SwitchItem(
-                        icon = Tabler.Filled.FileTime,
-                        title = stringResource(id = R.string.settings_check_update),
-                        summary = stringResource(id = R.string.settings_check_update_summary),
-                        checked = { checkUpdate }
-                    ) {
-                        prefs.edit { putBoolean("check_update", it) }
-                        checkUpdate = it
                     }
                 }
             }
 
             item {
-                Column(modifier = Modifier.clip(ContinuousRoundedRectangle(16.dp))) {
-                    // Night Mode Follow System
-                    var nightFollowSystem by rememberSaveable {
-                        mutableStateOf(
-                            prefs.getBoolean("night_mode_follow_sys", true)
-                        )
-                    }
-                    SwitchItem(
-                        icon = Tabler.Filled.BrightnessAuto,
-                        title = stringResource(id = R.string.settings_night_mode_follow_sys),
-                        summary = stringResource(id = R.string.settings_night_mode_follow_sys_summary),
-                        checked = { nightFollowSystem }
-                    ) {
-                        prefs.edit { putBoolean("night_mode_follow_sys", it) }
-                        nightFollowSystem = it
-                        refreshTheme.value = true
-                    }
-
-                    // Custom Night Theme Switch
-                    AnimatedVisibility(visible = !nightFollowSystem) {
-                        var nightThemeEnabled by rememberSaveable {
+                LiquidSurface(
+                    backdrop = wallpaperBackdrop,
+                    shape = ContinuousRoundedRectangle(16.dp),
+                    isInteractive = false,
+                    onClick = {},
+                    tint = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Column {
+                        // Night Mode Follow System
+                        var nightFollowSystem by rememberSaveable {
                             mutableStateOf(
-                                prefs.getBoolean("night_mode_enabled", false)
+                                prefs.getBoolean("night_mode_follow_sys", true)
                             )
                         }
                         SwitchItem(
-                            icon = Tabler.Filled.Moon,
-                            title = stringResource(id = R.string.settings_night_theme_enabled),
-                            checked = { nightThemeEnabled }
+                            icon = Tabler.Filled.BrightnessAuto,
+                            title = stringResource(id = R.string.settings_night_mode_follow_sys),
+                            summary = stringResource(id = R.string.settings_night_mode_follow_sys_summary),
+                            checked = { nightFollowSystem }
                         ) {
-                            prefs.edit { putBoolean("night_mode_enabled", it) }
-                            nightThemeEnabled = it
-                            refreshTheme.value = true
-                        }
-                    }
-
-                    // System dynamic color theme
-                    val isDynamicColorSupport = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    if (isDynamicColorSupport) {
-                        var useSystemDynamicColor by rememberSaveable {
-                            mutableStateOf(
-                                prefs.getBoolean("use_system_color_theme", true)
-                            )
-                        }
-                        SwitchItem(
-                            icon = Tabler.Filled.Palette,
-                            title = stringResource(id = R.string.settings_use_system_color_theme),
-                            summary = stringResource(id = R.string.settings_use_system_color_theme_summary),
-                            checked = { useSystemDynamicColor }
-                        ) {
-                            prefs.edit { putBoolean("use_system_color_theme", it) }
-                            useSystemDynamicColor = it
+                            prefs.edit { putBoolean("night_mode_follow_sys", it) }
+                            nightFollowSystem = it
                             refreshTheme.value = true
                         }
 
-                        AnimatedVisibility(visible = !useSystemDynamicColor) {
+                        // Custom Night Theme Switch
+                        AnimatedVisibility(visible = !nightFollowSystem) {
+                            var nightThemeEnabled by rememberSaveable {
+                                mutableStateOf(
+                                    prefs.getBoolean("night_mode_enabled", false)
+                                )
+                            }
+                            SwitchItem(
+                                icon = Tabler.Filled.Moon,
+                                title = stringResource(id = R.string.settings_night_theme_enabled),
+                                checked = { nightThemeEnabled }
+                            ) {
+                                prefs.edit { putBoolean("night_mode_enabled", it) }
+                                nightThemeEnabled = it
+                                refreshTheme.value = true
+                            }
+                        }
+
+                        // System dynamic color theme
+                        val isDynamicColorSupport = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                        if (isDynamicColorSupport) {
+                            var useSystemDynamicColor by rememberSaveable {
+                                mutableStateOf(
+                                    prefs.getBoolean("use_system_color_theme", true)
+                                )
+                            }
+                            SwitchItem(
+                                icon = Tabler.Filled.Palette,
+                                title = stringResource(id = R.string.settings_use_system_color_theme),
+                                summary = stringResource(id = R.string.settings_use_system_color_theme_summary),
+                                checked = { useSystemDynamicColor }
+                            ) {
+                                prefs.edit { putBoolean("use_system_color_theme", it) }
+                                useSystemDynamicColor = it
+                                refreshTheme.value = true
+                            }
+
+                            AnimatedVisibility(visible = !useSystemDynamicColor) {
+                                ListItem(
+                                    colors = ListItemDefaults.colors(
+                                        containerColor = Color.Transparent
+                                    ), headlineContent = {
+                                        Text(text = stringResource(id = R.string.settings_custom_color_theme))
+                                    }, modifier = Modifier.clickable {
+                                        showThemeChooseDialog.value = true
+                                    }, supportingContent = {
+                                        val colorMode = prefs.getString("custom_color", "blue")
+                                        Text(
+                                            text = stringResource(colorNameToString(colorMode.toString())),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
+                            }
+                        } else {
                             ListItem(
                                 colors = ListItemDefaults.colors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                                    containerColor = Color.Transparent
                                 ), headlineContent = {
                                     Text(text = stringResource(id = R.string.settings_custom_color_theme))
                                 }, modifier = Modifier.clickable {
@@ -355,164 +412,162 @@ fun SettingScreen(setFab: FabProvider) {
                                     )
                                 }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
                         }
-                    } else {
-                        ListItem(
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            ), headlineContent = {
-                                Text(text = stringResource(id = R.string.settings_custom_color_theme))
-                            }, modifier = Modifier.clickable {
-                                showThemeChooseDialog.value = true
-                            }, supportingContent = {
-                                val colorMode = prefs.getString("custom_color", "blue")
-                                Text(
-                                    text = stringResource(colorNameToString(colorMode.toString())),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }, leadingContent = { Icon(Tabler.Filled.Paint, null) })
                     }
                 }
             }
 
             item {
-                Column(modifier = Modifier.clip(ContinuousRoundedRectangle(16.dp))) {
-                    // language
-                    ListItem(
-                        colors = ListItemDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        ), headlineContent = {
-                            Text(text = stringResource(id = R.string.settings_app_language))
-                        }, modifier = Modifier.clickable {
-                            showLanguageDialog.value = true
-                        }, supportingContent = {
-                            Text(text = AppCompatDelegate.getApplicationLocales()[0]?.displayLanguage?.replaceFirstChar {
-                                if (it.isLowerCase()) it.titlecase(
-                                    Locale.getDefault()
-                                ) else it.toString()
-                            } ?: stringResource(id = R.string.system_default),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline)
-                        }, leadingContent = { Icon(Tabler.Outline.Language, null) })
+                LiquidSurface(
+                    backdrop = wallpaperBackdrop,
+                    shape = ContinuousRoundedRectangle(16.dp),
+                    isInteractive = false,
+                    onClick = {},
+                    tint = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Column {
+                        // language
+                        ListItem(
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent
+                            ), headlineContent = {
+                                Text(text = stringResource(id = R.string.settings_app_language))
+                            }, modifier = Modifier.clickable {
+                                showLanguageDialog.value = true
+                            }, supportingContent = {
+                                Text(text = AppCompatDelegate.getApplicationLocales()[0]?.displayLanguage?.replaceFirstChar {
+                                    if (it.isLowerCase()) it.titlecase(
+                                        Locale.getDefault()
+                                    ) else it.toString()
+                                } ?: stringResource(id = R.string.system_default),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline)
+                            }, leadingContent = { Icon(Tabler.Outline.Language, null) })
 
-                    // log
-                    ListItem(
-                        colors = ListItemDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        ),
-                        leadingContent = {
-                            Icon(
-                                Tabler.Outline.ReportAnalytics,
-                                stringResource(id = R.string.send_log)
-                            )
-                        },
-                        headlineContent = { Text(stringResource(id = R.string.send_log)) },
-                        modifier = Modifier.clickable {
-                            showLogBottomSheet = true
-                        })
-                    if (showLogBottomSheet) {
-                        ModalBottomSheet(
-                            onDismissRequest = { showLogBottomSheet = false },
-                            contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-                            content = {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(10.dp)
-                                        .align(Alignment.CenterHorizontally)
-
-                                ) {
-                                    Box {
-                                        Column(
-                                            modifier = Modifier
-                                                .padding(16.dp)
-                                                .clickable {
-                                                    scope.launch {
-                                                        val formatter =
-                                                            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm")
-                                                        val current =
-                                                            LocalDateTime.now().format(formatter)
-                                                        exportBugreportLauncher.launch("APatch_bugreport_${current}.tar.gz")
-                                                        showLogBottomSheet = false
-                                                    }
-                                                }
-                                        ) {
-                                            Icon(
-                                                Tabler.Outline.DeviceFloppy,
-                                                contentDescription = null,
-                                                modifier = Modifier.align(Alignment.CenterHorizontally)
-                                            )
-                                            Text(
-                                                text = stringResource(id = R.string.save_log),
-                                                modifier = Modifier.padding(top = 16.dp),
-                                                textAlign = TextAlign.Center.also {
-                                                    LineHeightStyle(
-                                                        alignment = LineHeightStyle.Alignment.Center,
-                                                        trim = LineHeightStyle.Trim.None
-                                                    )
-                                                }
-
-                                            )
-                                        }
-
-                                    }
-                                    Box {
-                                        Column(
-                                            modifier = Modifier
-                                                .padding(16.dp)
-                                                .clickable {
-                                                    scope.launch {
-                                                        val bugreport = loadingDialog.withLoading {
-                                                            withContext(Dispatchers.IO) {
-                                                                getBugreportFile(context)
-                                                            }
-                                                        }
-
-                                                        val uri: Uri = FileProvider.getUriForFile(
-                                                            context,
-                                                            "${BuildConfig.APPLICATION_ID}.fileprovider",
-                                                            bugreport
-                                                        )
-
-                                                        val shareIntent =
-                                                            Intent(Intent.ACTION_SEND).apply {
-                                                                putExtra(Intent.EXTRA_STREAM, uri)
-                                                                setDataAndType(
-                                                                    uri,
-                                                                    "application/gzip"
-                                                                )
-                                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                            }
-
-                                                        context.startActivity(
-                                                            Intent.createChooser(
-                                                                shareIntent,
-                                                                context.getString(R.string.send_log)
-                                                            )
-                                                        )
-                                                        showLogBottomSheet = false
-                                                    }
-                                                }) {
-                                            Icon(
-                                                Tabler.Outline.Share,
-                                                contentDescription = null,
-                                                modifier = Modifier.align(Alignment.CenterHorizontally)
-                                            )
-                                            Text(
-                                                text = stringResource(id = R.string.send_log),
-                                                modifier = Modifier.padding(top = 16.dp),
-                                                textAlign = TextAlign.Center.also {
-                                                    LineHeightStyle(
-                                                        alignment = LineHeightStyle.Alignment.Center,
-                                                        trim = LineHeightStyle.Trim.None
-                                                    )
-                                                }
-                                            )
-                                        }
-
-                                    }
-                                }
-                                NavigationBarsSpacer()
+                        // log
+                        ListItem(
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent
+                            ),
+                            leadingContent = {
+                                Icon(
+                                    Tabler.Outline.ReportAnalytics,
+                                    stringResource(id = R.string.send_log)
+                                )
+                            },
+                            headlineContent = { Text(stringResource(id = R.string.send_log)) },
+                            modifier = Modifier.clickable {
+                                showLogBottomSheet = true
                             })
+                        if (showLogBottomSheet) {
+                            ModalBottomSheet(
+                                onDismissRequest = { showLogBottomSheet = false },
+                                contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+                                content = {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(10.dp)
+                                            .align(Alignment.CenterHorizontally)
+
+                                    ) {
+                                        Box {
+                                            Column(
+                                                modifier = Modifier
+                                                    .padding(16.dp)
+                                                    .clickable {
+                                                        scope.launch {
+                                                            val formatter =
+                                                                DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm")
+                                                            val current =
+                                                                LocalDateTime.now()
+                                                                    .format(formatter)
+                                                            exportBugreportLauncher.launch("APatch_bugreport_${current}.tar.gz")
+                                                            showLogBottomSheet = false
+                                                        }
+                                                    }
+                                            ) {
+                                                Icon(
+                                                    Tabler.Outline.DeviceFloppy,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                                )
+                                                Text(
+                                                    text = stringResource(id = R.string.save_log),
+                                                    modifier = Modifier.padding(top = 16.dp),
+                                                    textAlign = TextAlign.Center.also {
+                                                        LineHeightStyle(
+                                                            alignment = LineHeightStyle.Alignment.Center,
+                                                            trim = LineHeightStyle.Trim.None
+                                                        )
+                                                    }
+
+                                                )
+                                            }
+
+                                        }
+                                        Box {
+                                            Column(
+                                                modifier = Modifier
+                                                    .padding(16.dp)
+                                                    .clickable {
+                                                        scope.launch {
+                                                            val bugreport =
+                                                                loadingDialog.withLoading {
+                                                                    withContext(Dispatchers.IO) {
+                                                                        getBugreportFile(context)
+                                                                    }
+                                                                }
+
+                                                            val uri: Uri =
+                                                                FileProvider.getUriForFile(
+                                                                    context,
+                                                                    "${BuildConfig.APPLICATION_ID}.fileprovider",
+                                                                    bugreport
+                                                                )
+
+                                                            val shareIntent =
+                                                                Intent(Intent.ACTION_SEND).apply {
+                                                                    putExtra(
+                                                                        Intent.EXTRA_STREAM,
+                                                                        uri
+                                                                    )
+                                                                    setDataAndType(
+                                                                        uri,
+                                                                        "application/gzip"
+                                                                    )
+                                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                                }
+
+                                                            context.startActivity(
+                                                                Intent.createChooser(
+                                                                    shareIntent,
+                                                                    context.getString(R.string.send_log)
+                                                                )
+                                                            )
+                                                            showLogBottomSheet = false
+                                                        }
+                                                    }) {
+                                                Icon(
+                                                    Tabler.Outline.Share,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                                )
+                                                Text(
+                                                    text = stringResource(id = R.string.send_log),
+                                                    modifier = Modifier.padding(top = 16.dp),
+                                                    textAlign = TextAlign.Center.also {
+                                                        LineHeightStyle(
+                                                            alignment = LineHeightStyle.Alignment.Center,
+                                                            trim = LineHeightStyle.Trim.None
+                                                        )
+                                                    }
+                                                )
+                                            }
+
+                                        }
+                                    }
+                                    NavigationBarsSpacer()
+                                })
+                        }
                     }
                 }
             }

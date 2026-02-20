@@ -1,9 +1,11 @@
 package me.bmax.apatch.ui.component
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -17,19 +19,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalAbsoluteTonalElevation
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,18 +37,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.composables.icons.tabler.Tabler
-import com.composables.icons.tabler.outline.InfoCircle
-import com.composables.icons.tabler.outline.Plus
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.highlight.HighlightStyle
+import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousRoundedRectangle
 import me.bmax.apatch.util.ui.LocalInnerPadding
+import me.bmax.apatch.util.ui.rememberUISensor
+import kotlin.math.ln
 
 data class ListItemData(
     val background: Color = Color.Unspecified,
@@ -58,13 +67,14 @@ data class ListItemData(
     val label: @Composable (() -> Unit)? = null,
     val headerIcon: @Composable (() -> Unit)? = null,
     val trailingContent: @Composable (() -> Unit)? = null,
-    val actions: @Composable () -> Unit,
+    val actions: @Composable (Backdrop) -> Unit,
     val checked: () -> Boolean,
     val onCheckChange: ((Boolean) -> Unit)? = null,
     val showCheckBox: () -> Boolean = { false }
 )
 
-val bottomShape = ContinuousRoundedRectangle(4.dp, 4.dp, 28.dp, 28.dp)
+val topShape = ContinuousRoundedRectangle(16.dp, 16.dp, 4.dp, 4.dp)
+val bottomShape = ContinuousRoundedRectangle(4.dp, 4.dp, 16.dp, 16.dp)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +83,7 @@ fun UIList(
     onRefresh: () -> Unit,
     isRefreshing: Boolean,
     modifier: Modifier = Modifier,
-    scrollBehavior: SearchBarScrollBehavior,
+    backdrop: Backdrop,
     state: LazyListState,
     emptyContent: @Composable () -> Unit = {}
 ) {
@@ -86,8 +96,7 @@ fun UIList(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(ContinuousRoundedRectangle(28.dp))
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                .clip(ContinuousRoundedRectangle(16.dp)),
             state = state,
             verticalArrangement = Arrangement.spacedBy(4.dp),
             contentPadding = LocalInnerPadding.current
@@ -101,12 +110,17 @@ fun UIList(
 
                 else -> {
                     itemsIndexed(items) { index, item ->
-                        val isLastest = index == items.lastIndex
+                        val shape = when (index) {
+                            0 -> topShape
+                            items.lastIndex -> bottomShape
+                            else -> ContinuousRoundedRectangle(4.dp)
+                        }
                         GenericItem(
                             data = item,
-                            shape = if (isLastest) bottomShape else ContinuousRoundedRectangle(4.dp),
-                            expandedContent = {
-                                item.actions()
+                            shape = shape,
+                            backdrop = backdrop,
+                            expandedContent = { backdrop ->
+                                item.actions(backdrop)
                             }
                         )
                     }
@@ -120,7 +134,8 @@ fun UIList(
 private fun GenericItem(
     data: ListItemData,
     shape: Shape,
-    expandedContent: @Composable () -> Unit
+    backdrop: Backdrop,
+    expandedContent: @Composable (Backdrop) -> Unit
 ) {
     var showActions by remember { mutableStateOf(false) }
     val backgroundColor = if (data.background != Color.Unspecified) {
@@ -128,11 +143,58 @@ private fun GenericItem(
     } else {
         MaterialTheme.colorScheme.surface
     }
-    Surface(
-        shape = shape,
-        tonalElevation = if (data.checked()) 4.dp else 1.dp,
-        color = backgroundColor
-    ) {
+
+    fun ColorScheme.surfaceColorAtElevation(color: Color, elevation: Dp): Color {
+        if (elevation == 0.dp) return color
+        val alpha = ((4.5f * ln(elevation.value + 1)) + 2f) / 100f
+        return surfaceTint.copy(alpha = alpha).compositeOver(color)
+    }
+
+    val tonalElevation = if (data.checked()) 4.dp else 1.dp
+    val absoluteElevation = LocalAbsoluteTonalElevation.current + tonalElevation
+    val color =
+        MaterialTheme.colorScheme.surfaceColorAtElevation(backgroundColor, absoluteElevation)
+    val itemSurfaceBackdrop = rememberLayerBackdrop()
+    val uiSensor = rememberUISensor()
+
+    val highlightAngle by animateFloatAsState(
+        targetValue = uiSensor?.gravityAngle ?: 45f,
+        animationSpec = tween(400)
+    )
+    Box {
+        Surface(
+            tonalElevation = if (data.checked()) 4.dp else 1.dp,
+            modifier = Modifier
+                .matchParentSize()
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { shape },
+                    effects = {
+                        vibrancy()
+                        blur(8.dp.toPx())
+                        lens(12f.dp.toPx(), 24f.dp.toPx())
+                    },
+                    highlight = {
+                        Highlight(
+                            style = HighlightStyle.Default(
+                                angle = highlightAngle,
+                            ),
+                            alpha = 0.05f
+                        )
+                    },
+                    shadow = {
+                        Shadow(
+                            alpha = 0f
+                        )
+                    },
+                    onDrawSurface = {
+                        drawRect(color, blendMode = BlendMode.Hue)
+                        drawRect(color.copy(alpha = 0.87f))
+                    }
+                )
+                .layerBackdrop(itemSurfaceBackdrop),
+            shape = shape,
+            color = Color.Transparent) {}
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -142,7 +204,7 @@ private fun GenericItem(
         ) {
             ListItem(
                 colors = ListItemDefaults.colors(
-                    containerColor = backgroundColor
+                    containerColor = Color.Transparent
                 ),
                 leadingContent = data.headerIcon,
                 headlineContent = data.title,
@@ -200,83 +262,8 @@ private fun GenericItem(
                 }
             )
             AnimatedVisibility(showActions) {
-                expandedContent()
+                expandedContent(itemSurfaceBackdrop)
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, heightDp = 600)
-@Composable
-fun PreviewUIList() {
-    rememberSearchBarState()
-    val scrollBehavior = remember {
-        object : SearchBarScrollBehavior {
-            override var scrollOffset: Float
-                get() = 0f
-                set(_) {}
-            override var scrollOffsetLimit: Float
-                get() = 0f
-                set(_) {}
-            override var contentOffset: Float
-                get() = 0f
-                set(_) {}
-            override val nestedScrollConnection: NestedScrollConnection =
-                object : NestedScrollConnection {}
-
-            @SuppressLint("ModifierFactoryUnreferencedReceiver")
-            override fun Modifier.searchBarScrollBehavior(): Modifier {
-                TODO("Not yet implemented")
-            }
-        }
-    }
-    val items = listOf(
-        ListItemData(
-            title = { Text("1111111") },
-            subtitle = "22222222",
-            description = "33333333",
-            label = { Text("444", color = MaterialTheme.colorScheme.primary) },
-            headerIcon = { Icon(Tabler.Outline.Plus, null) }, // 示例图标
-            actions = {
-            },
-            checked = { true },
-            showCheckBox = { true },
-            onCheckChange = {}
-        ),
-        ListItemData(
-            title = { Text("55555555") },
-            subtitle = "666666666",
-            description = "777777777",
-            headerIcon = { Icon(Tabler.Outline.InfoCircle, null) },
-            actions = {
-                Text("888888888888888", modifier = Modifier.padding(16.dp))
-            },
-            checked = { false },
-            showCheckBox = { true },
-            onCheckChange = {}
-        ),
-        ListItemData(
-            title = { Text("999999999") },
-            actions = {},
-            checked = { false }
-        ),
-        ListItemData(
-            title = { Text("1010101010") },
-            subtitle = "11111111111111",
-            background = MaterialTheme.colorScheme.secondaryContainer,
-            actions = {},
-            checked = { false }
-        )
-    )
-
-    // 构建 UIList
-    UIList(
-        items = { items },
-        onRefresh = {}, // 预览中无实际刷新
-        isRefreshing = false,
-        scrollBehavior = scrollBehavior,
-        state = rememberLazyListState(),
-        emptyContent = { Text("暂无数据") }
-    )
 }

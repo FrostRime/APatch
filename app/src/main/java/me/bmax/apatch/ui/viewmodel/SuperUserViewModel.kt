@@ -43,8 +43,9 @@ class SuperUserViewModel : ViewModel() {
         val packageInfo: PackageInfo,
         val config: PkgConfig.Config
     ) : Parcelable {
-        @IgnoredOnParcel
-        var rootGranted by mutableStateOf(config.allow != 0)
+        fun rootGranted(): Boolean {
+            return config.allow != 0
+        }
 
         @IgnoredOnParcel
         var excludeApp by mutableIntStateOf(config.exclude)

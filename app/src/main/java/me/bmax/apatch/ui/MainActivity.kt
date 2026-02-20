@@ -3,6 +3,7 @@ package me.bmax.apatch.ui
 //noinspection SuspiciousImport
 import android.R
 import android.annotation.SuppressLint
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -21,6 +22,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -39,11 +41,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -65,9 +70,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -80,6 +88,11 @@ import coil.Coil
 import coil.ImageLoader
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ramcosta.composedestinations.DestinationsNavHost
@@ -90,8 +103,11 @@ import com.ramcosta.composedestinations.generated.NavGraphs
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.rememberNavHostEngine
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
+import com.topjohnwu.superuser.nio.ExtendedFile
+import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.launch
 import me.bmax.apatch.APApplication
+import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.LiquidBottomTab
 import me.bmax.apatch.ui.component.LiquidBottomTabs
 import me.bmax.apatch.ui.component.LiquidButton
@@ -103,9 +119,13 @@ import me.bmax.apatch.ui.screen.SettingScreen
 import me.bmax.apatch.ui.screen.SuperUserScreen
 import me.bmax.apatch.ui.theme.APatchTheme
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
+import me.bmax.apatch.util.ui.InteractiveHighlight
 import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalSnackbarHost
+import me.bmax.apatch.util.ui.LocalWallpaper
+import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
+import me.bmax.apatch.util.ui.LocalWidgetOpacity
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
 import kotlin.math.abs
@@ -113,7 +133,6 @@ import kotlin.math.max
 import kotlin.math.min
 
 typealias FabProvider = (Fab?) -> Unit
-typealias ScreenEntry = @Composable (DestinationsNavigator, FabProvider) -> Unit
 
 data class Fab(
     val icon: ImageVector,
@@ -126,6 +145,8 @@ data class MenuItem(
     val title: String? = null,
     val onClick: () -> Unit,
 )
+
+typealias ScreenEntry = @Composable (DestinationsNavigator, FabProvider) -> Unit
 
 class MainActivity : AppCompatActivity() {
 
@@ -143,45 +164,73 @@ class MainActivity : AppCompatActivity() {
         }
 
         super.onCreate(savedInstanceState)
+        val prefs = APApplication.sharedPreferences
+
+        val wallpaperDir: ExtendedFile =
+            FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "wallpaper")
+        if (!wallpaperDir.exists()) {
+            wallpaperDir.mkdirs()
+        }
+        val wallpaperFile = wallpaperDir.getChildFile("wallpaper.jpg")
+
+        val initialWallpaperImageBitmap = try {
+            BitmapFactory.decodeStream(wallpaperFile.inputStream()).asImageBitmap()
+        } catch (_: Exception) {
+            null
+        }
 
         setContent {
-            APatchTheme {
-                val navController = rememberNavController()
-                val navigator = navController.rememberDestinationsNavigator()
-                val snackBarHostState = remember { SnackbarHostState() }
-                CompositionLocalProvider(
-                    LocalNavigator provides navigator,
-                    LocalSnackbarHost provides snackBarHostState,
-                ) {
-                    val defaultTransitions = object : NavHostAnimatedDestinationStyle() {
-                        override val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
-                            {
-                                fadeIn(animationSpec = tween(340))
-                            }
+            CompositionLocalProvider(
+                LocalWallpaper provides remember {
+                    mutableStateOf(initialWallpaperImageBitmap)
+                }
+            ) {
+                val wallpaper = LocalWallpaper.current
+                APatchTheme(wallpaper.value) {
+                    val navController = rememberNavController()
+                    val navigator = navController.rememberDestinationsNavigator()
+                    val snackBarHostState = remember { SnackbarHostState() }
+                    CompositionLocalProvider(
+                        LocalNavigator provides navigator,
+                        LocalSnackbarHost provides snackBarHostState,
+                        LocalWidgetOpacity provides remember {
+                            mutableFloatStateOf(
+                                prefs.getFloat(
+                                    "widget_opacity",
+                                    1f
+                                )
+                            )
+                        }) {
+                        val defaultTransitions = object : NavHostAnimatedDestinationStyle() {
+                            override val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
+                                {
+                                    fadeIn(animationSpec = tween(340))
+                                }
 
-                        override val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
-                            {
-                                fadeOut(animationSpec = tween(340))
-                            }
+                            override val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
+                                {
+                                    fadeOut(animationSpec = tween(340))
+                                }
 
-                        override val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
-                            {
-                                fadeIn(animationSpec = tween(340))
-                            }
+                            override val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
+                                {
+                                    fadeIn(animationSpec = tween(340))
+                                }
 
-                        override val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
-                            {
-                                fadeOut(animationSpec = tween(340))
-                            }
+                            override val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
+                                {
+                                    fadeOut(animationSpec = tween(340))
+                                }
+                        }
+
+                        LocalConfiguration.current
+                        DestinationsNavHost(
+                            navGraph = NavGraphs.root,
+                            navController = navController,
+                            engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
+                            defaultTransitions = defaultTransitions
+                        )
                     }
-
-                    LocalConfiguration.current
-                    DestinationsNavHost(
-                        navGraph = NavGraphs.root,
-                        navController = navController,
-                        engine = rememberNavHostEngine(navHostContentAlignment = Alignment.TopCenter),
-                        defaultTransitions = defaultTransitions
-                    )
                 }
             }
         }
@@ -201,6 +250,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Suppress("AssignedValueIsNeverRead")
 @Destination<RootGraph>(start = true)
 @Composable
@@ -317,24 +367,89 @@ fun MainScreen(navigator: DestinationsNavigator) {
     ) {
         CompositionLocalProvider(
             LocalInnerPadding provides innerPadding,
+            LocalWallpaperBackdrop provides rememberLayerBackdrop()
         ) {
-            HorizontalPager(
-                state = pagerState,
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .layerBackdrop(backdrop),
-                key = { page ->
-                    visibleDestinations.elementAtOrNull(page)?.name ?: "unknown"
-                },
-                pageSpacing = 0.dp
-            ) { page ->
+                    .layerBackdrop(backdrop)
+            ) {
+                val widgetOpacity = LocalWidgetOpacity.current
+                val wallpaper = LocalWallpaper.current
+                val wallpaperBackdrop = LocalWallpaperBackdrop.current
                 Box(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .layerBackdrop(wallpaperBackdrop)
                 ) {
-                    val destination =
-                        visibleDestinations.elementAtOrNull(page) ?: BottomBarDestination.Home
-                    screenRegistry[destination]?.invoke(navigator) { fabComposable ->
-                        fabStates[destination] = fabComposable
+                    wallpaper.value?.let { wallpaper ->
+                        Image(
+                            modifier = Modifier.fillMaxSize(),
+                            bitmap = wallpaper,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+                val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
+
+                val animationScope = rememberCoroutineScope()
+
+                val interactiveHighlight = remember(animationScope) {
+                    InteractiveHighlight(
+                        animationScope = animationScope
+                    )
+                }
+                TopAppBar(
+                    title = {},
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    modifier = Modifier
+                        .drawBackdrop(
+                            backdrop = wallpaperBackdrop,
+                            shape = { ContinuousRoundedRectangle(0.dp) },
+                            effects = {
+                                blur(8.dp.toPx())
+                                lens(12f.dp.toPx(), 24f.dp.toPx())
+                            },
+                            highlight = {
+                                Highlight(
+                                    alpha = 0f
+                                )
+                            },
+                            shadow = {
+                                Shadow(
+                                    alpha = 0f
+                                )
+                            },
+                            onDrawSurface = {
+                                drawRect(colorScheme.surface.copy(alpha = 0.45f))
+                            }
+                        )
+                        .then(
+                            Modifier
+                                .then(interactiveHighlight.modifier)
+                                .then(interactiveHighlight.gestureModifier)
+                        )
+                )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(widgetOpacity.value),
+                    key = { page ->
+                        visibleDestinations.elementAtOrNull(page)?.name ?: "unknown"
+                    },
+                    pageSpacing = 0.dp
+                ) { page ->
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        val destination =
+                            visibleDestinations.elementAtOrNull(page) ?: BottomBarDestination.Home
+                        screenRegistry[destination]?.invoke(navigator) { fabComposable ->
+                            fabStates[destination] = fabComposable
+                        }
                     }
                 }
             }

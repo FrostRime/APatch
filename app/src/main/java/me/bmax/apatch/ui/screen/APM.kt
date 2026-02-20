@@ -48,6 +48,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -86,7 +87,6 @@ import me.bmax.apatch.ui.component.ModuleUpdateButton
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UIList
 import me.bmax.apatch.ui.component.WarningCard
-import me.bmax.apatch.ui.component.pinnedScrollBehavior
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.ui.viewmodel.APModuleViewModel
@@ -97,6 +97,7 @@ import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.toggleModule
 import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalSnackbarHost
+import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
 import me.bmax.apatch.util.uninstallModule
 import okhttp3.Request
 
@@ -108,6 +109,7 @@ fun APModuleScreen(
 ) {
     val snackBarHost = LocalSnackbarHost.current
     val context = LocalContext.current
+    val wallpaperBackdrop = LocalWallpaperBackdrop.current
 
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     if (state != APApplication.State.ANDROIDPATCH_INSTALLED && state != APApplication.State.ANDROIDPATCH_NEED_UPDATE) {
@@ -133,7 +135,6 @@ fun APModuleScreen(
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { viewModel.fetchModuleList() }
-    val scrollBehavior = pinnedScrollBehavior()
 
     //TODO: FIXME -> val isSafeMode = Natives.getSafeMode()
     val isSafeMode = false
@@ -188,6 +189,10 @@ fun APModuleScreen(
                 }
             )
         })
+    }
+
+    var showSearch by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit, showSearch) {
     }
 
     suspend fun onModuleUpdate(
@@ -287,16 +292,16 @@ fun APModuleScreen(
         }
     }
 
-
     val moduleListState = rememberLazyListState()
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             SearchAppBar(
                 searchText = viewModel.search,
                 onSearchTextChange = { viewModel.search = it },
-                scrollBehavior = scrollBehavior,
-                searchBarPlaceHolderText = stringResource(R.string.search_modules)
+                searchBarPlaceHolderText = stringResource(R.string.search_modules),
+                wallpaperBackdrop = wallpaperBackdrop
             )
         },
         snackbarHost = {
@@ -327,7 +332,12 @@ fun APModuleScreen(
                         withContext(Dispatchers.IO) { getMetaModuleWarningText(viewModel, context) }
                 }
 
-                Column(modifier = Modifier.padding(innerPadding)) {
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .padding(horizontal = 12.dp)
+                        .padding(top = 8.dp)
+                ) {
                     metaWarning?.let {
                         Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
                             MetaModuleWarningCard(it)
@@ -412,10 +422,7 @@ fun APModuleScreen(
                         },
                         onRefresh = { viewModel.fetchModuleList() },
                         isRefreshing = viewModel.isRefreshing,
-                        modifier = Modifier
-                            .padding(bottom = 8.dp)
-                            .padding(horizontal = 12.dp),
-                        scrollBehavior = scrollBehavior,
+                        backdrop = wallpaperBackdrop,
                         state = moduleListState
                     )
                 }

@@ -1,9 +1,16 @@
 package me.bmax.apatch.ui.screen
 
 //import androidx.compose.material3.OutlinedTextField
+import android.annotation.SuppressLint
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Build
 import android.system.Os
+import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -26,6 +33,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,7 +48,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -49,7 +56,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.contentColorFor
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -65,7 +72,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -73,44 +82,51 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
+import androidx.core.content.edit
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.AlertTriangle
 import com.composables.icons.tabler.filled.Eye
 import com.composables.icons.tabler.outline.ArrowAutofitDown
+import com.composables.icons.tabler.outline.Blur
 import com.composables.icons.tabler.outline.Check
 import com.composables.icons.tabler.outline.Checks
 import com.composables.icons.tabler.outline.CircleDashedX
 import com.composables.icons.tabler.outline.DeviceUnknown
+import com.composables.icons.tabler.outline.Edit
 import com.composables.icons.tabler.outline.EyeOff
 import com.composables.icons.tabler.outline.Forbid2
 import com.composables.icons.tabler.outline.HelpCircle
+import com.composables.icons.tabler.outline.PhotoCog
+import com.composables.icons.tabler.outline.PhotoX
 import com.composables.icons.tabler.outline.Refresh
 import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
 import com.kyant.backdrop.backdrops.emptyBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
 import com.kyant.capsule.ContinuousRoundedRectangle
+import com.materialkolor.ktx.themeColor
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.topjohnwu.superuser.nio.ExtendedFile
+import com.topjohnwu.superuser.nio.FileSystemManager
+import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
 import me.bmax.apatch.R
+import me.bmax.apatch.TAG
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.FabProvider
-import me.bmax.apatch.ui.component.LiquidButton
+import me.bmax.apatch.ui.component.LiquidSlider
+import me.bmax.apatch.ui.component.LiquidSurface
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.WarningCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -119,8 +135,13 @@ import me.bmax.apatch.util.Version
 import me.bmax.apatch.util.Version.getManagerVersion
 import me.bmax.apatch.util.checkNewVersion
 import me.bmax.apatch.util.getSELinuxStatus
+import me.bmax.apatch.util.inputStream
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.rootShellForResult
+import me.bmax.apatch.util.ui.LocalInnerPadding
+import me.bmax.apatch.util.ui.LocalWallpaper
+import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
+import me.bmax.apatch.util.ui.LocalWidgetOpacity
 
 private val managerVersion = getManagerVersion()
 
@@ -137,6 +158,7 @@ fun HomeScreen(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopBar(
@@ -146,16 +168,16 @@ fun HomeScreen(
                     },
                 kpState
             )
-        }
-    ) { innerPadding ->
+        }) { innerPadding ->
         LazyColumn(
             modifier =
                 Modifier
                     .padding(innerPadding)
                     .padding(horizontal = 12.dp)
-                    .padding(bottom = 12.dp)
+                    .padding(top = 8.dp)
                     .fillMaxWidth()
                     .clip(ContinuousRoundedRectangle(16.dp)),
+            contentPadding = LocalInnerPadding.current
         ) {
             item {
                 WarningCard()
@@ -427,16 +449,74 @@ fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
     }
 }
 
-@Suppress("AssignedValueIsNeverRead")
+@SuppressLint("ConfigurationScreenWidthHeight")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(
     onInstallClick: () -> Unit,
     kpState: APApplication.State
 ) {
+    val configuration = LocalConfiguration.current
+    val context = LocalContext.current
+    val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
+    val prefs = APApplication.sharedPreferences
+    val widgetOpacity = LocalWidgetOpacity.current
+    val wallpaper = LocalWallpaper.current
+    val ucropLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            result.data?.let { data ->
+                if (result.resultCode == android.app.Activity.RESULT_OK) {
+                    val output = UCrop.getOutput(data)
+                    if (output == null) {
+                        wallpaper.value = null
+                    } else {
+                        val wallpaperImageBitmap =
+                            BitmapFactory.decodeStream(output.inputStream()).asImageBitmap()
+                        val seedColor = wallpaperImageBitmap.themeColor(Color.Blue)
+                        prefs.edit {
+                            putInt("theme_seed_color", seedColor.toArgb())
+                        }
+                        wallpaper.value = wallpaperImageBitmap
+                    }
+                    Log.d(TAG, "Crop success: ${data.data}")
+                } else if (result.resultCode == UCrop.RESULT_ERROR) {
+                    val error = UCrop.getError(data)
+                    Log.e(TAG, "Crop error: $error")
+                }
+            }
+        }
+
+    val wallpaperPicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                val wallpaperDir: ExtendedFile =
+                    FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "wallpaper")
+                if (!wallpaperDir.exists()) {
+                    wallpaperDir.mkdirs()
+                }
+                val screenWidth = configuration.screenWidthDp
+                val screenHeight = configuration.screenHeightDp
+                val destFile = wallpaperDir.getChildFile("wallpaper.jpg")
+
+                val options = UCrop.Options()
+                options.setToolbarColor(colorScheme.surface.toArgb())
+                options.setToolbarWidgetColor(colorScheme.onSurface.toArgb())
+                options.setActiveControlsWidgetColor(colorScheme.primary.toArgb())
+                options.setRootViewBackgroundColor(colorScheme.surface.toArgb())
+                options.setLogoColor(colorScheme.onSurface.toArgb())
+
+                UCrop.of(uri, Uri.fromFile(destFile)).withOptions(options)
+                    .withAspectRatio(screenWidth.toFloat(), screenHeight.toFloat())
+                    .withMaxResultSize(screenWidth, screenHeight).start(context, ucropLauncher)
+            }
+        }
+
+    var showWallpaperEdit by remember { mutableStateOf(false) }
+    var showWidgetOpacityEdit by remember { mutableStateOf(false) }
     var showDropdownReboot by remember { mutableStateOf(false) }
 
     TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         title = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(stringResource(R.string.app_name))
@@ -462,40 +542,124 @@ private fun TopBar(
             }
         },
         actions = {
-            IconButton(onClick = onInstallClick) {
+            IconButton(onClick = { showWallpaperEdit = !showWallpaperEdit }) {
                 Icon(
-                    imageVector = Tabler.Outline.Wand,
-                    contentDescription =
-                        stringResource(id = R.string.mode_select_page_title)
+                    imageVector = Tabler.Outline.Edit,
+                    contentDescription = null
                 )
             }
+            AnimatedVisibility(visible = showWallpaperEdit) {
+                Row {
+                    IconButton(
+                        onClick = {
+                            val request =
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            wallpaperPicker.launch(request)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Tabler.Outline.PhotoCog,
+                            contentDescription = null
+                        )
+                    }
 
-            if (kpState != APApplication.State.UNKNOWN_STATE) {
-                IconButton(onClick = { showDropdownReboot = true }) {
-                    Icon(
-                        imageVector = Tabler.Outline.Reload,
-                        contentDescription = stringResource(id = R.string.reboot)
-                    )
+                    AnimatedVisibility(visible = wallpaper.value != null) {
+                        Row {
+                            IconButton(
+                                onClick = {
+                                    val wallpaperDir: ExtendedFile =
+                                        FileSystemManager.getLocal()
+                                            .getFile(apApp.filesDir.parent, "wallpaper")
+                                    if (wallpaperDir.exists()) {
+                                        wallpaperDir.deleteRecursively()
+                                    }
+                                    wallpaper.value = null
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Tabler.Outline.PhotoX,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    }
+
+                    IconButton(
+                        onClick = {
+                            showWidgetOpacityEdit = !showWidgetOpacityEdit
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Tabler.Outline.Blur,
+                            contentDescription = null
+                        )
+                    }
 
                     ProvideMenuShape(MaterialTheme.shapes.medium) {
                         DropdownMenu(
-                            expanded = showDropdownReboot,
-                            onDismissRequest = { showDropdownReboot = false }
+                            expanded = showWidgetOpacityEdit,
+                            onDismissRequest = { showWidgetOpacityEdit = false }
                         ) {
-                            RebootDropdownItem(id = R.string.reboot)
-                            RebootDropdownItem(
-                                id = R.string.reboot_recovery,
-                                reason = "recovery"
+                            LiquidSlider(
+                                modifier = Modifier
+                                    .padding(horizontal = 32.dp)
+                                    .width(240.dp)
+                                    .height(38.dp),
+                                backdrop = emptyBackdrop(),
+                                value = {
+                                    widgetOpacity.value
+                                },
+                                onValueChange = {
+                                    widgetOpacity.value = it
+                                    prefs.edit {
+                                        putFloat("widget_opacity", it)
+                                    }
+                                },
+                                valueRange = 0.1f..1f,
+                                visibilityThreshold = 0.01f
                             )
-                            RebootDropdownItem(
-                                id = R.string.reboot_bootloader,
-                                reason = "bootloader"
+                        }
+                    }
+                }
+            }
+            AnimatedVisibility(visible = !showWallpaperEdit) {
+                Row {
+                    IconButton(onClick = onInstallClick) {
+                        Icon(
+                            imageVector = Tabler.Outline.Wand,
+                            contentDescription =
+                                stringResource(id = R.string.mode_select_page_title)
+                        )
+                    }
+
+                    if (kpState != APApplication.State.UNKNOWN_STATE) {
+                        IconButton(onClick = { showDropdownReboot = true }) {
+                            Icon(
+                                imageVector = Tabler.Outline.Reload,
+                                contentDescription = stringResource(id = R.string.reboot)
                             )
-                            RebootDropdownItem(
-                                id = R.string.reboot_download,
-                                reason = "download"
-                            )
-                            RebootDropdownItem(id = R.string.reboot_edl, reason = "edl")
+
+                            ProvideMenuShape(MaterialTheme.shapes.medium) {
+                                DropdownMenu(
+                                    expanded = showDropdownReboot,
+                                    onDismissRequest = { showDropdownReboot = false }
+                                ) {
+                                    RebootDropdownItem(id = R.string.reboot)
+                                    RebootDropdownItem(
+                                        id = R.string.reboot_recovery,
+                                        reason = "recovery"
+                                    )
+                                    RebootDropdownItem(
+                                        id = R.string.reboot_bootloader,
+                                        reason = "bootloader"
+                                    )
+                                    RebootDropdownItem(
+                                        id = R.string.reboot_download,
+                                        reason = "download"
+                                    )
+                                    RebootDropdownItem(id = R.string.reboot_edl, reason = "edl")
+                                }
+                            }
                         }
                     }
                 }
@@ -526,177 +690,136 @@ private fun KStatusCard(
         ResetSUPathDialog(showResetSuPathDialog)
     }
 
-    fun getCardBackgroundColor(): Color {
-        return when (kpState) {
-            APApplication.State.KERNELPATCH_INSTALLED -> {
-                colorScheme.surface.copy(alpha = 0.4f).compositeOver(colorScheme.primary.copy(0.6f))
-            }
-
-            APApplication.State.KERNELPATCH_NEED_UPDATE,
-            APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-                colorScheme.secondary
-            }
-
-            else -> {
-                colorScheme.secondaryContainer
-            }
-        }
-    }
-
-    var cardBackgroundColor by remember {
-        mutableStateOf(getCardBackgroundColor())
-    }
-
-    LaunchedEffect(kpState) {
-        cardBackgroundColor = getCardBackgroundColor()
-    }
-
+    val wallpaperBackdrop = LocalWallpaperBackdrop.current
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(intrinsicSize = IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            LiquidButton(
-                backdrop = emptyBackdrop(), // todo
-                modifier = Modifier
-                    .aspectRatio(1f, true)
-                    .fillMaxHeight(),
+            LiquidSurface(
+                backdrop = wallpaperBackdrop,
+                isInteractive = false,
                 onClick = {
                     if (kpState != APApplication.State.KERNELPATCH_INSTALLED) {
                         navigator.navigate(InstallModeSelectScreenDestination)
                     }
                 },
-                isInteractive = false,
-                surfaceColor = colorScheme.tertiaryContainer/*.copy(alpha = 0.75f)*/,
+                modifier = Modifier
+                    .aspectRatio(1f, true)
+                    .widthIn(min = 0.dp)
+                    .fillMaxHeight(),
+                tint = colorScheme.tertiaryContainer/*.copy(alpha = 0.75f)*/,
                 shape = ContinuousRoundedRectangle(16.dp)
             ) {
                 Box(
-                    propagateMinConstraints = true
+                    Modifier.fillMaxSize()
                 ) {
-                    when (kpState) {
-                        APApplication.State.KERNELPATCH_INSTALLED -> {
-                            Icon(
-                                Tabler.Outline.Checks,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                tint = LocalContentColor.current.copy(alpha = 0.4f),
-                                contentDescription = stringResource(R.string.home_working)
-                            )
-                        }
-
-                        APApplication.State.KERNELPATCH_NEED_UPDATE,
-                        APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-                            Icon(
-                                Tabler.Outline.Check,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                tint = LocalContentColor.current.copy(alpha = 0.4f),
-                                contentDescription =
-                                    stringResource(R.string.home_need_update)
-                            )
-                        }
-
-                        else -> {
-                            Icon(
-                                Tabler.Outline.DeviceUnknown,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                tint = LocalContentColor.current.copy(alpha = 0.4f),
-                                contentDescription = "Unknown"
-                            )
-                        }
-                    }
-
-                    Column(
-                        Modifier
-                            .padding(12.dp)
-                            .fillMaxSize()
+                    Box(
+                        contentAlignment = Alignment.BottomEnd,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .matchParentSize()
                     ) {
-                        Spacer(Modifier.weight(1f))
-
                         when (kpState) {
                             APApplication.State.KERNELPATCH_INSTALLED -> {
-                                Text(
-                                    text = stringResource(R.string.home_working),
+                                Icon(
+                                    Tabler.Outline.Checks,
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .basicMarquee(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium
+                                        .size(56.dp),
+                                    tint = colorScheme.outline,
+                                    contentDescription = stringResource(R.string.home_working)
                                 )
                             }
 
                             APApplication.State.KERNELPATCH_NEED_UPDATE,
                             APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-                                Text(
-                                    text = stringResource(R.string.home_need_update),
+                                Icon(
+                                    Tabler.Outline.Check,
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .basicMarquee(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    text =
-                                        stringResource(
-                                            R.string.kpatch_version_update,
-                                            Version.installedKPVString(),
-                                            Version.buildKPVString()
-                                        ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .basicMarquee(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
+                                        .size(56.dp),
+                                    tint = colorScheme.outline,
+                                    contentDescription =
+                                        stringResource(R.string.home_need_update)
                                 )
                             }
 
                             else -> {
-                                Text(
-                                    text = stringResource(R.string.home_install_unknown),
+                                Icon(
+                                    Tabler.Outline.DeviceUnknown,
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .basicMarquee(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = contentColorFor(cardBackgroundColor)
-                                )
-                                Text(
-                                    text = stringResource(R.string.home_install_unknown_summary),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .basicMarquee(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = contentColorFor(cardBackgroundColor)
+                                        .size(56.dp),
+                                    tint = colorScheme.outline,
+                                    contentDescription = "Unknown"
                                 )
                             }
                         }
-                        if (kpState != APApplication.State.UNKNOWN_STATE &&
-                            kpState != APApplication.State.KERNELPATCH_NEED_UPDATE &&
-                            kpState != APApplication.State.KERNELPATCH_NEED_REBOOT
+                    }
+                    Column(
+                        Modifier
+                            .padding(16.dp)
+                            .matchParentSize()
+                    ) {
+                        if (kpState != APApplication.State.UNKNOWN_STATE
+
                         ) {
-                            Spacer(Modifier.height(4.dp))
                             Text(
-                                text =
-                                    "${Version.installedKPVString()} " +
-                                            if (apState !=
-                                                APApplication.State
-                                                    .ANDROIDPATCH_NOT_INSTALLED
-                                            )
-                                                "[FULL]"
-                                            else "[HALF]",
+                                text = "${Version.installedKPVString()} " +
+                                        if (apState !=
+                                            APApplication.State
+                                                .ANDROIDPATCH_NOT_INSTALLED
+                                        )
+                                            "[FULL]"
+                                        else "[HALF]",
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = colorScheme.onSurface
+                            )
+                        }
+                        Text(
+                            text =
+                                when (kpState) {
+                                    APApplication.State.KERNELPATCH_INSTALLED -> {
+                                        stringResource(R.string.home_working)
+                                    }
+
+                                    APApplication.State.KERNELPATCH_NEED_UPDATE,
+                                    APApplication.State.KERNELPATCH_NEED_REBOOT -> {
+                                        stringResource(R.string.home_need_update)
+                                    }
+
+                                    else -> {
+                                        stringResource(R.string.home_install_unknown)
+                                    }
+                                },
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurface
+                        )
+                        if (kpState == APApplication.State.UNKNOWN_STATE || kpState == APApplication.State.KERNELPATCH_NEED_UPDATE ||
+                            kpState == APApplication.State.KERNELPATCH_NEED_REBOOT
+                        ) {
+                            Text(
+                                text = if ((kpState == APApplication.State.KERNELPATCH_NEED_UPDATE ||
+                                            kpState == APApplication.State.KERNELPATCH_NEED_REBOOT)
+                                ) stringResource(
+                                    R.string.kpatch_version_update,
+                                    Version.installedKPVString(),
+                                    Version.buildKPVString()
+                                ) else stringResource(
+                                    R.string.home_install_unknown_summary
+                                ),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .basicMarquee(),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = colorScheme.onSurface
                             )
                         }
                     }
@@ -704,98 +827,90 @@ private fun KStatusCard(
             }
 
             Column(
-                Modifier.fillMaxWidth(),
+                Modifier
+                    .height(intrinsicSize = IntrinsicSize.Min),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
-                Box(
+                LiquidSurface(
+                    backdrop = wallpaperBackdrop,
+                    tint = colorScheme.tertiaryContainer,
+                    shape = ContinuousRoundedRectangle(16.dp),
+                    isInteractive = false,
+                    onClick = {
+                        if (!suPatchUnknown) {
+                            showResetSuPathDialog.value = true
+                        }
+                    },
                     modifier = Modifier
-                        .weight(1f)
                         .fillMaxWidth()
-                        .clickable(
-                            enabled = !suPatchUnknown,
-                            onClick = {
-                                showResetSuPathDialog.value = true
-                            })
-                        .drawBackdrop(
-                            backdrop = emptyBackdrop(), //todo
-                            shape = { ContinuousRoundedRectangle(16.dp) },
-                            highlight = { Highlight(alpha = 0.25f) },
-                            effects = {
-                                vibrancy()
-                                blur(8.dp.toPx())
-                                lens(16.dp.toPx(), 32.dp.toPx())
-                            },
-                            onDrawSurface = {
-                                drawRect(
-                                    color = colorScheme.tertiaryContainer.copy(alpha = 0.25f),
-                                )
-                            }
-                        )
+                        .height(intrinsicSize = IntrinsicSize.Min)
                 ) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(
-                            text = stringResource(R.string.home_su_path),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium
-                        )
+                    Column(Modifier.padding(16.dp)) {
                         Text(
                             text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = colorScheme.onSurface,
+                            modifier = Modifier.basicMarquee(),
                             fontWeight = FontWeight.SemiBold
                         )
-                        Spacer(Modifier.weight(1f))
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .basicMarquee(),
+                            text = stringResource(R.string.home_su_path),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.End
+                        )
                     }
                 }
 
                 val managerUnknown =
                     apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .clickable {
-                            if (managerUnknown) {
-                                showAuthKeyDialog.value = true
-                            } else {
-                                navigator.navigate(AboutScreenDestination)
-                            }
+                LiquidSurface(
+                    backdrop = wallpaperBackdrop,
+                    tint = colorScheme.tertiaryContainer,
+                    shape = ContinuousRoundedRectangle(16.dp),
+                    isInteractive = false,
+                    onClick = {
+                        if (managerUnknown) {
+                            showAuthKeyDialog.value = true
+                        } else {
+                            navigator.navigate(AboutScreenDestination)
                         }
-                        .drawBackdrop(
-                            backdrop = emptyBackdrop(), //todo
-                            shape = { ContinuousRoundedRectangle(16.dp) },
-                            highlight = { Highlight(alpha = 0.25f) },
-                            effects = {
-                                vibrancy()
-                                blur(8.dp.toPx())
-                                lens(16.dp.toPx(), 32.dp.toPx())
-                            },
-                            onDrawSurface = {
-                                drawRect(
-                                    color = colorScheme.tertiaryContainer.copy(alpha = 0.25f),
-                                )
-                            }
-                        )) {
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(intrinsicSize = IntrinsicSize.Min)
+                ) {
                     Column(
                         Modifier
-                            .padding(12.dp)
+                            .padding(16.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.home_apatch_version),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
                             text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = colorScheme.onSurface,
+                            modifier = Modifier.basicMarquee(),
                             fontWeight = FontWeight.SemiBold
                         )
-                        Spacer(Modifier.weight(1f))
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .basicMarquee(),
+                            text = stringResource(R.string.home_apatch_version),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.End
+                        )
                     }
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -1026,7 +1141,14 @@ private fun getDeviceInfo(): String {
 
 @Composable
 private fun InfoCard() {
-    ElevatedCard(shape = Large) {
+    val wallpaperBackdrop = LocalWallpaperBackdrop.current
+    LiquidSurface(
+        backdrop = wallpaperBackdrop,
+        shape = ContinuousRoundedRectangle(16.dp),
+        isInteractive = false,
+        onClick = {},
+        tint = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
         Column(
             modifier =
                 Modifier

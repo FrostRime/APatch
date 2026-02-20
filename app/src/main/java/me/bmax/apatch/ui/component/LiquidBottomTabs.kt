@@ -72,7 +72,7 @@ fun LiquidBottomTabs(
 ) {
     val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
     val accentColor = colorScheme.primary
-    val containerColor = colorScheme.surface.copy(alpha = 0.3f)
+    val containerColor = colorScheme.surface.copy(alpha = 0.45f)
     val uiSensor = rememberUISensor()
 
     val highlightAngle by animateFloatAsState(
