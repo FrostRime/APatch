@@ -53,7 +53,6 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.highlight.HighlightStyle
-import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousRoundedRectangle
 import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.rememberUISensor
@@ -182,11 +181,7 @@ private fun GenericItem(
                             alpha = 0.05f
                         )
                     },
-                    shadow = {
-                        Shadow(
-                            alpha = 0f
-                        )
-                    },
+                    shadow = null,
                     onDrawSurface = {
                         drawRect(color, blendMode = BlendMode.Hue)
                         drawRect(color.copy(alpha = 0.87f))

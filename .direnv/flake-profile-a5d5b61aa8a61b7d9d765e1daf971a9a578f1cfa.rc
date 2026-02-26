@@ -27,15 +27,14 @@ export DETERMINISTIC_BUILD
 HOSTTYPE='x86_64'
 HOST_PATH='/nix/store/vr15iyyykg9zai6fpgvhcgyw7gckl78w-gcc-wrapper-14.3.0/bin:/nix/store/xwydcyvlsa3cvssk0y5llgdhlhjvmqdm-binutils-wrapper-2.44/bin:/nix/store/i66v6bic8gynxlz9wff2vsbysnx69zz7-rust-default-1.94.0-nightly-2025-12-24/bin:/nix/store/ammpq8v9gy6l02087pfgx1zdgy6016z7-gradle-9.2.1/bin:/nix/store/742kq790y4nd92s4l4arg7ij8h7is5ar-cargo-1.91.1/bin:/nix/store/4sj19dch0zhnhhdsbrz9pxz55bc2xhb9-rustc-wrapper-1.91.1/bin:/nix/store/vg39s21pcy070xpacc1pizy469vbfpxc-rustfmt-1.91.1/bin:/nix/store/nq4n5yd6paaqc8hm1f54g9lsz87zpwzm-pre-commit-4.5.1/bin:/nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/bin:/nix/store/w75zlj8m28wfg8rd708fgpsy33dh3r53-python3.13-identify-2.6.15/bin:/nix/store/1amh23481gd0d8604d5mlxj3fiba3sg3-python3.13-pytest-8.4.2/bin:/nix/store/zk1kwr2cgy3fwmninbb4dahm8x8qr6w5-python3.13-pygments-2.19.2/bin:/nix/store/c570fz95a8hb1vcmpsj363wzjq6ladig-python3.13-nodeenv-1.9.1/bin:/nix/store/d85s83yxrzf7r7rf106rrbq0kgdnf7sk-python3.13-virtualenv-20.33.1/bin:/nix/store/5y00kqp8qlmjwvm5h607n6jnmqr75dnk-clippy-1.91.1/bin:/nix/store/p01drvm8hyln0drryav1ksypfmgv28rz-rust-analyzer-2025-12-15/bin:/nix/store/2aig9bsjpmb7zw0540rldplbxiw4422v-android-studio-stable-2025.2.2.7/bin:/nix/store/6dm0xwd02p1jbpn65ih2707wmk6gqyc0-android-tools-35.0.2/bin:/nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/bin:/nix/store/imad8dvhp77h0pjbckp6wvmnyhp8dpgg-coreutils-9.8/bin:/nix/store/av4xw9f56xlx5pgv862wabfif6m1yc0a-findutils-4.10.0/bin:/nix/store/20axvl7mgj15m23jgmnq97hx37fgz7bk-diffutils-3.12/bin:/nix/store/drc7kang929jaza6cy9zdx10s4gw1z5p-gnused-4.9/bin:/nix/store/x3zjxxz8m4ki88axp0gn8q8m6bldybba-gnugrep-3.12/bin:/nix/store/y2wdhdcrffp9hnkzk06d178hq3g98jay-gawk-5.3.2/bin:/nix/store/yi3c5karhx764ham5rfwk7iynr8mjf6q-gnutar-1.35/bin:/nix/store/d471xb7sfbah076s8rx02i68zpxc2r5n-gzip-1.14/bin:/nix/store/qm9rxn2sc1vrz91i443rr6f0vxm0zd82-bzip2-1.0.8-bin/bin:/nix/store/3fmzbq9y4m9nk235il7scmvwn8j9zy3p-gnumake-4.4.1/bin:/nix/store/rlq03x4cwf8zn73hxaxnx0zn5q9kifls-bash-5.3p3/bin:/nix/store/qrwznp1ikdf0qw05wia2haiwi32ik5n0-patch-2.8/bin:/nix/store/v0rfdwhg6w6i0yb6dbry4srk6pnj3xp0-xz-5.8.1-bin/bin:/nix/store/paj6a1lpzp57hz1djm5bs86b7ci221r0-file-5.45/bin'
 export HOST_PATH
-IFS=' 	
-'
+IFS=' '$'\x09'''$'\x0a'''
 IN_NIX_SHELL='impure'
 export IN_NIX_SHELL
 LD='ld'
 export LD
 LD_FOR_TARGET='ld'
 export LD_FOR_TARGET
-LINENO='76'
+LINENO='101'
 MACHTYPE='x86_64-pc-linux-gnu'
 NIX_BINTOOLS='/nix/store/xwydcyvlsa3cvssk0y5llgdhlhjvmqdm-binutils-wrapper-2.44'
 export NIX_BINTOOLS
@@ -55,7 +54,7 @@ NIX_CC_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu='1'
 export NIX_CC_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu
 NIX_CC_WRAPPER_TARGET_TARGET_x86_64_unknown_linux_gnu='1'
 export NIX_CC_WRAPPER_TARGET_TARGET_x86_64_unknown_linux_gnu
-NIX_CFLAGS_COMPILE=' -frandom-seed=xra4340kp2 -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include'
+NIX_CFLAGS_COMPILE=' -frandom-seed=ivwkg2nv5k -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include'
 export NIX_CFLAGS_COMPILE
 NIX_CFLAGS_COMPILE_FOR_TARGET=' -isystem /nix/store/3lll9y925zz9393sa59h653xik66srjb-python3-3.13.9/include -isystem /nix/store/dmi9nyazvaqdiw64wsqcjvbdkkxcyhbf-python3-3.13.9-env/include'
 export NIX_CFLAGS_COMPILE_FOR_TARGET
@@ -132,15 +131,7 @@ export __structuredAttrs
 _substituteStream_has_warned_replace_deprecation='false'
 buildInputs='/nix/store/i66v6bic8gynxlz9wff2vsbysnx69zz7-rust-default-1.94.0-nightly-2025-12-24 /nix/store/ammpq8v9gy6l02087pfgx1zdgy6016z7-gradle-9.2.1 /nix/store/742kq790y4nd92s4l4arg7ij8h7is5ar-cargo-1.91.1 /nix/store/4sj19dch0zhnhhdsbrz9pxz55bc2xhb9-rustc-wrapper-1.91.1 /nix/store/vg39s21pcy070xpacc1pizy469vbfpxc-rustfmt-1.91.1 /nix/store/nq4n5yd6paaqc8hm1f54g9lsz87zpwzm-pre-commit-4.5.1 /nix/store/5y00kqp8qlmjwvm5h607n6jnmqr75dnk-clippy-1.91.1 /nix/store/p01drvm8hyln0drryav1ksypfmgv28rz-rust-analyzer-2025-12-15 /nix/store/2aig9bsjpmb7zw0540rldplbxiw4422v-android-studio-stable-2025.2.2.7 /nix/store/6dm0xwd02p1jbpn65ih2707wmk6gqyc0-android-tools-35.0.2'
 export buildInputs
-buildPhase='{ echo "------------------------------------------------------------";
-  echo " WARNING: the existence of this path is not guaranteed.";
-  echo " It is an internal implementation detail for pkgs.mkShell.";
-  echo "------------------------------------------------------------";
-  echo;
-  # Record all build inputs as runtime dependencies
-  export;
-} >> "$out"
-'
+buildPhase='{ echo "------------------------------------------------------------";'$'\x0a''  echo " WARNING: the existence of this path is not guaranteed.";'$'\x0a''  echo " It is an internal implementation detail for pkgs.mkShell.";'$'\x0a''  echo "------------------------------------------------------------";'$'\x0a''  echo;'$'\x0a''  # Record all build inputs as runtime dependencies'$'\x0a''  export;'$'\x0a''} >> "$out"'$'\x0a'''
 export buildPhase
 builder='/nix/store/rlq03x4cwf8zn73hxaxnx0zn5q9kifls-bash-5.3p3/bin/bash'
 export builder
@@ -230,9 +221,7 @@ export propagatedNativeBuildInputs
 declare -a propagatedTargetDepFiles=('propagated-target-target-deps' )
 shell='/nix/store/rlq03x4cwf8zn73hxaxnx0zn5q9kifls-bash-5.3p3/bin/bash'
 export shell
-shellHook='unset CFLAGS
-unset CXXFLAGS
-'
+shellHook='unset CFLAGS'$'\x0a''unset CXXFLAGS'$'\x0a'''
 export shellHook
 stdenv='/nix/store/s3w5m3spa1g71hx0yb82lvk6394j3w5j-stdenv-linux'
 export stdenv

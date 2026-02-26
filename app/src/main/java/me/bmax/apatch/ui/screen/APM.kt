@@ -51,16 +51,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -73,8 +70,6 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousCapsule
 import com.ramcosta.composedestinations.generated.destinations.ExecuteAPMActionScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
@@ -478,47 +473,31 @@ private fun ModuleTitleWithMeta(module: APModuleViewModel.ModuleInfo) {
         if (module.remove) TextDecoration.LineThrough else if (module.update) TextDecoration.Underline else TextDecoration.None
     val fontStyle = if (module.remove || module.update) FontStyle.Italic else FontStyle.Normal
 
-    SubcomposeLayout { constraints ->
-        val spacingPx = 6.dp.roundToPx()
-        val metaPlaceable = if (module.metamodule) {
-            subcompose("meta") {
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = MaterialTheme.colorScheme.tertiary
-                ) {
-                    Text(
-                        text = "META",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onTertiary
-                    )
-                }
-            }.first().measure(Constraints(0, constraints.maxWidth, 0, constraints.maxHeight))
-        } else null
-
-        val reserved = (metaPlaceable?.width ?: 0) + if (metaPlaceable != null) spacingPx else 0
-        var nameTextLayout: TextLayoutResult? = null
-        val namePlaceable = subcompose("name") {
-            Text(
-                text = module.name,
-                maxLines = 2,
-                textDecoration = decoration,
-                fontStyle = fontStyle,
-                fontWeight = FontWeight.SemiBold,
-                overflow = TextOverflow.Ellipsis,
-                onTextLayout = { nameTextLayout = it }
-            )
-        }.first().measure(Constraints(0, (constraints.maxWidth - reserved).coerceAtLeast(0)))
-
-        val height = maxOf(namePlaceable.height, metaPlaceable?.height ?: 0)
-        layout(namePlaceable.width + reserved, height) {
-            namePlaceable.placeRelative(0, 0)
-            metaPlaceable?.placeRelative(
-                (nameTextLayout?.getLineRight(nameTextLayout.lineCount - 1)?.toInt()
-                    ?: namePlaceable.width) + spacingPx,
-                (height - metaPlaceable.height) / 2
-            )
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = module.name,
+            maxLines = 2,
+            textDecoration = decoration,
+            fontStyle = fontStyle,
+            fontWeight = FontWeight.SemiBold,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (module.metamodule) {
+            Spacer(modifier = Modifier.width(6.dp))
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.tertiary
+            ) {
+                Text(
+                    text = "META",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onTertiary
+                )
+            }
         }
     }
 }
@@ -547,28 +526,20 @@ private fun ModuleActionButtons(
             val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
             FilledTonalButton(
                 modifier = Modifier.drawBackdrop(
-                backdrop = backdrop,
-                effects = {
-                    vibrancy()
-                    blur(2f.dp.toPx())
-                    lens(12f.dp.toPx(), 24f.dp.toPx())
-                },
-                highlight = {
-                    Highlight(
-                        alpha = 0f
-                    )
-                },
-                shape = { ContinuousCapsule },
-                shadow = {
-                    Shadow(
-                        alpha = 0f
-                    )
-                },
-                onDrawSurface = {
-                    drawRect(colorScheme.secondaryContainer, blendMode = BlendMode.Hue)
-                    drawRect(colorScheme.secondaryContainer.copy(alpha = 0.75f))
-                }
-            ),
+                    backdrop = backdrop,
+                    effects = {
+                        vibrancy()
+                        blur(2f.dp.toPx())
+                        lens(12f.dp.toPx(), 24f.dp.toPx())
+                    },
+                    highlight = null,
+                    shape = { ContinuousCapsule },
+                    shadow = null,
+                    onDrawSurface = {
+                        drawRect(colorScheme.secondaryContainer, blendMode = BlendMode.Hue)
+                        drawRect(colorScheme.secondaryContainer.copy(alpha = 0.75f))
+                    }
+                ),
                 onClick = {
                     navigator.navigate(ExecuteAPMActionScreenDestination(module.id))
                     viewModel.markNeedRefresh()

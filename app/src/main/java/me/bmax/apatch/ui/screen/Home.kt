@@ -1,7 +1,7 @@
 package me.bmax.apatch.ui.screen
 
-//import androidx.compose.material3.OutlinedTextField
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -56,6 +56,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -137,7 +138,6 @@ import me.bmax.apatch.util.LatestVersionInfo
 import me.bmax.apatch.util.Version
 import me.bmax.apatch.util.Version.getManagerVersion
 import me.bmax.apatch.util.checkNewVersion
-import me.bmax.apatch.util.getSELinuxStatus
 import me.bmax.apatch.util.inputStream
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.rootShellForResult
@@ -155,6 +155,31 @@ fun HomeScreen(
 ) {
     val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
+
+    // State for check_update preference with listener
+    var checkUpdate by remember {
+        mutableStateOf(APApplication.sharedPreferences.getBoolean("check_update", true))
+    }
+
+    // Derived state for conditional rendering
+    val showAStatusCard = remember(kpState, apState) {
+        kpState != APApplication.State.UNKNOWN_STATE &&
+                apState != APApplication.State.ANDROIDPATCH_INSTALLED
+    }
+
+    // Update state when preference changes
+    DisposableEffect(Unit) {
+        val listener =
+            SharedPreferences.OnSharedPreferenceChangeListener { _: SharedPreferences, key: String? ->
+                if (key == "check_update") {
+                    checkUpdate = APApplication.sharedPreferences.getBoolean(key, true)
+                }
+            }
+        APApplication.sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            APApplication.sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
 
     LaunchedEffect(Unit) {
         setFab(null)
@@ -188,20 +213,17 @@ fun HomeScreen(
             item {
                 KStatusCard(kpState, apState, navigator)
             }
-            if (kpState != APApplication.State.UNKNOWN_STATE &&
-                apState != APApplication.State.ANDROIDPATCH_INSTALLED
-            ) {
-                item {
+            if (showAStatusCard) {
+                item(key = "a_status_card") {
                     AStatusCard(apState)
                 }
             }
-            val checkUpdate = APApplication.sharedPreferences.getBoolean("check_update", true)
             if (checkUpdate) {
-                item {
+                item(key = "update_card") {
                     UpdateCard()
                 }
             }
-            item {
+            item(key = "info_card") {
                 InfoCard()
             }
         }
@@ -1140,12 +1162,38 @@ private fun getSystemVersion(): String {
 
 private fun getDeviceInfo(): String {
     var manufacturer =
-        Build.MANUFACTURER[0].uppercaseChar().toString() + Build.MANUFACTURER.substring(1)
+        Build.MANUFACTURER[0].uppercaseChar().toString() + Build.MANUFACTURER.substring(
+            1
+        )
     if (!Build.BRAND.equals(Build.MANUFACTURER, ignoreCase = true)) {
         manufacturer += " " + Build.BRAND[0].uppercaseChar() + Build.BRAND.substring(1)
     }
     manufacturer += " " + Build.MODEL + " "
     return manufacturer
+}
+
+private fun getRawSELinuxStatus(): String {
+    val shell = com.topjohnwu.superuser.Shell.Builder.create()
+        .build("sh")
+
+    val list = ArrayList<String>()
+    val result = shell.newJob().add("getenforce").to(list, list).exec()
+    val output = result.out.joinToString("\n").trim()
+
+    if (result.isSuccess) {
+        return when (output) {
+            "Enforcing" -> "Enforcing"
+            "Permissive" -> "Permissive"
+            "Disabled" -> "Disabled"
+            else -> "unknown"
+        }
+    }
+
+    return if (output.endsWith("Permission denied")) {
+        "Enforcing"
+    } else {
+        "unknown"
+    }
 }
 
 @Composable
@@ -1165,12 +1213,17 @@ private fun InfoCard() {
                     .fillMaxSize()
                     .padding(16.dp)
         ) {
-            val contents = StringBuilder()
-            val uname = Os.uname()
+            val uname = remember { Os.uname() }
+            val selinuxRawStatus = remember { mutableStateOf("") }
+
+            LaunchedEffect(Unit) {
+                selinuxRawStatus.value = withContext(Dispatchers.IO) {
+                    getRawSELinuxStatus()
+                }
+            }
 
             @Composable
             fun InfoCardItem(label: String, content: String) {
-                contents.appendLine(label).appendLine(content).appendLine()
                 Text(
                     text = label, style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
@@ -1184,19 +1237,30 @@ private fun InfoCard() {
                 )
             }
 
-            InfoCardItem(stringResource(R.string.home_device_info), getDeviceInfo())
+            InfoCardItem(stringResource(R.string.home_device_info), remember { getDeviceInfo() })
 
             Spacer(Modifier.height(16.dp))
             InfoCardItem(stringResource(R.string.home_kernel), uname.release)
 
             Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_system_version), getSystemVersion())
+            InfoCardItem(
+                stringResource(R.string.home_system_version),
+                remember { getSystemVersion() }
+            )
 
             Spacer(Modifier.height(16.dp))
             InfoCardItem(stringResource(R.string.home_fingerprint), Build.FINGERPRINT)
 
             Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_selinux_status), getSELinuxStatus())
+            InfoCardItem(
+                stringResource(R.string.home_selinux_status),
+                when (selinuxRawStatus.value) {
+                    "Enforcing" -> stringResource(R.string.home_selinux_status_enforcing)
+                    "Permissive" -> stringResource(R.string.home_selinux_status_permissive)
+                    "Disabled" -> stringResource(R.string.home_selinux_status_disabled)
+                    else -> stringResource(R.string.home_selinux_status_unknown)
+                }
+            )
         }
     }
 }
