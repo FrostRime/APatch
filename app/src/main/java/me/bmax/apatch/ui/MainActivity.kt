@@ -193,7 +193,6 @@ class MainActivity : AppCompatActivity() {
                     CompositionLocalProvider(
                         LocalNavigator provides navigator,
                         LocalSnackbarHost provides snackBarHostState,
-                        LocalWallpaperBackdrop provides rememberLayerBackdrop(),
                         LocalWidgetOpacity provides remember {
                             mutableFloatStateOf(
                                 prefs.getFloat(
@@ -225,24 +224,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         LocalConfiguration.current
-                        val wallpaper = LocalWallpaper.current
-                        val wallpaperBackdrop = LocalWallpaperBackdrop.current
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.background)
-                                .layerBackdrop(wallpaperBackdrop)
-                        ) {
-                            wallpaper.value?.let { wallpaper ->
-                                Image(
-                                    modifier = Modifier.fillMaxSize(),
-                                    bitmap = wallpaper,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
                         DestinationsNavHost(
                             navGraph = NavGraphs.root,
                             navController = navController,
@@ -385,6 +367,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
             },
     ) {
         CompositionLocalProvider(
+            LocalWallpaperBackdrop provides rememberLayerBackdrop(),
             LocalInnerPadding provides innerPadding
         ) {
             Box(
@@ -404,6 +387,25 @@ fun MainScreen(navigator: DestinationsNavigator) {
                         animationScope = animationScope
                     )
                 }
+
+                val wallpaper = LocalWallpaper.current
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .layerBackdrop(wallpaperBackdrop)
+                ) {
+                    wallpaper.value?.let { wallpaper ->
+                        Image(
+                            modifier = Modifier.fillMaxSize(),
+                            bitmap = wallpaper,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
                 TopAppBar(
                     title = {},
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
@@ -435,6 +437,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
                                 .then(interactiveHighlight.gestureModifier)
                         )
                 )
+
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
