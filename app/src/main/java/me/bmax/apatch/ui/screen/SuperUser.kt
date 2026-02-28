@@ -26,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -188,16 +189,14 @@ fun SuperUserScreen(setFab: FabProvider) {
             )
         }
     ) { innerPadding ->
-        val filteredList =
-            viewModel.appList.filter { it.packageName != apApp.packageName }
-        UIList(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 12.dp)
-                .padding(top = 8.dp),
-            onRefresh = { scope.launch { viewModel.fetchAppList() } },
-            isRefreshing = viewModel.isRefreshing,
-            items = {
+        val filteredList by remember {
+            derivedStateOf {
+                viewModel.appList.filter { it.packageName != apApp.packageName }
+            }
+        }
+        val suPkgExcludedSettingTitle = stringResource(R.string.su_pkg_excluded_setting_title)
+        val listItems by remember {
+            derivedStateOf {
                 val list = mutableListOf<ListItemData>()
                 if (kPatchReady && aPatchReady) {
                     list.add(
@@ -205,7 +204,7 @@ fun SuperUserScreen(setFab: FabProvider) {
                             title = {
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
-                                        stringResource(R.string.su_pkg_excluded_setting_title),
+                                        suPkgExcludedSettingTitle,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Surface(
@@ -274,7 +273,8 @@ fun SuperUserScreen(setFab: FabProvider) {
                                         )
                                     }
                                 }
-                            }
+                            },
+                            key = { suPkgExcludedSettingTitle }
                         )
                     )
                 }
@@ -287,7 +287,7 @@ fun SuperUserScreen(setFab: FabProvider) {
                                     fontWeight = FontWeight.SemiBold
                                 )
                             },
-                            subtitle = app.packageName,
+                            subtitle = { app.packageName },
                             showCheckBox = { true },
                             headerIcon = {
                                 val imageRequest =
@@ -410,11 +410,23 @@ fun SuperUserScreen(setFab: FabProvider) {
                                         }
                                     )
                                 }
+                            },
+                            key = {
+                                app.packageName
                             }
                         )
                     })
                 list
-            },
+            }
+        }
+        UIList(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(horizontal = 12.dp)
+                .padding(top = 8.dp),
+            onRefresh = { scope.launch { viewModel.fetchAppList() } },
+            isRefreshing = viewModel.isRefreshing,
+            items = listItems,
             backdrop = wallpaperBackdrop,
             state = superUserListState
         )

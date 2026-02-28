@@ -207,10 +207,10 @@ fun HomeScreen(
                     .clip(ContinuousRoundedRectangle(16.dp)),
             contentPadding = LocalInnerPadding.current
         ) {
-            item {
+            item(key = "warning_card") {
                 WarningCard()
             }
-            item {
+            item(key = "k_status_card") {
                 KStatusCard(kpState, apState, navigator)
             }
             if (showAStatusCard) {

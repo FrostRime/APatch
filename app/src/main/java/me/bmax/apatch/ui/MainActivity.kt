@@ -193,6 +193,7 @@ class MainActivity : AppCompatActivity() {
                     CompositionLocalProvider(
                         LocalNavigator provides navigator,
                         LocalSnackbarHost provides snackBarHostState,
+                        LocalWallpaperBackdrop provides rememberLayerBackdrop(),
                         LocalWidgetOpacity provides remember {
                             mutableFloatStateOf(
                                 prefs.getFloat(
@@ -224,6 +225,24 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         LocalConfiguration.current
+                        val wallpaper = LocalWallpaper.current
+                        val wallpaperBackdrop = LocalWallpaperBackdrop.current
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                                .layerBackdrop(wallpaperBackdrop)
+                        ) {
+                            wallpaper.value?.let { wallpaper ->
+                                Image(
+                                    modifier = Modifier.fillMaxSize(),
+                                    bitmap = wallpaper,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
                         DestinationsNavHost(
                             navGraph = NavGraphs.root,
                             navController = navController,
@@ -366,8 +385,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
             },
     ) {
         CompositionLocalProvider(
-            LocalInnerPadding provides innerPadding,
-            LocalWallpaperBackdrop provides rememberLayerBackdrop()
+            LocalInnerPadding provides innerPadding
         ) {
             Box(
                 modifier = Modifier
@@ -375,23 +393,8 @@ fun MainScreen(navigator: DestinationsNavigator) {
                     .layerBackdrop(backdrop)
             ) {
                 val widgetOpacity = LocalWidgetOpacity.current
-                val wallpaper = LocalWallpaper.current
+                LocalWallpaper.current
                 val wallpaperBackdrop = LocalWallpaperBackdrop.current
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        .layerBackdrop(wallpaperBackdrop)
-                ) {
-                    wallpaper.value?.let { wallpaper ->
-                        Image(
-                            modifier = Modifier.fillMaxSize(),
-                            bitmap = wallpaper,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
                 val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
 
                 val animationScope = rememberCoroutineScope()

@@ -35,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -267,6 +268,88 @@ fun KPModuleScreen(
         })
     }
 
+    val allModules by remember {
+        derivedStateOf {
+            viewModel.installedModuleList + viewModel.moduleList.filter { !it.isInstalled }
+        }
+    }
+    val listItems by remember {
+        derivedStateOf {
+            allModules.map { module ->
+                ListItemData(
+                    title = {
+                        Text(
+                            text = module.name,
+                            maxLines = 2,
+                            fontWeight = FontWeight.SemiBold,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    subtitle = { "${module.version}, $moduleAuthor ${module.author}" },
+                    description = module.description,
+                    showCheckBox = { module.isInstalled },
+                    onCheckChange = if (module.isInstalled) {
+                        { checked ->
+                            scope.launch {
+                                val success = Su.exec {
+                                    Natives.changeInstalledKpmModuleState(module.name, checked)
+                                    if (!checked) {
+                                        try {
+                                            Natives.unloadKernelPatchModule(module.name)
+                                            true
+                                        } catch (_: Exception) {
+                                            false
+                                        }
+                                    } else {
+                                        true
+                                    }
+                                }
+                                if (success) {
+                                    viewModel.fetchModuleList()
+                                }
+                            }
+                        }
+                    } else null,
+                    checked = { module.isInstalled && module in viewModel.moduleList },
+                    actions = {
+                        Row(
+                            modifier = Modifier
+                                .padding(bottom = 12.dp)
+                                .padding(horizontal = 16.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            ModuleSettingsButton(
+                                backdrop = it,
+                                onClick = {
+                                    targetKPMToControl = module
+                                    showKPMControlDialog.value = true
+                                })
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            KPModuleRemoveButton(
+                                backdrop = it, enabled = true, onClick = {
+                                    scope.launch {
+                                        if (module.isInstalled) {
+                                            Su.exec {
+                                                Natives.uninstallKpmModule(module.name)
+                                            }
+                                        }
+                                        onModuleUninstall(module)
+                                    }
+                                })
+                        }
+                    },
+                    key = {
+                        module.name
+                    }
+                )
+            }
+        }
+    }
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -284,80 +367,7 @@ fun KPModuleScreen(
                 .padding(top = 8.dp),
             onRefresh = { viewModel.fetchModuleList() },
             isRefreshing = viewModel.isRefreshing,
-            items = {
-                val allModules =
-                    viewModel.installedModuleList + viewModel.moduleList.filter { !it.isInstalled }
-                allModules.map { module ->
-                    ListItemData(
-                        title = {
-                            Text(
-                                text = module.name,
-                                maxLines = 2,
-                                fontWeight = FontWeight.SemiBold,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        subtitle = "${module.version}, $moduleAuthor ${module.author}",
-                        description = module.description,
-                        showCheckBox = { module.isInstalled },
-                        onCheckChange = if (module.isInstalled) {
-                            { checked ->
-                                scope.launch {
-                                    val success = Su.exec {
-                                        Natives.changeInstalledKpmModuleState(module.name, checked)
-                                        if (!checked) {
-                                            try {
-                                                Natives.unloadKernelPatchModule(module.name)
-                                                true
-                                            } catch (_: Exception) {
-                                                false
-                                            }
-                                        } else {
-                                            true
-                                        }
-                                    }
-                                    if (success) {
-                                        viewModel.fetchModuleList()
-                                    }
-                                }
-                            }
-                        } else null,
-                        checked = { module.isInstalled && module in viewModel.moduleList },
-                        actions = {
-                            Row(
-                                modifier = Modifier
-                                    .padding(bottom = 12.dp)
-                                    .padding(horizontal = 16.dp)
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Spacer(modifier = Modifier.weight(1f))
-
-                                ModuleSettingsButton(
-                                    backdrop = it,
-                                    onClick = {
-                                        targetKPMToControl = module
-                                        showKPMControlDialog.value = true
-                                    })
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                KPModuleRemoveButton(
-                                    backdrop = it, enabled = true, onClick = {
-                                        scope.launch {
-                                            if (module.isInstalled) {
-                                                Su.exec {
-                                                    Natives.uninstallKpmModule(module.name)
-                                                }
-                                            }
-                                            onModuleUninstall(module)
-                                        }
-                                    })
-                            }
-                        }
-                    )
-                }
-            },
+            items = listItems,
             backdrop = wallpaperBackdrop,
             state = kpModuleListState
         )

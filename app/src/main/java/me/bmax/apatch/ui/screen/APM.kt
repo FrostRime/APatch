@@ -39,6 +39,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -165,6 +166,7 @@ fun APModuleScreen(
     val changelogText = stringResource(R.string.apm_changelog)
     val downloadingText = stringResource(R.string.apm_downloading)
     val startDownloadingText = stringResource(R.string.apm_start_downloading)
+    val authorString = stringResource(R.string.apm_author)
     val onInstallModule: (Uri) -> Unit = { uri ->
         navigator.navigate(InstallScreenDestination(uri, ModuleType.APM))
     }
@@ -299,6 +301,88 @@ fun APModuleScreen(
 
     val moduleListState = rememberLazyListState()
 
+    val listItems by remember {
+        derivedStateOf {
+            viewModel.moduleList.map { module ->
+                val updateInfo = module.updateInfo
+                ListItemData(
+                    title = {
+                        ModuleTitleWithMeta(module)
+                    },
+                    showCheckBox = { true },
+                    subtitle = { "${module.version}, $authorString ${module.author}" },
+                    description = module.description,
+                    onCheckChange = if (!module.remove && !module.update) {
+                        {
+                            scope.launch {
+                                val success = loadingDialog.withLoading {
+                                    withContext(Dispatchers.IO) {
+                                        toggleModule(module.id, it)
+                                    }
+                                }
+                                if (success) {
+                                    viewModel.fetchModuleList()
+
+                                    val result = snackBarHost.showSnackbar(
+                                        message = rebootToApply,
+                                        actionLabel = reboot,
+                                        duration = SnackbarDuration.Long
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        reboot()
+                                    }
+                                } else {
+                                    val message =
+                                        if (!it) failedDisable else failedEnable
+                                    snackBarHost.showSnackbar(message.format(module.name))
+                                }
+                            }
+                        }
+                    } else null,
+                    checked = { module.enabled },
+                    actions = {
+                        ModuleActionButtons(
+                            backdrop = it,
+                            module = module,
+                            updateUrl = module.updateInfo?.zipUrl ?: "",
+                            navigator = navigator,
+                            onUpdate = {
+                                scope.launch {
+                                    updateInfo?.let { info ->
+                                        onModuleUpdate(
+                                            module,
+                                            info.changelog,
+                                            info.zipUrl,
+                                            "${module.name}-${info.version}.zip"
+                                        )
+                                    }
+                                }
+                            },
+                            onUninstall = {
+                                scope.launch { onModuleUninstall(module) }
+                            },
+                            onSettings = {
+                                val id = module.id
+                                val name = module.name
+                                webUILauncher.launch(
+                                    Intent(
+                                        context, WebUIActivity::class.java
+                                    ).setData("apatch://webui/$id".toUri())
+                                        .putExtra("id", id)
+                                        .putExtra("name", name)
+                                )
+                            },
+                            viewModel = viewModel,
+                        )
+                    },
+                    key = {
+                        module.id
+                    }
+                )
+            }
+        }
+    }
+
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -331,7 +415,6 @@ fun APModuleScreen(
             }
 
             else -> {
-                val authorString = stringResource(R.string.apm_author)
                 val metaWarning by produceState<String?>(null, viewModel.moduleList) {
                     value =
                         withContext(Dispatchers.IO) { getMetaModuleWarningText(viewModel, context) }
@@ -350,82 +433,7 @@ fun APModuleScreen(
                     }
 
                     UIList(
-                        items = {
-                            viewModel.moduleList.map { module ->
-                                val updateInfo = module.updateInfo
-                                ListItemData(
-                                    title = {
-                                        ModuleTitleWithMeta(module)
-                                    },
-                                    showCheckBox = { true },
-                                    subtitle = "${module.version}, $authorString ${module.author}",
-                                    description = module.description,
-                                    onCheckChange = if (!module.remove && !module.update) {
-                                        {
-                                            scope.launch {
-                                                val success = loadingDialog.withLoading {
-                                                    withContext(Dispatchers.IO) {
-                                                        toggleModule(module.id, it)
-                                                    }
-                                                }
-                                                if (success) {
-                                                    viewModel.fetchModuleList()
-
-                                                    val result = snackBarHost.showSnackbar(
-                                                        message = rebootToApply,
-                                                        actionLabel = reboot,
-                                                        duration = SnackbarDuration.Long
-                                                    )
-                                                    if (result == SnackbarResult.ActionPerformed) {
-                                                        reboot()
-                                                    }
-                                                } else {
-                                                    val message =
-                                                        if (!it) failedDisable else failedEnable
-                                                    snackBarHost.showSnackbar(message.format(module.name))
-                                                }
-                                            }
-                                        }
-                                    } else null,
-                                    checked = { module.enabled },
-                                    actions = {
-                                        ModuleActionButtons(
-                                            backdrop = it,
-                                            module = module,
-                                            updateUrl = module.updateInfo?.zipUrl ?: "",
-                                            navigator = navigator,
-                                            onUpdate = {
-                                                scope.launch {
-                                                    updateInfo?.let { info ->
-                                                        onModuleUpdate(
-                                                            module,
-                                                            info.changelog,
-                                                            info.zipUrl,
-                                                            "${module.name}-${info.version}.zip"
-                                                        )
-                                                    }
-                                                }
-                                            },
-                                            onUninstall = {
-                                                scope.launch { onModuleUninstall(module) }
-                                            },
-                                            onSettings = {
-                                                val id = module.id
-                                                val name = module.name
-                                                webUILauncher.launch(
-                                                    Intent(
-                                                        context, WebUIActivity::class.java
-                                                    ).setData("apatch://webui/$id".toUri())
-                                                        .putExtra("id", id)
-                                                        .putExtra("name", name)
-                                                )
-                                            },
-                                            viewModel = viewModel,
-                                        )
-                                    }
-                                )
-                            }
-                        },
+                        items = listItems,
                         onRefresh = { viewModel.fetchModuleList() },
                         isRefreshing = viewModel.isRefreshing,
                         backdrop = wallpaperBackdrop,

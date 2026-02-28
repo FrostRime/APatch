@@ -37,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
@@ -61,7 +60,7 @@ import kotlin.math.ln
 data class ListItemData(
     val background: Color = Color.Unspecified,
     val title: @Composable (() -> Unit),
-    val subtitle: String? = null,
+    val subtitle: (() -> String)? = null,
     val description: String? = null,
     val label: @Composable (() -> Unit)? = null,
     val headerIcon: @Composable (() -> Unit)? = null,
@@ -69,16 +68,16 @@ data class ListItemData(
     val actions: @Composable (Backdrop) -> Unit,
     val checked: () -> Boolean,
     val onCheckChange: ((Boolean) -> Unit)? = null,
-    val showCheckBox: () -> Boolean = { false }
+    val showCheckBox: () -> Boolean = { false },
+    val key: ((ListItemData) -> Any)? = null
 )
 
-val topShape = ContinuousRoundedRectangle(16.dp, 16.dp, 4.dp, 4.dp)
 val bottomShape = ContinuousRoundedRectangle(4.dp, 4.dp, 16.dp, 16.dp)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UIList(
-    items: () -> List<ListItemData>,
+    items: List<ListItemData>,
     onRefresh: () -> Unit,
     isRefreshing: Boolean,
     modifier: Modifier = Modifier,
@@ -86,7 +85,6 @@ fun UIList(
     state: LazyListState,
     emptyContent: @Composable () -> Unit = {}
 ) {
-    val items = items()
     PullToRefreshBox(
         modifier = modifier,
         onRefresh = onRefresh,
@@ -108,9 +106,10 @@ fun UIList(
                 }
 
                 else -> {
-                    itemsIndexed(items) { index, item ->
+                    itemsIndexed(
+                        items,
+                        key = { _, item -> item.key?.invoke(item) ?: item }) { index, item ->
                         val shape = when (index) {
-                            0 -> topShape
                             items.lastIndex -> bottomShape
                             else -> ContinuousRoundedRectangle(4.dp)
                         }
@@ -183,7 +182,6 @@ private fun GenericItem(
                     },
                     shadow = null,
                     onDrawSurface = {
-                        drawRect(color, blendMode = BlendMode.Hue)
                         drawRect(color.copy(alpha = 0.87f))
                     }
                 )
@@ -212,7 +210,7 @@ private fun GenericItem(
                         if (data.subtitle != null) {
                             Text(
                                 modifier = Modifier.padding(start = 4.dp),
-                                text = data.subtitle,
+                                text = data.subtitle(),
                                 fontWeight = FontWeight.Medium,
                                 style = MaterialTheme.typography.bodyMedium
                             )
