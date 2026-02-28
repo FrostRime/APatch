@@ -109,7 +109,8 @@ jobs:
           zipAlign: true
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: manager-${{ matrix.package_id }}
+          archive: false
           path: ${{ steps.sign_app.outputs.signedReleaseFile || 'app/build/outputs/apk/release/*.apk' }}
