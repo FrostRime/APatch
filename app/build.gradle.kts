@@ -87,7 +87,7 @@ android {
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
         applicationId = "com.frost.rime"
 
-        base.archivesName = "APatch_${managerBuildTime}_${managerVersionName}_${branchName}"
+        base.archivesName = "APatch_${android.defaultConfig.applicationId}_${managerBuildTime}_${managerVersionName}_${branchName}"
     }
 
     compileOptions {
