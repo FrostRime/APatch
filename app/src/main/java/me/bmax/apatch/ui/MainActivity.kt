@@ -68,7 +68,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -111,6 +110,7 @@ import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.component.LiquidBottomTab
 import me.bmax.apatch.ui.component.LiquidBottomTabs
 import me.bmax.apatch.ui.component.LiquidButton
+import me.bmax.apatch.ui.component.LiquidSurface
 import me.bmax.apatch.ui.screen.APModuleScreen
 import me.bmax.apatch.ui.screen.BottomBarDestination
 import me.bmax.apatch.ui.screen.HomeScreen
@@ -683,36 +683,48 @@ fun MainScreen(navigator: DestinationsNavigator) {
             if (!isBottomBarVisible || barStateProgress < 0.25f) {
                 val selectedColor by rememberUpdatedState(MaterialTheme.colorScheme.onSurface)
                 val unselectedColor by rememberUpdatedState(MaterialTheme.colorScheme.outline)
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(4.dp)
                         .scale(barStateProgress * 0.85f + 0.15f)
                         .graphicsLayer(
                             alpha = 1 - barStateProgress
                         )
-                        .clip(ContinuousCapsule)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .clickable {
+                ) {
+                    LiquidSurface(
+                        backdrop = backdrop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        shape = ContinuousCapsule,
+                        tint = MaterialTheme.colorScheme.surface,
+                        onClick = {
                             isBottomBarVisible = true
                         }
-                ) {
-                    visibleDestinations.forEachIndexed { index, _ ->
-                        val iconColor by animateColorAsState(
-                            targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
-                            animationSpec = tween(250)
-                        )
-                        LiquidBottomTab(
-                            { isBottomBarVisible = true },
-                            modifier = Modifier
-                                .size(28.dp)
-                                .padding(4.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(iconColor)
+                    ) {
+                        visibleDestinations.forEachIndexed { index, _ ->
+                            val iconColor by animateColorAsState(
+                                targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
+                                animationSpec = tween(250)
                             )
+                            LiquidBottomTab(
+                                { isBottomBarVisible = true },
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .padding(4.dp)
+                            ) {
+                                LiquidSurface(
+                                    backdrop = backdrop,
+                                    modifier = Modifier
+                                        .fillMaxSize(),
+                                    shape = ContinuousCapsule,
+                                    onClick = {
+                                        isBottomBarVisible = true
+                                    },
+                                    tint = iconColor
+                                ) {
+                                }
+                            }
                         }
                     }
                 }
