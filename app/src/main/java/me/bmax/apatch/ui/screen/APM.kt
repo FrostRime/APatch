@@ -102,6 +102,7 @@ import me.bmax.apatch.util.hasMagisk
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.toggleModule
 import me.bmax.apatch.util.ui.LocalInnerPadding
+import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
 import me.bmax.apatch.util.uninstallModule
@@ -110,12 +111,12 @@ import okhttp3.Request
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun APModuleScreen(
-    navigator: DestinationsNavigator,
     setFab: FabProvider
 ) {
     val snackBarHost = LocalSnackbarHost.current
     val context = LocalContext.current
     val wallpaperBackdrop = LocalWallpaperBackdrop.current
+    val navigator = LocalNavigator.current
 
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     if (state != APApplication.State.ANDROIDPATCH_INSTALLED && state != APApplication.State.ANDROIDPATCH_NEED_UPDATE) {
@@ -196,10 +197,6 @@ fun APModuleScreen(
                 }
             )
         })
-    }
-
-    var showSearch by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit, showSearch) {
     }
 
     suspend fun onModuleUpdate(

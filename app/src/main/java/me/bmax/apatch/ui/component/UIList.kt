@@ -1,8 +1,6 @@
 package me.bmax.apatch.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,11 +48,8 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.capsule.ContinuousRoundedRectangle
 import me.bmax.apatch.util.ui.LocalInnerPadding
-import me.bmax.apatch.util.ui.rememberUISensor
 import kotlin.math.ln
 
 data class ListItemData(
@@ -153,12 +148,7 @@ private fun GenericItem(
     val color =
         MaterialTheme.colorScheme.surfaceColorAtElevation(backgroundColor, absoluteElevation)
     val itemSurfaceBackdrop = rememberLayerBackdrop()
-    val uiSensor = rememberUISensor()
 
-    val highlightAngle by animateFloatAsState(
-        targetValue = uiSensor?.gravityAngle ?: 45f,
-        animationSpec = tween(400)
-    )
     Box {
         Surface(
             tonalElevation = if (data.checked()) 4.dp else 1.dp,
@@ -172,14 +162,7 @@ private fun GenericItem(
                         blur(8.dp.toPx())
                         lens(12f.dp.toPx(), 24f.dp.toPx())
                     },
-                    highlight = {
-                        Highlight(
-                            style = HighlightStyle.Default(
-                                angle = highlightAngle,
-                            ),
-                            alpha = 0.05f
-                        )
-                    },
+                    highlight = null,
                     shadow = null,
                     onDrawSurface = {
                         drawRect(color.copy(alpha = 0.87f))

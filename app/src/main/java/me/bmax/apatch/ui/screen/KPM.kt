@@ -57,7 +57,6 @@ import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.outline.PackageImport
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.topjohnwu.superuser.nio.ExtendedFile
 import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -86,6 +85,7 @@ import me.bmax.apatch.ui.viewmodel.KPModuleViewModel
 import me.bmax.apatch.ui.viewmodel.PatchesViewModel
 import me.bmax.apatch.util.Su
 import me.bmax.apatch.util.inputStream
+import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
 import me.bmax.apatch.util.writeTo
 import java.io.IOException
@@ -96,7 +96,6 @@ private lateinit var targetKPMToControl: KPModel.KPMInfo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KPModuleScreen(
-    navigator: DestinationsNavigator,
     setFab: FabProvider
 ) {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
@@ -126,6 +125,7 @@ fun KPModuleScreen(
     val moduleUninstallConfirm = stringResource(id = R.string.kpm_unload_confirm)
     val uninstall = stringResource(id = R.string.kpm_unload)
     val cancel = stringResource(id = android.R.string.cancel)
+    val navigator = LocalNavigator.current
 
     val confirmDialog = rememberConfirmDialog()
     val loadingDialog = rememberLoadingDialog()

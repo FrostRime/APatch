@@ -142,6 +142,7 @@ import me.bmax.apatch.util.inputStream
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.rootShellForResult
 import me.bmax.apatch.util.ui.LocalInnerPadding
+import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalWallpaper
 import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
 import me.bmax.apatch.util.ui.LocalWidgetOpacity
@@ -150,7 +151,6 @@ private val managerVersion = getManagerVersion()
 
 @Composable
 fun HomeScreen(
-    navigator: DestinationsNavigator,
     setFab: FabProvider
 ) {
     val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
@@ -166,6 +166,8 @@ fun HomeScreen(
         kpState != APApplication.State.UNKNOWN_STATE &&
                 apState != APApplication.State.ANDROIDPATCH_INSTALLED
     }
+
+    val navigator = LocalNavigator.current
 
     // Update state when preference changes
     DisposableEffect(Unit) {

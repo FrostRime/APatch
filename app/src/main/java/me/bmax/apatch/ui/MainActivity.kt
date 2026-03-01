@@ -57,7 +57,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -99,7 +98,6 @@ import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationSty
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.NavGraphs
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.rememberNavHostEngine
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import com.topjohnwu.superuser.nio.ExtendedFile
@@ -146,7 +144,7 @@ data class MenuItem(
     val onClick: () -> Unit,
 )
 
-typealias ScreenEntry = @Composable (DestinationsNavigator, FabProvider) -> Unit
+typealias ScreenEntry = @Composable (FabProvider) -> Unit
 
 class MainActivity : AppCompatActivity() {
 
@@ -252,10 +250,9 @@ class MainActivity : AppCompatActivity() {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("AssignedValueIsNeverRead")
 @Destination<RootGraph>(start = true)
 @Composable
-fun MainScreen(navigator: DestinationsNavigator) {
+fun MainScreen() {
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val kPatchReady = state != APApplication.State.UNKNOWN_STATE
     val aPatchReady = state == APApplication.State.ANDROIDPATCH_INSTALLED
@@ -277,9 +274,6 @@ fun MainScreen(navigator: DestinationsNavigator) {
     )
     val coroutineScope = rememberCoroutineScope()
     var isBottomBarVisible by remember { mutableStateOf(true) }
-    var lastTouchY by remember { mutableFloatStateOf(0f) }
-    var lastTouchTime by remember { mutableLongStateOf(0L) }
-    val minDragThreshold = 85f
 
     val backdrop = rememberLayerBackdrop()
 
@@ -323,19 +317,19 @@ fun MainScreen(navigator: DestinationsNavigator) {
         remember { mutableStateMapOf<BottomBarDestination, Fab?>() }
 
     val screenRegistry: Map<BottomBarDestination, ScreenEntry> = mapOf(
-        BottomBarDestination.Home to { nav, setFab ->
-            HomeScreen(nav, setFab)
+        BottomBarDestination.Home to { setFab ->
+            HomeScreen(setFab)
         },
-        BottomBarDestination.KModule to { nav, setFab ->
-            KPModuleScreen(nav, setFab)
+        BottomBarDestination.KModule to { setFab ->
+            KPModuleScreen(setFab)
         },
-        BottomBarDestination.SuperUser to { _, setFab ->
+        BottomBarDestination.SuperUser to { setFab ->
             SuperUserScreen(setFab)
         },
-        BottomBarDestination.AModule to { nav, setFab ->
-            APModuleScreen(nav, setFab)
+        BottomBarDestination.AModule to { setFab ->
+            APModuleScreen(setFab)
         },
-        BottomBarDestination.Settings to { _, setFab ->
+        BottomBarDestination.Settings to { setFab ->
             SettingScreen(setFab)
         }
     )
@@ -344,23 +338,25 @@ fun MainScreen(navigator: DestinationsNavigator) {
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
+                var lastY = 0f
+                var lastTime = 0L
+                val threshold = 85f
+                val timeWindow = 100L
+
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
-
                         val pressed = event.changes.any { it.pressed }
                         if (pressed) {
                             val currentY = event.changes[0].position.y
-                            val deltaY = currentY - lastTouchY
+                            val deltaY = currentY - lastY
+                            val now = System.currentTimeMillis()
 
-                            if (minDragThreshold < abs(deltaY) && System.currentTimeMillis() - lastTouchTime < 100) {
+                            if (abs(deltaY) > threshold && now - lastTime < timeWindow) {
                                 isBottomBarVisible = deltaY > 0
-                                @Suppress("AssignedValueIsNeverRead")
-                                lastTouchY = currentY
                             }
-
-                            lastTouchTime = System.currentTimeMillis()
-                            lastTouchY = currentY
+                            lastY = currentY
+                            lastTime = now
                         }
                     }
                 }
@@ -453,7 +449,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
                     ) {
                         val destination =
                             visibleDestinations.elementAtOrNull(page) ?: BottomBarDestination.Home
-                        screenRegistry[destination]?.invoke(navigator) { fabComposable ->
+                        screenRegistry[destination]?.invoke { fabComposable ->
                             fabStates[destination] = fabComposable
                         }
                     }
