@@ -103,10 +103,13 @@ fun UIList(
                 else -> {
                     itemsIndexed(
                         items,
-                        key = { _, item -> item.key?.invoke(item) ?: item }) { index, item ->
-                        val shape = when (index) {
-                            items.lastIndex -> bottomShape
-                            else -> ContinuousRoundedRectangle(4.dp)
+                        key = { _, item ->
+                            item.key?.invoke(item).toString() + items.size.toString()
+                        }) { index, item ->
+                        val shape = remember(index, items.lastIndex) {
+                            if (index == items.lastIndex) bottomShape else ContinuousRoundedRectangle(
+                                4.dp
+                            )
                         }
                         GenericItem(
                             data = item,

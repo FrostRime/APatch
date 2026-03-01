@@ -1,5 +1,3 @@
-import java.text.SimpleDateFormat
-import java.util.Date
 
 plugins {
     alias(libs.plugins.agp.app) apply false
@@ -16,7 +14,6 @@ val androidBuildToolsVersion by extra("36.1.0")
 val androidCompileNdkVersion by extra("29.0.14206865")
 val managerVersionCode by extra(getVersionCode())
 val managerVersionName by extra(getVersionName())
-val managerBuildTime by extra(getBuildTime())
 val branchName by extra(getBranch())
 fun Project.exec(command: String) = providers.exec {
     commandLine(command.split(" "))
@@ -34,10 +31,6 @@ fun getVersionCode(): Int {
     val commitCount = getGitCommitCount()
     val major = 1
     return major * 10000 + commitCount + 200
-}
-
-fun getBuildTime(): String {
-    return SimpleDateFormat("yyyyMMddHHmm").format(Date())
 }
 
 fun getBranch(): String {

@@ -25,7 +25,6 @@ val androidTargetCompatibility: JavaVersion by rootProject.extra
 val managerVersionCode: Int by rootProject.extra
 val managerVersionName: String by rootProject.extra
 val branchName: String by rootProject.extra
-val managerBuildTime: String by rootProject.extra
 val kernelPatchVersion: String by rootProject.extra
 
 val apjniPath: String = "${project.projectDir}/src/apjni"
@@ -87,7 +86,7 @@ android {
         buildConfigField("String", "buildKPV", "\"$kernelPatchVersion\"")
         applicationId = "com.frost.rime"
 
-        base.archivesName = "APatch_${android.defaultConfig.applicationId}_${managerBuildTime}_${managerVersionName}_${branchName}"
+        base.archivesName = "${android.defaultConfig.applicationId}_${managerVersionName}_${branchName}"
     }
 
     compileOptions {
