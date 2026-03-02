@@ -18,7 +18,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -107,9 +106,7 @@ fun LiquidBottomTabs(
         var currentIndex by remember(selectedTabIndex) {
             mutableIntStateOf(selectedTabIndex())
         }
-        var startOffset by remember(selectedTabIndex) {
-            mutableFloatStateOf(0f)
-        }
+
         val dampedDragAnimation = remember(animationScope, tabsCount) {
             DampedDragAnimation(
                 animationScope = animationScope,
@@ -118,14 +115,7 @@ fun LiquidBottomTabs(
                 visibilityThreshold = 0.001f,
                 initialScale = 1f,
                 pressedScale = 78f / 56f,
-                onDragStarted = { position ->
-                    @Suppress("AssignedValueIsNeverRead")
-                    startOffset =
-                        ((position.x - panelOffset - tabWidth / 2) / tabWidth * if (isLtr) 1f else -1f).fastCoerceIn(
-                            0f,
-                            (tabsCount - 1).toFloat()
-                        )
-                },
+                onDragStarted = {},
                 onDragStopped = {
                     val targetIndex = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
                     currentIndex = targetIndex
@@ -137,18 +127,19 @@ fun LiquidBottomTabs(
                         )
                     }
                 },
-                onDrag = { _, _, dragAmount ->
-                    updateValue(
-                        if (startOffset != -1f) startOffset else (targetValue + dragAmount.x / tabWidth * if (isLtr) 1f else -1f)
-                            .fastCoerceIn(0f, (tabsCount - 1).toFloat())
+                onDrag = { change, _, _ ->
+                    val offset = ((change.position.x - panelOffset - tabWidth / 2) / tabWidth * if (isLtr) 1f else -1f).fastCoerceIn(
+                        0f,
+                        (tabsCount - 1).toFloat()
                     )
-                    startOffset = -1f
+                    updateValue(offset)
                     animationScope.launch {
-                        offsetAnimation.snapTo(if (startOffset != -1f) startOffset else offsetAnimation.value + dragAmount.x)
+                        offsetAnimation.snapTo(offset)
                     }
                 }
             )
         }
+
         LaunchedEffect(selectedTabIndex) {
             snapshotFlow { selectedTabIndex() }
                 .collectLatest { index ->
