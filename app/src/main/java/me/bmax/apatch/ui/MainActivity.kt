@@ -647,12 +647,7 @@ fun MainScreen() {
                         )
                 ) {
                     repeat(visibleDestinationsSize) { index ->
-                        LiquidBottomTab({
-                            coroutineScope.launch {
-                                selectedTab = index
-                                pagerState.animateScrollToPage(index)
-                            }
-                        }) {
+                        LiquidBottomTab {
                             val destination = visibleDestinations.elementAtOrNull(index)
                             if (destination != null) {
                                 Icon(
@@ -704,7 +699,6 @@ fun MainScreen() {
                                 animationSpec = tween(250)
                             )
                             LiquidBottomTab(
-                                { isBottomBarVisible = true },
                                 modifier = Modifier
                                     .size(28.dp)
                                     .padding(4.dp)

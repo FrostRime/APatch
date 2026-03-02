@@ -120,6 +120,7 @@ class DampedDragAnimation(
 
     fun animateToValue(value: Float) {
         animationScope.launch {
+            updateVelocity()
             mutatorMutex.mutate {
                 press()
                 val targetValue = value.coerceIn(valueRange)
