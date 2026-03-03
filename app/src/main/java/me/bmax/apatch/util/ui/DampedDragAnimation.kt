@@ -78,6 +78,7 @@ class DampedDragAnimation(
                 release()
             }
         ) { change, dragAmount ->
+            press()
             onDrag(change, size, dragAmount)
         }
     }
