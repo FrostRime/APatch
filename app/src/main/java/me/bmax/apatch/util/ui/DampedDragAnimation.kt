@@ -78,7 +78,11 @@ class DampedDragAnimation(
                 release()
             }
         ) { change, dragAmount ->
-            press()
+            animationScope.launch {
+                launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
+                launch { scaleXAnimation.animateTo(pressedScale, scaleXAnimationSpec) }
+                launch { scaleYAnimation.animateTo(pressedScale, scaleYAnimationSpec) }
+            }
             onDrag(change, size, dragAmount)
         }
     }

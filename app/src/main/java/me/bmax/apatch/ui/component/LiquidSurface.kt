@@ -1,7 +1,5 @@
 package me.bmax.apatch.ui.component
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -35,11 +32,7 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.highlight.HighlightStyle
-import com.kyant.backdrop.shadow.Shadow
 import me.bmax.apatch.util.ui.InteractiveHighlight
-import me.bmax.apatch.util.ui.rememberUISensor
 import kotlin.math.ln
 
 @Composable
@@ -51,7 +44,6 @@ fun LiquidSurface(
     isInteractive: Boolean = true,
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
-    shadowAlpha: Float = 0f,
     tonalElevation: Dp = 0.dp,
     verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
@@ -64,13 +56,6 @@ fun LiquidSurface(
             animationScope = animationScope
         )
     }
-
-    val uiSensor = rememberUISensor()
-
-    val highlightAngle by animateFloatAsState(
-        targetValue = uiSensor?.gravityAngle ?: 45f,
-        animationSpec = tween(400)
-    )
 
     fun ColorScheme.surfaceColorAtElevation(color: Color, elevation: Dp): Color {
         if (elevation == 0.dp) return color
@@ -112,20 +97,8 @@ fun LiquidSurface(
                         blur(8.dp.toPx())
                         lens(12f.dp.toPx(), 24f.dp.toPx())
                     },
-                    highlight = {
-                        val progress = interactiveHighlight.pressProgress
-                        Highlight(
-                            style = HighlightStyle.Default(
-                                angle = highlightAngle,
-                            ),
-                            alpha = progress * 0.45f + 0.25f
-                        )
-                    },
-                    shadow = {
-                        Shadow(
-                            alpha = shadowAlpha
-                        )
-                    },
+                    highlight = null,
+                    shadow = null,
                     onDrawSurface = {
                         if (tint.isSpecified) {
                             drawRect(tint, blendMode = BlendMode.Hue)
