@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 libc = "0.2.182"
-anyhow = { version = "1.0.100", default-features = false }
+anyhow = { version = "1.0.102", default-features = false }
 log = "0.4.29"
 rustix = { version = "1.1.4", default-features = false }

@@ -7,9 +7,9 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-jni = "0.21.1"
-libc = "0.2.180"
-anyhow = "1.0.100"
+jni = "0.22.2"
+libc = "0.2.182"
+anyhow = { version = "1.0.102", default-features = false }
 ap_supercall = { path = "../../../ap_supercall" }
 android_logger = "0.15.1"
 log = "0.4.29"
