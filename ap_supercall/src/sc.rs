@@ -1,7 +1,7 @@
-use std::ffi::{CStr, c_long};
-
 use anyhow::{Result, bail};
+use libc::c_long;
 use libc::syscall;
+use rustix::ffi::CStr;
 
 #[inline]
 pub fn error_handler(ret: c_long) -> Result<c_long> {

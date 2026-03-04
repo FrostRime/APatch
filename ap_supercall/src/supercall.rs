@@ -1,11 +1,7 @@
-use std::{
-    ffi::CStr,
-    sync::atomic::{Ordering, compiler_fence},
-};
-
 use anyhow::{Result, bail};
 use libc::*;
 use log::warn;
+use rustix::ffi::CStr;
 
 use crate::{sc_call, su_profile::SuProfile, supercall_map::*};
 
@@ -90,7 +86,7 @@ impl SuperCall {
 
     #[inline]
     pub fn sc_get_ap_mod_exclude(&self, key: &CStr, uid: uid_t) -> Result<c_long> {
-        let did = (uid as u32) as c_long;
+        let did = uid as c_long;
         let mut exclude: i32 = 0;
 
         let ptr = &mut exclude as *mut i32 as *mut c_void;
@@ -105,10 +101,7 @@ impl SuperCall {
         );
 
         match result {
-            Ok(_) => {
-                compiler_fence(Ordering::SeqCst);
-                Ok(exclude as c_long)
-            }
+            Ok(_) => Ok(exclude as c_long),
             Err(_) => Ok(0),
         }
     }
