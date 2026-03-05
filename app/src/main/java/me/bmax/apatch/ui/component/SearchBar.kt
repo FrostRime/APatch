@@ -2,7 +2,6 @@ package me.bmax.apatch.ui.component
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -61,14 +60,11 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousCapsule
 import kotlinx.coroutines.launch
 import me.bmax.apatch.R
 import me.bmax.apatch.util.ui.InteractiveHighlight
-import me.bmax.apatch.util.ui.rememberUISensor
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -126,12 +122,6 @@ fun SearchAppBar(
 
     val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
 
-    val uiSensor = rememberUISensor()
-
-    val highlightAngle by animateFloatAsState(
-        targetValue = uiSensor?.gravityAngle ?: 45f,
-        animationSpec = tween(400)
-    )
     Box(Modifier.fillMaxWidth()) {
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
@@ -158,14 +148,7 @@ fun SearchAppBar(
                                 blur(8.dp.toPx())
                                 lens(12f.dp.toPx(), 24f.dp.toPx())
                             },
-                            highlight = {
-                                Highlight(
-                                    style = HighlightStyle.Default(
-                                        angle = highlightAngle,
-                                    ),
-                                    alpha = 0.25f
-                                )
-                            },
+                            highlight = null,
                             shadow = {
                                 Shadow(
                                     alpha = 0f

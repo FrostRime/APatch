@@ -26,8 +26,6 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousCapsule
 import me.bmax.apatch.R
 
@@ -45,17 +43,9 @@ fun ModuleUpdateButton(
                 blur(2f.dp.toPx())
                 lens(12f.dp.toPx(), 24f.dp.toPx())
             },
-            highlight = {
-                Highlight(
-                    alpha = 0f
-                )
-            },
+            highlight = null,
             shape = { ContinuousCapsule },
-            shadow = {
-                Shadow(
-                    alpha = 0f
-                )
-            },
+            shadow = null,
             onDrawSurface = {
                 drawRect(colorScheme.secondaryContainer, blendMode = BlendMode.Hue)
                 drawRect(colorScheme.secondaryContainer.copy(alpha = 0.75f))
@@ -84,17 +74,9 @@ fun ModuleSettingsButton(
                 blur(2f.dp.toPx())
                 lens(12f.dp.toPx(), 24f.dp.toPx())
             },
-            highlight = {
-                Highlight(
-                    alpha = 0f
-                )
-            },
+            highlight = null,
             shape = { ContinuousCapsule },
-            shadow = {
-                Shadow(
-                    alpha = 0f
-                )
-            },
+            shadow = null,
             onDrawSurface = {
                 drawRect(colorScheme.secondaryContainer, blendMode = BlendMode.Hue)
                 drawRect(colorScheme.secondaryContainer.copy(alpha = 0.75f))
@@ -124,17 +106,9 @@ fun ModuleRemoveButton(
                 blur(2f.dp.toPx())
                 lens(12f.dp.toPx(), 24f.dp.toPx())
             },
-            highlight = {
-                Highlight(
-                    alpha = 0f
-                )
-            },
+            highlight = null,
             shape = { ContinuousCapsule },
-            shadow = {
-                Shadow(
-                    alpha = 0f
-                )
-            },
+            shadow = null,
             onDrawSurface = {
                 drawRect(colorScheme.secondaryContainer, blendMode = BlendMode.Hue)
                 drawRect(colorScheme.secondaryContainer.copy(alpha = 0.75f))
@@ -163,17 +137,9 @@ fun KPModuleRemoveButton(
                 blur(2f.dp.toPx())
                 lens(12f.dp.toPx(), 24f.dp.toPx())
             },
-            highlight = {
-                Highlight(
-                    alpha = 0f
-                )
-            },
+            highlight = null,
             shape = { ContinuousCapsule },
-            shadow = {
-                Shadow(
-                    alpha = 0f
-                )
-            },
+            shadow = null,
             onDrawSurface = {
                 drawRect(colorScheme.secondaryContainer, blendMode = BlendMode.Hue)
                 drawRect(colorScheme.secondaryContainer.copy(alpha = 0.75f))

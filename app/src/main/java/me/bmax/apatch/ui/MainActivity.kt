@@ -38,8 +38,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -61,7 +61,6 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -84,13 +83,14 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.rememberNavController
 import coil.Coil
 import coil.ImageLoader
+import com.composables.icons.tabler.Tabler
+import com.composables.icons.tabler.outline.Error404
+import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ramcosta.composedestinations.DestinationsNavHost
@@ -117,7 +117,6 @@ import me.bmax.apatch.ui.screen.SettingScreen
 import me.bmax.apatch.ui.screen.SuperUserScreen
 import me.bmax.apatch.ui.theme.APatchTheme
 import me.bmax.apatch.ui.viewmodel.SuperUserViewModel
-import me.bmax.apatch.util.ui.InteractiveHighlight
 import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalSnackbarHost
@@ -135,13 +134,13 @@ typealias FabProvider = (Fab?) -> Unit
 data class Fab(
     val icon: ImageVector,
     val menuItems: List<MenuItem>? = null,
-    val onClick: (() -> Unit)? = null,
+    val onClick: (() -> Unit)? = null
 )
 
 data class MenuItem(
     val icon: ImageVector? = null,
     val title: String? = null,
-    val onClick: () -> Unit,
+    val onClick: () -> Unit
 )
 
 typealias ScreenEntry = @Composable (FabProvider) -> Unit
@@ -149,7 +148,6 @@ typealias ScreenEntry = @Composable (FabProvider) -> Unit
 class MainActivity : AppCompatActivity() {
 
     private var isLoading = true
-
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -264,85 +262,85 @@ fun MainScreen() {
             }.toSet()
         }
     }
+    val visibleDestinationsSize = visibleDestinations.size
 
-    val visibleDestinationsSize = remember(visibleDestinations.size) {
-        visibleDestinations.size
-    }
-
-    val pagerState = rememberPagerState(
-        pageCount = { visibleDestinationsSize }
-    )
+    val pagerState = rememberPagerState(pageCount = { visibleDestinationsSize })
     val coroutineScope = rememberCoroutineScope()
     var isBottomBarVisible by remember { mutableStateOf(true) }
 
     val backdrop = rememberLayerBackdrop()
-
-    var fabExpanded by remember {
-        mutableStateOf(false)
-    }
+    var fabExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        if (SuperUserViewModel.apps.isEmpty()) {
-            SuperUserViewModel().fetchAppList()
-        }
+        if (SuperUserViewModel.apps.isEmpty()) SuperUserViewModel().fetchAppList()
         fabExpanded = false
     }
-
     LaunchedEffect(visibleDestinations) {
-        if (pagerState.currentPage >= visibleDestinationsSize) {
-            pagerState.animateScrollToPage(0)
-        }
+        if (pagerState.currentPage >= visibleDestinationsSize) pagerState.animateScrollToPage(0)
         fabExpanded = false
     }
+    LaunchedEffect(pagerState.isScrollInProgress) { fabExpanded = false }
 
-    LaunchedEffect(pagerState.isScrollInProgress) {
-        fabExpanded = false
-    }
-
+    val barStateProgress by animateFloatAsState(
+        targetValue = if (isBottomBarVisible) 1f else 0f,
+        animationSpec = tween(250)
+    )
     val fabBottomPadding by animateDpAsState(
-        targetValue = if (isBottomBarVisible) {
-            160.dp
-        } else {
-            84.dp
-        }
+        targetValue = if (isBottomBarVisible) 160.dp else 84.dp
     )
-
     val innerPadding by remember(fabBottomPadding) {
-        derivedStateOf {
-            PaddingValues(bottom = fabBottomPadding + 40.dp)
-        }
+        derivedStateOf { PaddingValues(bottom = fabBottomPadding + 40.dp) }
     }
 
-    val fabStates =
-        remember { mutableStateMapOf<BottomBarDestination, Fab?>() }
-
+    val fabStates = remember { mutableStateMapOf<BottomBarDestination, Fab?>() }
     val screenRegistry: Map<BottomBarDestination, ScreenEntry> = mapOf(
-        BottomBarDestination.Home to { setFab ->
-            HomeScreen(setFab)
-        },
-        BottomBarDestination.KModule to { setFab ->
-            KPModuleScreen(setFab)
-        },
-        BottomBarDestination.SuperUser to { setFab ->
-            SuperUserScreen(setFab)
-        },
-        BottomBarDestination.AModule to { setFab ->
-            APModuleScreen(setFab)
-        },
-        BottomBarDestination.Settings to { setFab ->
-            SettingScreen(setFab)
-        }
+        BottomBarDestination.Home to { setFab -> HomeScreen(setFab) },
+        BottomBarDestination.KModule to { setFab -> KPModuleScreen(setFab) },
+        BottomBarDestination.SuperUser to { setFab -> SuperUserScreen(setFab) },
+        BottomBarDestination.AModule to { setFab -> APModuleScreen(setFab) },
+        BottomBarDestination.Settings to { setFab -> SettingScreen(setFab) }
     )
+
+    val currentFab = remember(fabStates, pagerState.currentPage) {
+        derivedStateOf {
+            visibleDestinations.elementAtOrNull(pagerState.currentPage)?.let { fabStates[it] }
+        }
+    }.value
+    var lastNotNullFab by remember { mutableStateOf(Fab(icon = Tabler.Outline.Error404)) }
+    LaunchedEffect(currentFab) { currentFab?.let { lastNotNullFab = it } }
+
+    var selectedTab by remember { mutableIntStateOf(pagerState.currentPage) }
+    var isUserDragging by remember { mutableStateOf(false) }
+    LaunchedEffect(pagerState.interactionSource) {
+        pagerState.interactionSource.interactions.collect { interaction ->
+            if (interaction is DragInteraction.Start) isUserDragging = true
+        }
+    }
+    LaunchedEffect(pagerState.currentPage) {
+        if (isUserDragging) selectedTab = pagerState.currentPage
+    }
+    LaunchedEffect(pagerState) {
+        launch {
+            snapshotFlow { pagerState.isScrollInProgress }.collect { isScrolling ->
+                if (!isScrolling) isUserDragging = false
+            }
+        }
+        launch {
+            snapshotFlow { pagerState.currentPage to pagerState.isScrollInProgress }.collect { (page, isScrolling) ->
+                if (!isScrolling && page != selectedTab) selectedTab = page
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .layerBackdrop(backdrop)
             .pointerInput(Unit) {
                 var lastY = 0f
                 var lastTime = 0L
                 val threshold = 85f
                 val timeWindow = 100L
-
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -351,8 +349,8 @@ fun MainScreen() {
                             val currentY = event.changes[0].position.y
                             val deltaY = currentY - lastY
                             val now = System.currentTimeMillis()
-
                             if (abs(deltaY) > threshold && now - lastTime < timeWindow) {
+                                @Suppress("AssignedValueIsNeverRead")
                                 isBottomBarVisible = deltaY > 0
                             }
                             lastY = currentY
@@ -360,141 +358,24 @@ fun MainScreen() {
                         }
                     }
                 }
-            },
+            }
     ) {
         CompositionLocalProvider(
             LocalWallpaperBackdrop provides rememberLayerBackdrop(),
             LocalInnerPadding provides innerPadding
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .layerBackdrop(backdrop)
-            ) {
-                val widgetOpacity = LocalWidgetOpacity.current
-                LocalWallpaper.current
-                val wallpaperBackdrop = LocalWallpaperBackdrop.current
-                val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
+            val wallpaperBackdrop = LocalWallpaperBackdrop.current
 
-                val animationScope = rememberCoroutineScope()
+            WallpaperBackground(backdrop = wallpaperBackdrop)
 
-                val interactiveHighlight = remember(animationScope) {
-                    InteractiveHighlight(
-                        animationScope = animationScope
-                    )
-                }
+            MainTopAppBar(backdrop = wallpaperBackdrop)
 
-                val wallpaper = LocalWallpaper.current
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        .layerBackdrop(wallpaperBackdrop)
-                ) {
-                    wallpaper.value?.let { wallpaper ->
-                        Image(
-                            modifier = Modifier.fillMaxSize(),
-                            bitmap = wallpaper,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
-
-                TopAppBar(
-                    title = {},
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                    modifier = Modifier
-                        .drawBackdrop(
-                            backdrop = wallpaperBackdrop,
-                            shape = { ContinuousRoundedRectangle(0.dp) },
-                            effects = {
-                                blur(8.dp.toPx())
-                                lens(12f.dp.toPx(), 24f.dp.toPx())
-                            },
-                            highlight = {
-                                Highlight(
-                                    alpha = 0f
-                                )
-                            },
-                            shadow = {
-                                Shadow(
-                                    alpha = 0f
-                                )
-                            },
-                            onDrawSurface = {
-                                drawRect(colorScheme.surface.copy(alpha = 0.45f))
-                            }
-                        )
-                        .then(
-                            Modifier
-                                .then(interactiveHighlight.modifier)
-                                .then(interactiveHighlight.gestureModifier)
-                        )
-                )
-
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(widgetOpacity.value),
-                    key = { page ->
-                        visibleDestinations.elementAtOrNull(page)?.name ?: "unknown"
-                    },
-                    pageSpacing = 0.dp
-                ) { page ->
-                    Box(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        val destination =
-                            visibleDestinations.elementAtOrNull(page) ?: BottomBarDestination.Home
-                        screenRegistry[destination]?.invoke { fabComposable ->
-                            fabStates[destination] = fabComposable
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    val barStateProgress by animateFloatAsState(
-        targetValue = if (isBottomBarVisible) 1f else 0f,
-        animationSpec = tween(250)
-    )
-    var selectedTab by remember {
-        mutableIntStateOf(pagerState.currentPage)
-    }
-    var isUserDragging by remember { mutableStateOf(false) }
-    LaunchedEffect(pagerState.interactionSource) {
-        pagerState.interactionSource.interactions.collect { interaction ->
-            when (interaction) {
-                is DragInteraction.Start -> isUserDragging = true
-            }
-        }
-    }
-    LaunchedEffect(pagerState.currentPage) {
-        if (isUserDragging) {
-            selectedTab = pagerState.currentPage
-        }
-    }
-    LaunchedEffect(pagerState) {
-        launch {
-            snapshotFlow { pagerState.isScrollInProgress }
-                .collect { isScrolling ->
-                    if (!isScrolling) {
-                        isUserDragging = false
-                    }
-                }
-        }
-
-        launch {
-            snapshotFlow { pagerState.currentPage to pagerState.isScrollInProgress }
-                .collect { (page, isScrolling) ->
-                    if (!isScrolling && page != selectedTab) {
-                        selectedTab = page
-                    }
-                }
+            MainPager(
+                pagerState = pagerState,
+                visibleDestinations = visibleDestinations,
+                screenRegistry = screenRegistry,
+                onFabChange = { dest, fab -> fabStates[dest] = fab }
+            )
         }
     }
 
@@ -504,217 +385,284 @@ fun MainScreen() {
             .padding(horizontal = 32.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        var fab: Fab? by remember {
-            mutableStateOf(null)
-        }
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = fabBottomPadding)
+        Box(
+            contentAlignment = Alignment.BottomEnd,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            visibleDestinations.elementAtOrNull(pagerState.currentPage)
-                ?.let {
-                    val currentFab = fabStates[it]
-                    AnimatedVisibility(
-                        visible = currentFab != null,
-                        enter = fadeIn() + scaleIn(),
-                        exit = fadeOut() + scaleOut()
-                    ) {
-                        currentFab?.let { currentFab ->
-                            fab = currentFab
-                        }
-                        fab?.let { fab ->
+            FloatingActionButton(
+                currentFab = currentFab,
+                lastNotNullFab = lastNotNullFab,
+                fabExpanded = fabExpanded,
+                onFabExpandedChange = { fabExpanded = it },
+                backdrop = backdrop,
+                modifier = Modifier.padding(bottom = fabBottomPadding)
+            )
+        }
+
+        BottomNavigationSection(
+            barStateProgress = barStateProgress,
+            selectedTab = selectedTab,
+            onTabSelected = { index ->
+                coroutineScope.launch {
+                    selectedTab = index
+                    pagerState.animateScrollToPage(index)
+                }
+            },
+            visibleDestinations = visibleDestinations,
+            pagerState = pagerState,
+            backdrop = backdrop,
+            onExpandBar = {
+                @Suppress("AssignedValueIsNeverRead")
+                isBottomBarVisible = true
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun WallpaperBackground(backdrop: LayerBackdrop, modifier: Modifier = Modifier) {
+    val wallpaper = LocalWallpaper.current
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .layerBackdrop(backdrop)
+    ) {
+        wallpaper.value?.let { wallpaperBitmap ->
+            Image(
+                bitmap = wallpaperBitmap,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainTopAppBar(backdrop: LayerBackdrop, modifier: Modifier = Modifier) {
+    val colorScheme = MaterialTheme.colorScheme
+    TopAppBar(
+        title = {},
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+        modifier = modifier.drawBackdrop(
+            backdrop = backdrop,
+            shape = { ContinuousRoundedRectangle(0.dp) },
+            effects = {
+                blur(8.dp.toPx())
+                lens(12f.dp.toPx(), 24f.dp.toPx())
+            },
+            highlight = null,
+            shadow = null,
+            onDrawSurface = { drawRect(colorScheme.surface.copy(alpha = 0.45f)) }
+        )
+    )
+}
+
+@Composable
+fun MainPager(
+    pagerState: PagerState,
+    visibleDestinations: Set<BottomBarDestination>,
+    screenRegistry: Map<BottomBarDestination, ScreenEntry>,
+    onFabChange: (BottomBarDestination, Fab?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val widgetOpacity = LocalWidgetOpacity.current
+    HorizontalPager(
+        state = pagerState,
+        modifier = modifier
+            .fillMaxSize()
+            .alpha(widgetOpacity.value),
+        beyondViewportPageCount = 3,
+        key = { page -> visibleDestinations.elementAtOrNull(page)?.name ?: "unknown" },
+        pageSpacing = 0.dp
+    ) { page ->
+        Box(Modifier.fillMaxSize()) {
+            val destination = visibleDestinations.elementAtOrNull(page) ?: BottomBarDestination.Home
+            screenRegistry[destination]?.invoke { fab -> onFabChange(destination, fab) }
+        }
+    }
+}
+
+@Composable
+fun FloatingActionButton(
+    currentFab: Fab?,
+    lastNotNullFab: Fab,
+    fabExpanded: Boolean,
+    onFabExpandedChange: (Boolean) -> Unit,
+    backdrop: LayerBackdrop,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = currentFab != null,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+        modifier = modifier
+    ) {
+        lastNotNullFab.let { fab ->
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
+            ) {
+                if (fab.menuItems != null) {
+                    val alpha by animateFloatAsState(
+                        targetValue = if (fabExpanded) 2f else 0f,
+                        animationSpec = tween(500)
+                    )
+                    if (fabExpanded) {
+                        LiquidButton(
+                            backdrop = backdrop,
+                            tint = MaterialTheme.colorScheme.surface,
+                            modifier = Modifier
+                                .zIndex(1f)
+                                .alpha(min(alpha, 1f)),
+                            shape = ContinuousRoundedRectangle(16.dp),
+                            onClick = {},
+                            shadowAlpha = max(0f, alpha - 1)
+                        ) {
                             Column(
-                                modifier = Modifier.wrapContentWidth(),
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .width(IntrinsicSize.Max),
+                                horizontalAlignment = Alignment.End
                             ) {
-                                if (fab.menuItems != null) {
-                                    val alpha by animateFloatAsState(
-                                        targetValue = if (fabExpanded) 2f else 0f,
-                                        animationSpec = tween(500)
-                                    )
-                                    if (fabExpanded) {
-                                        LiquidButton(
-                                            backdrop = backdrop,
-                                            tint = MaterialTheme.colorScheme.surface,
-                                            modifier = Modifier
-                                                .zIndex(1f)
-                                                .alpha(min(alpha, 1f)),
-                                            shape = ContinuousRoundedRectangle(16.dp),
-                                            onClick = {
-                                            },
-                                            shadowAlpha = max(0f, alpha - 1)
-                                        ) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .padding(horizontal = 16.dp)
-                                                    .padding(vertical = 8.dp)
-                                                    .width(IntrinsicSize.Max),
-                                                horizontalAlignment = Alignment.End
-                                            ) {
-                                                fab.menuItems.forEachIndexed { index, item ->
-                                                    if (index > 0) {
-                                                        HorizontalDivider(
-                                                            color = MaterialTheme.colorScheme.outline.copy(
-                                                                alpha = 0.2f
-                                                            ),
-                                                            thickness = 1.dp,
-                                                        )
-                                                    }
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(vertical = 8.dp)
-                                                            .clickable(
-                                                                interactionSource = null,
-                                                                indication = null,
-                                                                role = Role.Button,
-                                                                onClick = {
-                                                                    item.onClick()
-                                                                    fabExpanded = false
-                                                                }
-                                                            ),
-                                                        horizontalArrangement = Arrangement.End) {
-                                                        item.icon?.let { imageVector ->
-                                                            Icon(
-                                                                imageVector = imageVector,
-                                                                contentDescription = null,
-                                                            )
-                                                        }
-                                                        item.title?.let { text ->
-                                                            Text(
-                                                                text = text
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                LiquidButton(
-                                    backdrop = backdrop,
-                                    modifier = Modifier.size(56.dp),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    shape = ContinuousCapsule,
-                                    onClick = {
-                                        if (fab.menuItems == null) {
-                                            fab.onClick?.let { it1 -> it1() }
-                                        } else {
-                                            fabExpanded = !fabExpanded
-                                        }
-                                    }
-                                ) {
-                                    Crossfade(
-                                        targetState = fab.icon,
-                                        animationSpec = tween(500)
-                                    ) { targetIcon ->
-                                        Icon(
-                                            imageVector = targetIcon,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(28.dp)
+                                fab.menuItems.forEachIndexed { index, item ->
+                                    if (index > 0) {
+                                        HorizontalDivider(
+                                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                            thickness = 1.dp
                                         )
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp)
+                                            .clickable(
+                                                interactionSource = null,
+                                                indication = null,
+                                                role = Role.Button,
+                                                onClick = {
+                                                    item.onClick()
+                                                    onFabExpandedChange(false)
+                                                }
+                                            ),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        item.icon?.let { Icon(it, contentDescription = null) }
+                                        item.title?.let { Text(it) }
                                     }
                                 }
                             }
                         }
                     }
                 }
-        }
-        Box(
-            contentAlignment = Alignment.BottomCenter,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 48.dp * barStateProgress + 8.dp)
-        ) {
-            if (barStateProgress >= 0.25f) {
-                LiquidBottomTabs(
-                    selectedTabIndex = { selectedTab },
-                    onTabSelected = { index ->
-                        coroutineScope.launch {
-                            selectedTab = index
-                            pagerState.animateScrollToPage(index)
-                        }
-                    },
+
+                LiquidButton(
                     backdrop = backdrop,
-                    tabsCount = visibleDestinationsSize,
-                    modifier = Modifier
-                        .scale(barStateProgress * 0.85f + 0.15f)
-                        .graphicsLayer(
-                            alpha = barStateProgress
-                        )
-                ) {
-                    repeat(visibleDestinationsSize) { index ->
-                        LiquidBottomTab {
-                            val destination = visibleDestinations.elementAtOrNull(index)
-                            if (destination != null) {
-                                Icon(
-                                    modifier = Modifier
-                                        .size(28.dp),
-                                    imageVector = destination.iconSelected,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    contentDescription = null,
-                                )
-                                Text(
-                                    text = stringResource(id = destination.label),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier
-                                        .padding(horizontal = 4.dp)
-                                        .basicMarquee(),
-                                )
-                            }
+                    modifier = Modifier.size(56.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                    shape = ContinuousCapsule,
+                    onClick = {
+                        if (fab.menuItems == null) {
+                            fab.onClick?.invoke()
+                        } else {
+                            onFabExpandedChange(!fabExpanded)
                         }
+                    }
+                ) {
+                    Crossfade(targetState = fab.icon, animationSpec = tween(500)) { targetIcon ->
+                        Icon(targetIcon, contentDescription = null, modifier = Modifier.size(28.dp))
                     }
                 }
             }
+        }
+    }
+}
 
-            if (!isBottomBarVisible || barStateProgress < 0.25f) {
-                val selectedColor by rememberUpdatedState(MaterialTheme.colorScheme.onSurface)
-                val unselectedColor by rememberUpdatedState(MaterialTheme.colorScheme.outline)
-                Box(
+@Composable
+fun BottomNavigationSection(
+    barStateProgress: Float,
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    visibleDestinations: Set<BottomBarDestination>,
+    pagerState: PagerState,
+    backdrop: LayerBackdrop,
+    onExpandBar: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        contentAlignment = Alignment.BottomCenter,
+        modifier = modifier.padding(bottom = 48.dp * barStateProgress + 8.dp)
+    ) {
+        if (barStateProgress >= 0.25f) {
+            LiquidBottomTabs(
+                selectedTabIndex = { selectedTab },
+                onTabSelected = onTabSelected,
+                backdrop = backdrop,
+                tabsCount = visibleDestinations.size,
+                modifier = Modifier
+                    .scale(barStateProgress * 0.85f + 0.15f)
+                    .graphicsLayer(alpha = barStateProgress)
+            ) {
+                repeat(visibleDestinations.size) { index ->
+                    val destination = visibleDestinations.elementAtOrNull(index)
+                    LiquidBottomTab {
+                        Icon(
+                            imageVector = destination?.iconSelected ?: return@LiquidBottomTab,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(id = destination.label),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .basicMarquee()
+                        )
+                    }
+                }
+            }
+        }
+
+        if (barStateProgress < 0.25f) {
+            val selectedColor = MaterialTheme.colorScheme.onSurface
+            val unselectedColor = MaterialTheme.colorScheme.outline
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .scale(barStateProgress * 0.85f + 0.15f)
+                    .graphicsLayer(alpha = 1 - barStateProgress)
+            ) {
+                LiquidSurface(
+                    backdrop = backdrop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .scale(barStateProgress * 0.85f + 0.15f)
-                        .graphicsLayer(
-                            alpha = 1 - barStateProgress
-                        )
+                        .padding(4.dp),
+                    shape = ContinuousCapsule,
+                    tint = MaterialTheme.colorScheme.surface,
+                    onClick = onExpandBar
                 ) {
-                    LiquidSurface(
-                        backdrop = backdrop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(4.dp),
-                        shape = ContinuousCapsule,
-                        tint = MaterialTheme.colorScheme.surface,
-                        onClick = {
-                            isBottomBarVisible = true
-                        }
-                    ) {
-                        visibleDestinations.forEachIndexed { index, _ ->
-                            val iconColor by animateColorAsState(
-                                targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
-                                animationSpec = tween(250)
-                            )
-                            LiquidBottomTab(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .padding(4.dp)
-                            ) {
-                                LiquidSurface(
-                                    backdrop = backdrop,
-                                    modifier = Modifier
-                                        .fillMaxSize(),
-                                    shape = ContinuousCapsule,
-                                    onClick = {
-                                        isBottomBarVisible = true
-                                    },
-                                    tint = iconColor
-                                ) {
-                                }
-                            }
+                    visibleDestinations.forEachIndexed { index, _ ->
+                        val iconColor by animateColorAsState(
+                            targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
+                            animationSpec = tween(250)
+                        )
+                        LiquidBottomTab(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .padding(4.dp)
+                        ) {
+                            LiquidSurface(
+                                backdrop = backdrop,
+                                modifier = Modifier.fillMaxSize(),
+                                shape = ContinuousCapsule,
+                                onClick = onExpandBar,
+                                tint = iconColor
+                            ) {}
                         }
                     }
                 }

@@ -2,9 +2,7 @@ package me.bmax.apatch.ui.component
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -47,7 +45,6 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousCapsule
@@ -56,7 +53,6 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import me.bmax.apatch.util.ui.DampedDragAnimation
 import me.bmax.apatch.util.ui.InteractiveHighlight
-import me.bmax.apatch.util.ui.rememberUISensor
 import kotlin.math.abs
 import kotlin.math.sign
 
@@ -73,12 +69,6 @@ fun LiquidBottomTabs(
     val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
     val accentColor = colorScheme.primary
     val containerColor = colorScheme.surface.copy(alpha = 0.45f)
-    val uiSensor = rememberUISensor()
-
-    val highlightAngle by animateFloatAsState(
-        targetValue = uiSensor?.gravityAngle ?: 45f,
-        animationSpec = tween(400)
-    )
 
     val tabsBackdrop = rememberLayerBackdrop()
 
@@ -128,10 +118,11 @@ fun LiquidBottomTabs(
                     }
                 },
                 onDrag = { change, _, _ ->
-                    val offset = ((change.position.x - panelOffset - tabWidth / 2) / tabWidth * if (isLtr) 1f else -1f).fastCoerceIn(
-                        0f,
-                        (tabsCount - 1).toFloat()
-                    )
+                    val offset =
+                        ((change.position.x - panelOffset - tabWidth / 2) / tabWidth * if (isLtr) 1f else -1f).fastCoerceIn(
+                            0f,
+                            (tabsCount - 1).toFloat()
+                        )
                     updateValue(offset)
                     animationScope.launch {
                         offsetAnimation.snapTo(offset)
@@ -187,10 +178,8 @@ fun LiquidBottomTabs(
                     },
                     highlight = {
                         val progress = dampedDragAnimation.pressProgress
-                        Highlight(
-                            style = HighlightStyle.Default(
-                                angle = highlightAngle
-                            ),
+
+                        Highlight.Plain.copy(
                             alpha = progress * 0.2f + 0.6f
                         )
                     },
@@ -237,7 +226,7 @@ fun LiquidBottomTabs(
                         },
                         highlight = {
                             val progress = dampedDragAnimation.pressProgress
-                            Highlight.Default.copy(alpha = progress * 0.8f)
+                            Highlight.Plain.copy(alpha = progress * 0.8f)
                         },
                         onDrawSurface = { drawRect(containerColor) }
                     )
@@ -274,10 +263,7 @@ fun LiquidBottomTabs(
                     },
                     highlight = {
                         val progress = dampedDragAnimation.pressProgress
-                        Highlight(
-                            style = HighlightStyle.Default(
-                                angle = highlightAngle
-                            ),
+                        Highlight.Plain.copy(
                             alpha = progress * 0.8f
                         )
                     },

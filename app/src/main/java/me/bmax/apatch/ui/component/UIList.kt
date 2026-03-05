@@ -46,7 +46,6 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.capsule.ContinuousRoundedRectangle
 import me.bmax.apatch.util.ui.LocalInnerPadding
@@ -90,7 +89,7 @@ fun UIList(
                 .fillMaxSize()
                 .clip(ContinuousRoundedRectangle(16.dp)),
             state = state,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             contentPadding = LocalInnerPadding.current
         ) {
             when {
@@ -163,7 +162,6 @@ private fun GenericItem(
                     effects = {
                         vibrancy()
                         blur(8.dp.toPx())
-                        lens(12f.dp.toPx(), 24f.dp.toPx())
                     },
                     highlight = null,
                     shadow = null,
