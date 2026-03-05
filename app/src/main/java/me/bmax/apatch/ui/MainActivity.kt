@@ -401,7 +401,7 @@ fun MainScreen() {
 
         BottomNavigationSection(
             barStateProgress = barStateProgress,
-            selectedTab = selectedTab,
+            selectedTab = {selectedTab},
             onTabSelected = { index ->
                 coroutineScope.launch {
                     selectedTab = index
@@ -584,7 +584,7 @@ fun FloatingActionButton(
 @Composable
 fun BottomNavigationSection(
     barStateProgress: Float,
-    selectedTab: Int,
+    selectedTab: () -> Int,
     onTabSelected: (Int) -> Unit,
     visibleDestinations: Set<BottomBarDestination>,
     pagerState: PagerState,
@@ -598,7 +598,7 @@ fun BottomNavigationSection(
     ) {
         if (barStateProgress >= 0.25f) {
             LiquidBottomTabs(
-                selectedTabIndex = { selectedTab },
+                selectedTabIndex = selectedTab,
                 onTabSelected = onTabSelected,
                 backdrop = backdrop,
                 tabsCount = visibleDestinations.size,
