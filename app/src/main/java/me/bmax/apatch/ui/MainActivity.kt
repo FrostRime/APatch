@@ -66,6 +66,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -89,8 +90,6 @@ import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
 import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ramcosta.composedestinations.DestinationsNavHost
@@ -105,10 +104,10 @@ import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.launch
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.apApp
+import me.bmax.apatch.ui.component.BackdropSurface
 import me.bmax.apatch.ui.component.LiquidBottomTab
 import me.bmax.apatch.ui.component.LiquidBottomTabs
 import me.bmax.apatch.ui.component.LiquidButton
-import me.bmax.apatch.ui.component.LiquidSurface
 import me.bmax.apatch.ui.screen.APModuleScreen
 import me.bmax.apatch.ui.screen.BottomBarDestination
 import me.bmax.apatch.ui.screen.HomeScreen
@@ -122,6 +121,7 @@ import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.ui.LocalWallpaper
 import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
+import me.bmax.apatch.util.ui.LocalWidgetBlur
 import me.bmax.apatch.util.ui.LocalWidgetOpacity
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
@@ -189,6 +189,14 @@ class MainActivity : AppCompatActivity() {
                     CompositionLocalProvider(
                         LocalNavigator provides navigator,
                         LocalSnackbarHost provides snackBarHostState,
+                        LocalWidgetBlur provides remember {
+                            mutableFloatStateOf(
+                                prefs.getFloat(
+                                    "widget_blur",
+                                    1f
+                                )
+                            )
+                        },
                         LocalWidgetOpacity provides remember {
                             mutableFloatStateOf(
                                 prefs.getFloat(
@@ -365,8 +373,9 @@ fun MainScreen() {
             LocalInnerPadding provides innerPadding
         ) {
             val wallpaperBackdrop = LocalWallpaperBackdrop.current
+            BlurWallpaperBackground(backdrop = wallpaperBackdrop)
 
-            WallpaperBackground(backdrop = wallpaperBackdrop)
+            WallpaperBackground()
 
             MainTopAppBar(backdrop = wallpaperBackdrop)
 
@@ -401,7 +410,7 @@ fun MainScreen() {
 
         BottomNavigationSection(
             barStateProgress = barStateProgress,
-            selectedTab = {selectedTab},
+            selectedTab = { selectedTab },
             onTabSelected = { index ->
                 coroutineScope.launch {
                     selectedTab = index
@@ -421,13 +430,12 @@ fun MainScreen() {
 }
 
 @Composable
-fun WallpaperBackground(backdrop: LayerBackdrop, modifier: Modifier = Modifier) {
+fun WallpaperBackground(modifier: Modifier = Modifier) {
     val wallpaper = LocalWallpaper.current
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .layerBackdrop(backdrop)
     ) {
         wallpaper.value?.let { wallpaperBitmap ->
             Image(
@@ -440,24 +448,47 @@ fun WallpaperBackground(backdrop: LayerBackdrop, modifier: Modifier = Modifier) 
     }
 }
 
+@Composable
+fun BlurWallpaperBackground(backdrop: LayerBackdrop, modifier: Modifier = Modifier) {
+    val wallpaper = LocalWallpaper.current
+    val blur = LocalWidgetBlur.current
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .layerBackdrop(backdrop)
+    ) {
+        wallpaper.value?.let { wallpaperBitmap ->
+            Image(
+                bitmap = wallpaperBitmap,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(32.dp * blur.value)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainTopAppBar(backdrop: LayerBackdrop, modifier: Modifier = Modifier) {
     val colorScheme = MaterialTheme.colorScheme
+    val widgetOpacity = LocalWidgetOpacity.current
     TopAppBar(
         title = {},
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-        modifier = modifier.drawBackdrop(
-            backdrop = backdrop,
-            shape = { ContinuousRoundedRectangle(0.dp) },
-            effects = {
-                blur(8.dp.toPx())
-                lens(12f.dp.toPx(), 24f.dp.toPx())
-            },
-            highlight = null,
-            shadow = null,
-            onDrawSurface = { drawRect(colorScheme.surface.copy(alpha = 0.45f)) }
-        )
+        modifier = modifier
+            .graphicsLayer(alpha = widgetOpacity.value)
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { ContinuousRoundedRectangle(0.dp) },
+                effects = {},
+                highlight = null,
+                shadow = null,
+                onDrawSurface = { drawRect(colorScheme.surface.copy(alpha = 0.45f)) }
+            )
     )
 }
 
@@ -637,7 +668,7 @@ fun BottomNavigationSection(
                     .scale(barStateProgress * 0.85f + 0.15f)
                     .graphicsLayer(alpha = 1 - barStateProgress)
             ) {
-                LiquidSurface(
+                BackdropSurface(
                     backdrop = backdrop,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -656,13 +687,13 @@ fun BottomNavigationSection(
                                 .size(28.dp)
                                 .padding(4.dp)
                         ) {
-                            LiquidSurface(
+                            BackdropSurface(
                                 backdrop = backdrop,
                                 modifier = Modifier.fillMaxSize(),
                                 shape = ContinuousCapsule,
                                 onClick = onExpandBar,
                                 tint = iconColor
-                            ) {}
+                            )
                         }
                     }
                 }

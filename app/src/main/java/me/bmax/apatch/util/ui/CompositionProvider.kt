@@ -31,6 +31,10 @@ val LocalWidgetOpacity = compositionLocalOf<MutableState<Float>> {
     error(missingCompositionLocalError("LocalWidgetOpacity"))
 }
 
+val LocalWidgetBlur = compositionLocalOf<MutableState<Float>> {
+    error(missingCompositionLocalError("LocalWidgetOpacity"))
+}
+
 val LocalWallpaper = compositionLocalOf<MutableState<ImageBitmap?>> {
     error(missingCompositionLocalError("LocalWallpaper"))
 }

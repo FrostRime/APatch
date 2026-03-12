@@ -81,7 +81,7 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.FabProvider
-import me.bmax.apatch.ui.component.LiquidSurface
+import me.bmax.apatch.ui.component.BackdropSurface
 import me.bmax.apatch.ui.component.SwitchItem
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
@@ -200,11 +200,10 @@ fun SettingScreen(setFab: FabProvider) {
             val prefs = APApplication.sharedPreferences
 
             item {
-                LiquidSurface(
+                BackdropSurface(
                     backdrop = wallpaperBackdrop,
                     shape = ContinuousRoundedRectangle(16.dp),
                     isInteractive = false,
-                    onClick = {},
                     tint = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
                     Column {
@@ -249,11 +248,10 @@ fun SettingScreen(setFab: FabProvider) {
 
             // Global mount
             item {
-                LiquidSurface(
+                BackdropSurface(
                     backdrop = wallpaperBackdrop,
                     shape = ContinuousRoundedRectangle(16.dp),
                     isInteractive = false,
-                    onClick = {},
                     tint = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
                     Column {
@@ -316,7 +314,7 @@ fun SettingScreen(setFab: FabProvider) {
             }
 
             item {
-                LiquidSurface(
+                BackdropSurface(
                     backdrop = wallpaperBackdrop,
                     shape = ContinuousRoundedRectangle(16.dp),
                     isInteractive = false,
@@ -417,7 +415,7 @@ fun SettingScreen(setFab: FabProvider) {
             }
 
             item {
-                LiquidSurface(
+                BackdropSurface(
                     backdrop = wallpaperBackdrop,
                     shape = ContinuousRoundedRectangle(16.dp),
                     isInteractive = false,

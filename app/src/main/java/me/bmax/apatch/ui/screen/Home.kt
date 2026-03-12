@@ -36,7 +36,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
@@ -82,9 +81,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.core.content.edit
@@ -95,11 +92,9 @@ import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.AlertTriangle
 import com.composables.icons.tabler.filled.Eye
 import com.composables.icons.tabler.outline.ArrowAutofitDown
+import com.composables.icons.tabler.outline.Background
 import com.composables.icons.tabler.outline.Blur
-import com.composables.icons.tabler.outline.Check
-import com.composables.icons.tabler.outline.Checks
 import com.composables.icons.tabler.outline.CircleDashedX
-import com.composables.icons.tabler.outline.DeviceUnknown
 import com.composables.icons.tabler.outline.Edit
 import com.composables.icons.tabler.outline.EyeOff
 import com.composables.icons.tabler.outline.Forbid2
@@ -128,9 +123,9 @@ import me.bmax.apatch.R
 import me.bmax.apatch.TAG
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.FabProvider
+import me.bmax.apatch.ui.component.BackdropSurface
 import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.component.LiquidSlider
-import me.bmax.apatch.ui.component.LiquidSurface
 import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.WarningCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -145,6 +140,7 @@ import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalWallpaper
 import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
+import me.bmax.apatch.util.ui.LocalWidgetBlur
 import me.bmax.apatch.util.ui.LocalWidgetOpacity
 
 private val managerVersion = getManagerVersion()
@@ -488,6 +484,7 @@ private fun TopBar(
     val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
     val prefs = APApplication.sharedPreferences
     val widgetOpacity = LocalWidgetOpacity.current
+    val widgetBlur = LocalWidgetBlur.current
     val wallpaper = LocalWallpaper.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val ucropLauncher =
@@ -542,34 +539,14 @@ private fun TopBar(
         }
 
     var showWallpaperEdit by remember { mutableStateOf(false) }
+    var showWidgetBlurEdit by remember { mutableStateOf(false) }
     var showWidgetOpacityEdit by remember { mutableStateOf(false) }
     var showDropdownReboot by remember { mutableStateOf(false) }
 
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         title = {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(R.string.app_name))
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = MaterialTheme.colorScheme.tertiary
-                ) {
-                    Text(
-                        text = "BETTER",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 8.sp
-                        ),
-                        modifier = Modifier.padding(
-                            horizontal = 4.dp,
-                            vertical = 0.5.dp
-                        ),
-                        color = MaterialTheme.colorScheme.onTertiary,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+            Text(stringResource(R.string.app_name))
         },
         actions = {
             IconButton(onClick = { showWallpaperEdit = !showWallpaperEdit }) {
@@ -616,13 +593,50 @@ private fun TopBar(
 
                     IconButton(
                         onClick = {
-                            showWidgetOpacityEdit = !showWidgetOpacityEdit
+                            showWidgetBlurEdit = !showWidgetBlurEdit
                         }
                     ) {
                         Icon(
                             imageVector = Tabler.Outline.Blur,
                             contentDescription = null
                         )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            showWidgetOpacityEdit = !showWidgetOpacityEdit
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Tabler.Outline.Background,
+                            contentDescription = null
+                        )
+                    }
+
+                    ProvideMenuShape(MaterialTheme.shapes.medium) {
+                        DropdownMenu(
+                            expanded = showWidgetBlurEdit,
+                            onDismissRequest = { showWidgetBlurEdit = false }
+                        ) {
+                            LiquidSlider(
+                                modifier = Modifier
+                                    .padding(horizontal = 32.dp)
+                                    .width(240.dp)
+                                    .height(38.dp),
+                                backdrop = emptyBackdrop(),
+                                value = {
+                                    widgetBlur.value
+                                },
+                                onValueChange = {
+                                    widgetBlur.value = it
+                                    prefs.edit {
+                                        putFloat("widget_blur", it)
+                                    }
+                                },
+                                valueRange = 0f..1f,
+                                visibilityThreshold = 0.01f
+                            )
+                        }
                     }
 
                     ProvideMenuShape(MaterialTheme.shapes.medium) {
@@ -728,7 +742,7 @@ private fun KStatusCard(
                 .height(intrinsicSize = IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            LiquidSurface(
+            BackdropSurface(
                 backdrop = wallpaperBackdrop,
                 isInteractive = false,
                 onClick = {
@@ -746,46 +760,6 @@ private fun KStatusCard(
                 Box(
                     Modifier.fillMaxSize()
                 ) {
-                    Box(
-                        contentAlignment = Alignment.BottomEnd,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .matchParentSize()
-                    ) {
-                        when (kpState) {
-                            APApplication.State.KERNELPATCH_INSTALLED -> {
-                                Icon(
-                                    Tabler.Outline.Checks,
-                                    modifier = Modifier
-                                        .size(56.dp),
-                                    tint = colorScheme.outline,
-                                    contentDescription = stringResource(R.string.home_working)
-                                )
-                            }
-
-                            APApplication.State.KERNELPATCH_NEED_UPDATE,
-                            APApplication.State.KERNELPATCH_NEED_REBOOT -> {
-                                Icon(
-                                    Tabler.Outline.Check,
-                                    modifier = Modifier
-                                        .size(56.dp),
-                                    tint = colorScheme.outline,
-                                    contentDescription =
-                                        stringResource(R.string.home_need_update)
-                                )
-                            }
-
-                            else -> {
-                                Icon(
-                                    Tabler.Outline.DeviceUnknown,
-                                    modifier = Modifier
-                                        .size(56.dp),
-                                    tint = colorScheme.outline,
-                                    contentDescription = "Unknown"
-                                )
-                            }
-                        }
-                    }
                     Column(
                         Modifier
                             .padding(16.dp)
@@ -825,7 +799,7 @@ private fun KStatusCard(
                             modifier = Modifier
                                 .fillMaxWidth(),
                             style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.SemiBold
                         )
                         if (kpState == APApplication.State.UNKNOWN_STATE || kpState == APApplication.State.KERNELPATCH_NEED_UPDATE ||
                             kpState == APApplication.State.KERNELPATCH_NEED_REBOOT
@@ -854,10 +828,10 @@ private fun KStatusCard(
             Column(
                 Modifier
                     .height(intrinsicSize = IntrinsicSize.Min),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
-                LiquidSurface(
+                BackdropSurface(
                     backdrop = wallpaperBackdrop,
                     tint = colorScheme.tertiaryContainer,
                     shape = ContinuousRoundedRectangle(16.dp),
@@ -874,7 +848,7 @@ private fun KStatusCard(
                     Column(Modifier.padding(16.dp)) {
                         Text(
                             text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.basicMarquee(),
                             fontWeight = FontWeight.SemiBold
                         )
@@ -892,7 +866,7 @@ private fun KStatusCard(
 
                 val managerUnknown =
                     apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
-                LiquidSurface(
+                BackdropSurface(
                     backdrop = wallpaperBackdrop,
                     tint = colorScheme.tertiaryContainer,
                     shape = ContinuousRoundedRectangle(16.dp),
@@ -914,7 +888,7 @@ private fun KStatusCard(
                     ) {
                         Text(
                             text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.basicMarquee(),
                             fontWeight = FontWeight.SemiBold
                         )
@@ -939,12 +913,11 @@ private fun KStatusCard(
 @Composable
 private fun AStatusCard(apState: APApplication.State) {
     val wallpaperBackdrop = LocalWallpaperBackdrop.current
-    LiquidSurface(
+    BackdropSurface(
         backdrop = wallpaperBackdrop,
         tint = MaterialTheme.colorScheme.secondaryContainer,
         shape = ContinuousRoundedRectangle(16.dp),
-        isInteractive = false,
-        onClick = {}
+        isInteractive = false
     ) {
         Column(
             modifier = Modifier
@@ -1102,13 +1075,12 @@ fun WarningCard() {
     var show by rememberSaveable { mutableStateOf(apApp.getBackupWarningState()) }
     if (show) {
         val wallpaperBackdrop = LocalWallpaperBackdrop.current
-        LiquidSurface(
+        BackdropSurface(
             backdrop = wallpaperBackdrop,
             tint = MaterialTheme.colorScheme.error,
             shape = ContinuousRoundedRectangle(16.dp),
             tonalElevation = 6.dp,
-            isInteractive = false,
-            onClick = {}
+            isInteractive = false
         ) {
             Row(
                 modifier = Modifier
@@ -1202,18 +1174,16 @@ private fun getRawSELinuxStatus(): String {
 private fun InfoCard() {
     val wallpaperBackdrop = LocalWallpaperBackdrop.current
     Spacer(Modifier.height(4.dp))
-    LiquidSurface(
+    BackdropSurface(
         backdrop = wallpaperBackdrop,
         shape = ContinuousRoundedRectangle(16.dp),
         isInteractive = false,
-        onClick = {},
         tint = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
             val uname = remember { Os.uname() }
             val selinuxRawStatus = remember { mutableStateOf("") }
@@ -1227,33 +1197,62 @@ private fun InfoCard() {
             @Composable
             fun InfoCardItem(label: String, content: String) {
                 Text(
-                    text = label, style = MaterialTheme.typography.bodyLarge,
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.width(12.dp))
                 Text(
                     text = content,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.outline,
                     fontWeight = FontWeight.Medium
                 )
             }
 
-            InfoCardItem(stringResource(R.string.home_device_info), remember { getDeviceInfo() })
+            @Composable
+            fun divider() {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BackdropSurface(
+                        backdrop = wallpaperBackdrop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp),
+                        tint = MaterialTheme.colorScheme.surfaceContainer,
+                        shape = ContinuousRoundedRectangle(16.dp),
+                    )
+                }
+            }
 
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_kernel), uname.release)
+            InfoCardItem(
+                stringResource(R.string.home_device_info),
+                remember { getDeviceInfo() }
+            )
 
-            Spacer(Modifier.height(16.dp))
+            divider()
+            InfoCardItem(
+                stringResource(R.string.home_kernel),
+                uname.release
+            )
+
+            divider()
             InfoCardItem(
                 stringResource(R.string.home_system_version),
                 remember { getSystemVersion() }
             )
 
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_fingerprint), Build.FINGERPRINT)
+            divider()
+            InfoCardItem(
+                stringResource(R.string.home_fingerprint),
+                Build.FINGERPRINT
+            )
 
-            Spacer(Modifier.height(16.dp))
+            divider()
             InfoCardItem(
                 stringResource(R.string.home_selinux_status),
                 when (selinuxRawStatus.value) {

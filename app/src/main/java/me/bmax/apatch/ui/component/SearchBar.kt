@@ -2,6 +2,7 @@ package me.bmax.apatch.ui.component
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,7 +10,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.outline.ArrowLeft
@@ -172,60 +173,54 @@ fun SearchAppBar(
                     },
                     leadingIcon = {}
                 )
-                AnimatedContent(
-                    modifier = Modifier.matchParentSize(),
-                    targetState = isExpanded,
-                    transitionSpec = {
-                        (fadeIn() + slideInHorizontally { -it / 2 })
-                            .togetherWith(fadeOut() + slideOutHorizontally { -it / 2 })
-                    },
-                    label = "searchBarTextAnimation"
-                ) { expanded ->
-                    Row(
-                        Modifier.matchParentSize(),
-                        verticalAlignment = Alignment.CenterVertically
+                Row(
+                    Modifier.matchParentSize(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AnimatedVisibility(
+                        visible = isExpanded
                     ) {
-                        if (expanded) {
-                            Icon(
-                                imageVector = Tabler.Outline.ArrowLeft,
-                                contentDescription =
-                                    stringResource(R.string.back),
-                                tint = colorScheme.onSurface,
-                                modifier = Modifier
-                                    .padding(horizontal = 8.dp)
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        scope.launch {
-                                            searchBarState.animateToCollapsed()
-                                            if (textFieldState.text.isNotEmpty()) {
-                                                textFieldState.edit {
-                                                    replace(0, length, "")
-                                                }
-                                            } else {
-                                                keyboardController?.hide()
-                                                focusManager.clearFocus()
+                        Icon(
+                            imageVector = Tabler.Outline.ArrowLeft,
+                            contentDescription =
+                                stringResource(R.string.back),
+                            tint = colorScheme.onSurface,
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    scope.launch {
+                                        searchBarState.animateToCollapsed()
+                                        if (textFieldState.text.isNotEmpty()) {
+                                            textFieldState.edit {
+                                                replace(0, length, "")
                                             }
+                                        } else {
+                                            keyboardController?.hide()
+                                            focusManager.clearFocus()
                                         }
                                     }
-                                    .padding(8.dp)
-                            )
-                        }
-                        if (searchText.isEmpty()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = if (expanded) {
-                                    Arrangement.Start
-                                } else {
-                                    Arrangement.Center
                                 }
-                            ) {
-                                Text(
-                                    text = searchBarPlaceHolderText,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                                .padding(8.dp)
+                        )
+                    }
+                    if (searchText.isEmpty()) {
+                        AnimatedContent(
+                            modifier = Modifier.fillMaxWidth(),
+                            targetState = isExpanded,
+                            transitionSpec = {
+                                (fadeIn() + slideInHorizontally { -it / 2 })
+                                    .togetherWith(fadeOut() + slideOutHorizontally { -it / 2 })
+                            },
+                            label = "searchBarTextAnimation"
+                        ) { expanded ->
+                            Text(
+                                text = searchBarPlaceHolderText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = if (expanded) TextAlign.Start else TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }

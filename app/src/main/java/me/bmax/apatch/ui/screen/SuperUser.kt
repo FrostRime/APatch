@@ -95,9 +95,8 @@ fun SuperUserScreen(setFab: FabProvider) {
     var resetSUAppsPhase by remember { mutableIntStateOf(0) }
 
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
-    val kPatchReady = state != APApplication.State.UNKNOWN_STATE
-    val aPatchReady =
-        (state == APApplication.State.ANDROIDPATCH_INSTALLING || state == APApplication.State.ANDROIDPATCH_INSTALLED || state == APApplication.State.ANDROIDPATCH_NEED_UPDATE)
+    val kPatchReady by remember { derivedStateOf { state != APApplication.State.UNKNOWN_STATE } }
+    val aPatchReady by remember(state) { derivedStateOf { (state == APApplication.State.ANDROIDPATCH_INSTALLING || state == APApplication.State.ANDROIDPATCH_INSTALLED || state == APApplication.State.ANDROIDPATCH_NEED_UPDATE) } }
 
     val modeIcons = remember {
         mapOf(
@@ -334,10 +333,12 @@ fun SuperUserScreen(setFab: FabProvider) {
                                     if (checked) {
                                         app.excludeApp = 0
                                         app.config.allow = 1
+                                        app.rootGranted = true
                                         app.excludeApp = 0
                                         app.config.profile.scontext = APApplication.MAGISK_SCONTEXT
                                     } else {
                                         app.config.allow = 0
+                                        app.rootGranted = false
                                     }
                                     app.config.profile.uid = app.uid
                                     PkgConfig.changeConfig(app.config)
@@ -366,9 +367,9 @@ fun SuperUserScreen(setFab: FabProvider) {
                                     viewModel.fetchAppList()
                                 }
                             },
-                            checked = { app.rootGranted() },
+                            checked = { app.rootGranted },
                             actions = { backdrop ->
-                                if (!app.rootGranted()) {
+                                if (!app.rootGranted) {
                                     ListItem(
                                         modifier = Modifier
                                             .padding(horizontal = 16.dp)
@@ -427,7 +428,7 @@ fun SuperUserScreen(setFab: FabProvider) {
             onRefresh = { scope.launch { viewModel.fetchAppList() } },
             isRefreshing = viewModel.isRefreshing,
             items = listItems,
-            backdrop = wallpaperBackdrop,
+            blurWallpaperBackdrop = wallpaperBackdrop,
             state = superUserListState
         )
     }

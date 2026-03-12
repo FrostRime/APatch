@@ -45,7 +45,6 @@ import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.capsule.ContinuousRoundedRectangle
 import me.bmax.apatch.util.ui.LocalInnerPadding
@@ -75,7 +74,7 @@ fun UIList(
     onRefresh: () -> Unit,
     isRefreshing: Boolean,
     modifier: Modifier = Modifier,
-    backdrop: Backdrop,
+    blurWallpaperBackdrop: Backdrop,
     state: LazyListState,
     emptyContent: @Composable () -> Unit = {}
 ) {
@@ -113,7 +112,7 @@ fun UIList(
                         GenericItem(
                             data = item,
                             shape = shape,
-                            backdrop = backdrop,
+                            blurWallpaperBackdrop = blurWallpaperBackdrop,
                             expandedContent = { backdrop ->
                                 item.actions(backdrop)
                             }
@@ -129,7 +128,7 @@ fun UIList(
 private fun GenericItem(
     data: ListItemData,
     shape: Shape,
-    backdrop: Backdrop,
+    blurWallpaperBackdrop: Backdrop,
     expandedContent: @Composable (Backdrop) -> Unit
 ) {
     var showActions by remember { mutableStateOf(false) }
@@ -157,11 +156,10 @@ private fun GenericItem(
             modifier = Modifier
                 .matchParentSize()
                 .drawBackdrop(
-                    backdrop = backdrop,
+                    backdrop = blurWallpaperBackdrop,
                     shape = { shape },
                     effects = {
                         vibrancy()
-                        blur(8.dp.toPx())
                     },
                     highlight = null,
                     shadow = null,
@@ -226,15 +224,13 @@ private fun GenericItem(
                 },
                 trailingContent = {
                     if (data.showCheckBox()) {
-                        Column(verticalArrangement = Arrangement.Center) {
-                            Checkbox(
-                                checked = data.checked(),
-                                enabled = data.onCheckChange != null,
-                                onCheckedChange = {
-                                    data.onCheckChange?.invoke(!data.checked())
-                                }
-                            )
-                        }
+                        Checkbox(
+                            checked = data.checked(),
+                            enabled = data.onCheckChange != null,
+                            onCheckedChange = {
+                                data.onCheckChange?.invoke(!data.checked())
+                            }
+                        )
                     }
                 }
             )

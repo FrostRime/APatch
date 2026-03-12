@@ -433,7 +433,7 @@ fun APModuleScreen(
                         items = listItems,
                         onRefresh = { viewModel.fetchModuleList() },
                         isRefreshing = viewModel.isRefreshing,
-                        backdrop = wallpaperBackdrop,
+                        blurWallpaperBackdrop = wallpaperBackdrop,
                         state = moduleListState
                     )
                 }

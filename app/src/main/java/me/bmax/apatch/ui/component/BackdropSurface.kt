@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui.component
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,17 +30,15 @@ import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import me.bmax.apatch.util.ui.InteractiveHighlight
 import kotlin.math.ln
 
 @Composable
-fun LiquidSurface(
-    onClick: () -> Unit,
+fun BackdropSurface(
+    onClick: (() -> Unit)? = null,
     backdrop: Backdrop,
-    modifier: Modifier = Modifier,
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     shape: Shape,
     isInteractive: Boolean = true,
     tint: Color = Color.Unspecified,
@@ -47,7 +46,7 @@ fun LiquidSurface(
     tonalElevation: Dp = 0.dp,
     verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
-    content: @Composable RowScope.(Backdrop) -> Unit
+    content: (@Composable RowScope.(Backdrop) -> Unit)? = null
 ) {
     val animationScope = rememberCoroutineScope()
 
@@ -94,8 +93,6 @@ fun LiquidSurface(
                     shape = { shape },
                     effects = {
                         vibrancy()
-                        blur(8.dp.toPx())
-                        lens(12f.dp.toPx(), 24f.dp.toPx())
                     },
                     highlight = null,
                     shadow = null,
@@ -109,11 +106,17 @@ fun LiquidSurface(
                         }
                     }
                 )
-                .clickable(
-                    interactionSource = null,
-                    indication = if (isInteractive) null else LocalIndication.current,
-                    role = Role.Button,
-                    onClick = onClick
+                .then(
+                    if (onClick != null) {
+                        Modifier.clickable(
+                            interactionSource = null,
+                            indication = if (isInteractive) null else LocalIndication.current,
+                            role = Role.Button,
+                            onClick = onClick
+                        )
+                    } else {
+                        Modifier
+                    }
                 )
                 .then(
                     if (isInteractive) {
@@ -135,7 +138,7 @@ fun LiquidSurface(
                 LocalContentColor provides contentColor,
                 LocalAbsoluteTonalElevation provides absoluteElevation,
             ) {
-                content(surfaceBackdrop)
+                content?.invoke(this, surfaceBackdrop)
             }
         }
     }

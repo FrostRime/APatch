@@ -368,7 +368,7 @@ fun KPModuleScreen(
             onRefresh = { viewModel.fetchModuleList() },
             isRefreshing = viewModel.isRefreshing,
             items = listItems,
-            backdrop = wallpaperBackdrop,
+            blurWallpaperBackdrop = wallpaperBackdrop,
             state = kpModuleListState
         )
     }

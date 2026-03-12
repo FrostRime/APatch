@@ -6,15 +6,15 @@ use jni::objects::{JClass, JIntArray, JString, JValue};
 use jni::sys::{JNI_ERR, JNI_FALSE, JNI_VERSION_1_6, jboolean, jint, jlong, jobject, jobjectArray};
 use jni::{JNIEnv, JavaVM};
 use libc::{c_char, c_long, uid_t};
-use log::{debug, warn};
+use log::debug;
 use std::ffi::{CStr, CString, c_void};
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::Path;
 use std::ptr::null_mut;
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
-static SC_INSTANCE: OnceLock<SuperCall> = OnceLock::new();
+static SUPERCALL: LazyLock<SuperCall> = LazyLock::new(|| SuperCall::new(0, 13, 0));
 
 const SU_PATH_MAX_LEN: usize = 128;
 
@@ -38,19 +38,6 @@ where
     }
 }
 
-fn init_supercall() -> Result<()> {
-    let sc = SuperCall::new(0, 12, 6);
-    SC_INSTANCE
-        .set(sc)
-        .map_err(|_| anyhow!("SuperCall already initialized!"))
-}
-
-fn get_sc() -> Result<&'static SuperCall> {
-    SC_INSTANCE
-        .get()
-        .ok_or_else(|| anyhow!("SuperCall not initialized!"))
-}
-
 fn jstr_to_cstr(env: &mut JNIEnv, s: &JString) -> Result<CString> {
     let r_str: String = env.get_string(s)?.into();
     Ok(CString::new(r_str)?)
@@ -63,15 +50,14 @@ fn throw_error(env: &mut JNIEnv, e: anyhow::Error) {
 fn native_ready(mut env: JNIEnv, _: JClass, key: JString) -> jboolean {
     jni_wrap(&mut env, JNI_FALSE, |env| {
         ensure_super_key(&key)?;
-        let sc = get_sc()?;
-        Ok(sc.sc_ready(&jstr_to_cstr(env, &key)?) as jboolean)
+        Ok(SUPERCALL.sc_ready(&jstr_to_cstr(env, &key)?) as jboolean)
     })
 }
 
 fn native_kernel_patch_version(mut env: JNIEnv, _: JClass, key: JString) -> jlong {
     jni_wrap(&mut env, -1, |env| {
         ensure_super_key(&key)?;
-        Ok(get_sc()?.sc_kp_ver(&jstr_to_cstr(env, &key)?)? as jlong)
+        Ok(SUPERCALL.sc_kp_ver(&jstr_to_cstr(env, &key)?)? as jlong)
     })
 }
 
@@ -79,7 +65,7 @@ fn native_kernel_patch_build_time<'a>(mut env: JNIEnv<'a>, _: JClass, key: JStri
     jni_wrap(&mut env, JString::default(), |env| {
         ensure_super_key(&key)?;
         let mut buf = [0u8; 4096];
-        get_sc()?.sc_get_build_time(
+        SUPERCALL.sc_get_build_time(
             &jstr_to_cstr(env, &key)?,
             buf.as_mut_ptr() as *mut c_char,
             buf.len(),
@@ -103,7 +89,7 @@ fn native_su(mut env: JNIEnv, _: JClass, key: JString, to_uid: jint, sctx: JStri
 
         let mut profile = SuProfile::new(uid as i32, to_uid, &sctx_str);
 
-        get_sc()?.sc_su(&c_key, &mut profile)
+        SUPERCALL.sc_su(&c_key, &mut profile)
     })
 }
 
@@ -117,7 +103,7 @@ fn native_set_uid_exclude(
     jni_wrap(&mut env, -1, |env| {
         ensure_super_key(&key)?;
         let c_key = jstr_to_cstr(env, &key)?;
-        Ok(get_sc()?.sc_set_ap_mod_exclude(&c_key, uid as i64, exclude)? as jint)
+        Ok(SUPERCALL.sc_set_ap_mod_exclude(&c_key, uid as i64, exclude)? as jint)
     })
 }
 
@@ -125,7 +111,7 @@ fn native_get_uid_exclude(mut env: JNIEnv, _: JClass, key: JString, uid: jint) -
     jni_wrap(&mut env, -1, |env| {
         ensure_super_key(&key)?;
         let key = jstr_to_cstr(env, &key)?;
-        Ok(get_sc()?.sc_get_ap_mod_exclude(&key, uid as uid_t)? as jint)
+        Ok(SUPERCALL.sc_get_ap_mod_exclude(&key, uid as uid_t)? as jint)
     })
 }
 
@@ -136,12 +122,12 @@ fn native_su_uids<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> JIntArray
     jni_wrap(&mut env, default, |env| {
         ensure_super_key(&key)?;
         let key = jstr_to_cstr(env, &key)?;
-        let num = get_sc()?.sc_su_uid_nums(&key)? as i32;
+        let num = SUPERCALL.sc_su_uid_nums(&key)? as i32;
         if num <= 0 {
             return Ok(env.new_int_array(0)?);
         }
         let mut uids = vec![0u32; num as usize];
-        let _ = get_sc()?.sc_su_allow_uids(&key, uids.as_mut_ptr(), num)?;
+        let _ = SUPERCALL.sc_su_allow_uids(&key, uids.as_mut_ptr(), num)?;
         let array = env.new_int_array(num as i32)?;
         let uids: Vec<i32> = uids.iter().map(|&x| x as i32).collect();
         env.set_int_array_region(&array, 0, uids.as_slice())?;
@@ -154,7 +140,7 @@ fn native_su_profile<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString, uid: jint
         ensure_super_key(&key)?;
         let key = jstr_to_cstr(env, &key)?;
         let mut profile = SuProfile::new(uid, 0, "");
-        let _ = get_sc()?.sc_su_uid_profile(&key, uid as u32, &mut profile)?;
+        let _ = SUPERCALL.sc_su_uid_profile(&key, uid as u32, &mut profile)?;
         let cls = env.find_class("me/bmax/apatch/Natives$Profile")?;
 
         let obj = env.new_object(cls, "()V", &[])?;
@@ -203,7 +189,7 @@ fn _load_kernel_patch_module(key: &CStr, module_path: &CStr, args: &CStr) -> Res
         })
         .and_then(|name| CString::new(name).map_err(|_| ()))
         .and_then(|name| _unload_kernel_patch_module(key, &name).map_err(|_| ()));
-    get_sc()?.sc_kpm_load(key, module_path.as_ptr(), args.as_ptr(), null_mut())
+    SUPERCALL.sc_kpm_load(key, module_path.as_ptr(), args.as_ptr(), null_mut())
 }
 
 fn native_control_kernel_patch_module<'a>(
@@ -221,7 +207,7 @@ fn native_control_kernel_patch_module<'a>(
         let mut buf = [c_char::default(); 4096];
         let ptr = buf.as_mut_ptr();
 
-        let rc = get_sc()?.sc_kpm_control(
+        let rc = SUPERCALL.sc_kpm_control(
             &key,
             module_name.as_ptr(),
             args.as_ptr(),
@@ -266,14 +252,14 @@ fn native_unload_kernel_patch_module<'a>(
 }
 
 fn _unload_kernel_patch_module(key: &CStr, module_name: &CStr) -> Result<c_long> {
-    get_sc()?.sc_kpm_unload(key, module_name.as_ptr(), null_mut())
+    SUPERCALL.sc_kpm_unload(key, module_name.as_ptr(), null_mut())
 }
 
 fn native_kernel_patch_module_num<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> jint {
     jni_wrap(&mut env, -1, |env| {
         ensure_super_key(&key)?;
         let key = jstr_to_cstr(env, &key)?;
-        Ok(get_sc()?.sc_kpm_nums(&key)? as jint)
+        Ok(SUPERCALL.sc_kpm_nums(&key)? as jint)
     })
 }
 
@@ -288,7 +274,7 @@ fn native_kernel_patch_module_list<'a>(
         let mut buf = [c_char::default(); 4096];
 
         let ptr = buf.as_mut_ptr();
-        get_sc()?.sc_kpm_list(&key, ptr, buf.len() as i32)?;
+        SUPERCALL.sc_kpm_list(&key, ptr, buf.len() as i32)?;
         let out_msg_str =
             unsafe { std::ffi::CStr::from_ptr(buf.as_ptr().cast()).to_string_lossy() };
         Ok(env.new_string(out_msg_str)?)
@@ -308,7 +294,7 @@ fn native_kernel_patch_module_info<'a>(
         let mut buf = [c_char::default(); 1024];
 
         let ptr = buf.as_mut_ptr();
-        get_sc()?.sc_kpm_info(&key, module_name.as_ptr(), ptr, buf.len() as i32)?;
+        SUPERCALL.sc_kpm_info(&key, module_name.as_ptr(), ptr, buf.len() as i32)?;
         let out_msg_str =
             unsafe { std::ffi::CStr::from_ptr(buf.as_ptr().cast()).to_string_lossy() };
         Ok(env.new_string(out_msg_str)?)
@@ -328,7 +314,7 @@ fn native_grant_su(
         let key = jstr_to_cstr(env, &key)?;
         let sctx_str = jstr_to_cstr(env, &sctx)?;
         let mut profile = SuProfile::new(uid, to_uid, &sctx_str.to_string_lossy());
-        get_sc()?.sc_su_grant_uid(&key, &mut profile)
+        SUPERCALL.sc_su_grant_uid(&key, &mut profile)
     })
 }
 
@@ -336,7 +322,7 @@ fn native_revoke_su(mut env: JNIEnv, _: JClass, key: JString, uid: jint) -> jlon
     jni_wrap(&mut env, -1, |env| {
         ensure_super_key(&key)?;
         let key = jstr_to_cstr(env, &key)?;
-        get_sc()?.sc_su_revoke_uid(&key, uid as u32)
+        SUPERCALL.sc_su_revoke_uid(&key, uid as u32)
     })
 }
 
@@ -346,7 +332,7 @@ fn native_su_path<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString) -> JString<'
         let key = jstr_to_cstr(env, &key)?;
         let mut buf = [c_char::default(); SU_PATH_MAX_LEN];
         let ptr = buf.as_mut_ptr();
-        get_sc()?.sc_su_get_path(&key, ptr, buf.len() as i32)?;
+        SUPERCALL.sc_su_get_path(&key, ptr, buf.len() as i32)?;
         let out_msg_str =
             unsafe { std::ffi::CStr::from_ptr(buf.as_ptr().cast()).to_string_lossy() };
         Ok(env.new_string(out_msg_str)?)
@@ -363,7 +349,7 @@ fn native_reset_su_path<'a>(
         ensure_super_key(&key)?;
         let key = jstr_to_cstr(env, &key)?;
         let path = jstr_to_cstr(env, &su_path_jstr)?;
-        Ok(get_sc()?.sc_su_reset_path(&key, path.as_ptr())? as jboolean)
+        Ok(SUPERCALL.sc_su_reset_path(&key, path.as_ptr())? as jboolean)
     })
 }
 
@@ -431,7 +417,7 @@ fn native_uninstall_kernel_patch_module<'a>(
         let key = jstr_to_cstr(env, &key_jstr)?;
         let module_name = jstr_to_cstr(env, &module_name_jstr)?;
         _uninstall_kernel_patch_module(&name)?;
-        get_sc()?.sc_kpm_unload(&key, module_name.as_ptr(), null_mut())
+        SUPERCALL.sc_kpm_unload(&key, module_name.as_ptr(), null_mut())
     })
 }
 
@@ -610,11 +596,6 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
     android_logger::init_once(
         android_logger::Config::default().with_max_level(log::LevelFilter::Debug),
     );
-
-    if let Err(e) = init_supercall() {
-        warn!("Failed to initialize SuperCall: {}", e);
-        return JNI_ERR;
-    }
 
     debug!("JNI_OnLoad");
 
