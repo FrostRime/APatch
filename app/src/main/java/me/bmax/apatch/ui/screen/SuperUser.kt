@@ -114,14 +114,17 @@ fun SuperUserScreen(setFab: FabProvider) {
     val settingsClearSuperKeyDialog = stringResource(R.string.settings_clear_super_key_dialog)
 
     LaunchedEffect(Unit) {
-        if (kPatchReady && aPatchReady) {
-            whiteListMode = getWhiteListMode()
-        }
         if (viewModel.appList.isEmpty()) {
             viewModel.fetchAppList()
         }
 
         resetSUAppsPhase = 0
+    }
+
+    LaunchedEffect(kPatchReady, aPatchReady) {
+        if (kPatchReady && aPatchReady) {
+            whiteListMode = getWhiteListMode()
+        }
     }
 
     LaunchedEffect(Unit, resetSUAppsPhase, viewModel.showSystemApps) {
