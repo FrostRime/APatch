@@ -1,9 +1,16 @@
 use crate::kpm;
-use crate::supercall::fork_for_result;
+use crate::mpolicy::get_policy_main;
 #[cfg(unix)]
 use crate::supercall::init_load_package_uid_config;
 use crate::supercall::init_load_su_path;
 use crate::supercall::refresh_ap_package_list;
+use anyhow::{Context, Result};
+use libc::SIGPWR;
+use log::{info, warn};
+use notify::event::{ModifyKind, RenameMode};
+use notify::{Config, Event, EventKind, INotifyWatcher, RecursiveMode, Watcher};
+use signal_hook::consts::signal::*;
+use signal_hook::iterator::Signals;
 use std::ffi::CString;
 use std::{
     env, fs,
@@ -15,35 +22,44 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Context, Result};
-use libc::SIGPWR;
-use log::{info, warn};
-use notify::event::{ModifyKind, RenameMode};
-use notify::{Config, Event, EventKind, INotifyWatcher, RecursiveMode, Watcher};
-use signal_hook::consts::signal::*;
-use signal_hook::iterator::Signals;
-
 use crate::{
     assets, defs, lua, metamodule, module, restorecon, supercall,
     utils::{self, switch_cgroups},
 };
 
+pub fn report_kernel(superkey: Option<String>, event: &str, state: &str) -> Result<()> {
+    let args = [
+        superkey.unwrap_or_default(),
+        "event".to_string(),
+        event.to_string(),
+        state.to_string(),
+    ];
+    let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let _result = utils::run_command("truncate", &args_ref, None)?.wait()?;
+    Ok(())
+}
+
 pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     utils::umask(0);
+    report_kernel(superkey.clone(), "post-fs-data", "before")?;
     use std::process::Stdio;
     #[cfg(unix)]
     init_load_package_uid_config(&superkey);
 
     init_load_su_path(&superkey);
 
-    let args = ["/data/adb/ap/bin/magiskpolicy", "--magisk", "--live"];
-    fork_for_result("/data/adb/ap/bin/magiskpolicy", &args, &superkey);
+    let mut sepol = get_policy_main(&["magiskpolicy".to_string(), "--live".to_string()])?;
+    sepol.magisk_rules();
+    sepol
+        .to_file("/sys/fs/selinux/load")
+        .context("Cannot apply policy")?;
 
     info!("Re-privilege apd profile after injecting sepolicy");
     supercall::privilege_apd_profile(&superkey);
 
     if utils::has_magisk() {
         warn!("Magisk detected, skip post-fs-data!");
+        report_kernel(superkey.clone(), "post-fs-data", "after")?;
         return Ok(());
     }
 
@@ -73,10 +89,11 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     let args = [
         "-s",
         "9",
-        "120s",
+        "45s",
         "logcat",
         "-b",
         "main,system,crash",
+        "DrmLibFs:S",
         "-f",
         &logcat_path,
         "logcatcher-bootlog:S",
@@ -187,10 +204,10 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     info!("remove update flag");
     let _ = fs::remove_file(module_update_flag);
 
-    run_stage("post-mount", superkey, true);
+    run_stage("post-mount", superkey.clone(), true);
 
     env::set_current_dir("/").with_context(|| "failed to chdir to /")?;
-
+    report_kernel(superkey, "post-fs-data", "after")?;
     Ok(())
 }
 

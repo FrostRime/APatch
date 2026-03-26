@@ -1,3 +1,10 @@
+use crate::lua;
+use crate::mpolicy::get_policy_main;
+use anyhow::{Context, Result, anyhow, bail, ensure};
+use const_format::concatcp;
+use is_executable::is_executable;
+use java_properties::PropertiesIter;
+use log::{info, warn};
 #[cfg(unix)]
 use std::os::unix::{prelude::PermissionsExt, process::CommandExt};
 use std::{
@@ -9,13 +16,6 @@ use std::{
     process::Command,
     str::FromStr,
 };
-
-use crate::lua;
-use anyhow::{Context, Result, anyhow, bail, ensure};
-use const_format::concatcp;
-use is_executable::is_executable;
-use java_properties::PropertiesIter;
-use log::{info, warn};
 use zip_extensions::zip_extract_file_to_memory;
 
 #[allow(clippy::wildcard_imports)]
@@ -184,12 +184,13 @@ pub fn load_sepolicy_rule() -> Result<()> {
         }
 
         info!("load policy: {}", &rule_file.display());
-        Command::new(assets::MAGISKPOLICY_PATH)
-            .arg("--live")
-            .arg("--apply")
-            .arg(&rule_file)
-            .status()
-            .with_context(|| format!("Failed to exec {}", rule_file.display()))?;
+        let mut _sepol = get_policy_main(&[
+            "magiskpolicy".to_string(),
+            "--live".to_string(),
+            "--apply".to_string(),
+            rule_file.display().to_string(),
+        ])?;
+
         Ok(())
     })?;
 
@@ -278,13 +279,7 @@ pub fn load_system_prop() -> Result<()> {
         }
         info!("load {} system.prop", module.display());
 
-        // resetprop -n --file system.prop
-        Command::new(assets::RESETPROP_PATH)
-            .arg("-n")
-            .arg("--file")
-            .arg(&system_prop)
-            .status()
-            .with_context(|| format!("Failed to exec {}", system_prop.display()))?;
+        crate::resetprop::load_system_prop_file(&system_prop)?;
 
         Ok(())
     })?;
@@ -391,7 +386,10 @@ fn _install_module(zip: &str) -> Result<()> {
     };
 
     // Check if it's safe to install regular module
-    if !is_metamodule && needs_mount && let Err(is_disabled) = metamodule::check_install_safety() {
+    if !is_metamodule
+        && needs_mount
+        && let Err(is_disabled) = metamodule::check_install_safety()
+    {
         println!("\n❌ Installation Blocked");
         println!("┌────────────────────────────────");
         println!("│ A metamodule with custom installer is active");

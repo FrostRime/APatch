@@ -45,6 +45,12 @@ enum Commands {
     /// Start uid listener for synchronizing root list
     UidListener,
 
+    /// Resetprop - Magisk-compatible system property tool
+    Resetprop(crate::resetprop::Args),
+
+    /// MagiskPolicy - SELinux Policy Patch Tool
+    Policy(crate::mpolicy::Args),
+
     /// SELinux policy Patch tool
     Sepolicy {
         #[command(subcommand)]
@@ -125,6 +131,14 @@ pub fn run() -> Result<()> {
     if arg0.ends_with("kp") || arg0.ends_with("su") {
         return crate::apd::root_shell();
     }
+    if arg0.ends_with("resetprop") {
+        let all_args: Vec<String> = std::env::args().collect();
+        crate::resetprop::resetprop_main(&all_args)
+    }
+    if arg0.ends_with("magiskpolicy") {
+        let all_args: Vec<String> = std::env::args().collect();
+        crate::mpolicy::policy_main(&all_args)
+    }
 
     let cli = Args::parse();
 
@@ -164,6 +178,17 @@ pub fn run() -> Result<()> {
         },
 
         Commands::Services => event::on_services(cli.superkey),
+
+        Commands::Resetprop(resetprop_args) => crate::resetprop::execute(&resetprop_args)
+            .inspect_err(|e| {
+                if e.downcast_ref::<crate::resetprop::WaitTimeoutError>()
+                    .is_some()
+                {
+                    std::process::exit(2);
+                }
+        }),
+
+        Commands::Policy(policy_args) => crate::mpolicy::execute(&policy_args),
     };
 
     if let Err(e) = &result {
