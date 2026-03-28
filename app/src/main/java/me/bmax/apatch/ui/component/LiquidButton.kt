@@ -43,9 +43,9 @@ import kotlin.math.tanh
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LiquidButton(
-    onClick: () -> Unit,
-    backdrop: Backdrop,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+    backdrop: Backdrop,
     shape: Shape,
     isInteractive: Boolean = true,
     tint: Color = Color.Unspecified,

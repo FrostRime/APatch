@@ -9,14 +9,18 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,8 +37,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -67,8 +73,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -77,6 +83,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -90,6 +97,9 @@ import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.colorControls
+import com.kyant.backdrop.effects.lens
 import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ramcosta.composedestinations.DestinationsNavHost
@@ -126,8 +136,6 @@ import me.bmax.apatch.util.ui.LocalWidgetOpacity
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
 import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 
 typealias FabProvider = (Fab?) -> Unit
 
@@ -267,14 +275,14 @@ fun MainScreen() {
             BottomBarDestination.entries.filter { destination ->
                 !(destination.kPatchRequired && !kPatchReady) &&
                         !(destination.aPatchRequired && !aPatchReady)
-            }.toSet()
+            }.toList()
         }
     }
     val visibleDestinationsSize = visibleDestinations.size
 
     val pagerState = rememberPagerState(pageCount = { visibleDestinationsSize })
     val coroutineScope = rememberCoroutineScope()
-    var isBottomBarVisible by remember { mutableStateOf(true) }
+    var bottomBarMaximized by remember { mutableStateOf(true) }
 
     val backdrop = rememberLayerBackdrop()
     var fabExpanded by remember { mutableStateOf(false) }
@@ -289,12 +297,9 @@ fun MainScreen() {
     }
     LaunchedEffect(pagerState.isScrollInProgress) { fabExpanded = false }
 
-    val barStateProgress by animateFloatAsState(
-        targetValue = if (isBottomBarVisible) 1f else 0f,
-        animationSpec = tween(250)
-    )
     val fabBottomPadding by animateDpAsState(
-        targetValue = if (isBottomBarVisible) 160.dp else 84.dp
+        targetValue = if (bottomBarMaximized) 160.dp else 84.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
     )
     val innerPadding by remember(fabBottomPadding) {
         derivedStateOf { PaddingValues(bottom = fabBottomPadding + 40.dp) }
@@ -358,8 +363,7 @@ fun MainScreen() {
                             val deltaY = currentY - lastY
                             val now = System.currentTimeMillis()
                             if (abs(deltaY) > threshold && now - lastTime < timeWindow) {
-                                @Suppress("AssignedValueIsNeverRead")
-                                isBottomBarVisible = deltaY > 0
+                                bottomBarMaximized = deltaY > 0
                             }
                             lastY = currentY
                             lastTime = now
@@ -391,12 +395,14 @@ fun MainScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = 8.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Box(
             contentAlignment = Alignment.BottomEnd,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
         ) {
             FloatingActionButton(
                 currentFab = currentFab,
@@ -409,7 +415,7 @@ fun MainScreen() {
         }
 
         BottomNavigationSection(
-            barStateProgress = barStateProgress,
+            bottomBarMaximized = { bottomBarMaximized },
             selectedTab = { selectedTab },
             onTabSelected = { index ->
                 coroutineScope.launch {
@@ -421,8 +427,7 @@ fun MainScreen() {
             pagerState = pagerState,
             backdrop = backdrop,
             onExpandBar = {
-                @Suppress("AssignedValueIsNeverRead")
-                isBottomBarVisible = true
+                bottomBarMaximized = true
             },
             modifier = Modifier.fillMaxWidth()
         )
@@ -495,7 +500,7 @@ fun MainTopAppBar(backdrop: LayerBackdrop, modifier: Modifier = Modifier) {
 @Composable
 fun MainPager(
     pagerState: PagerState,
-    visibleDestinations: Set<BottomBarDestination>,
+    visibleDestinations: List<BottomBarDestination>,
     screenRegistry: Map<BottomBarDestination, ScreenEntry>,
     onFabChange: (BottomBarDestination, Fab?) -> Unit,
     modifier: Modifier = Modifier
@@ -526,6 +531,16 @@ fun FloatingActionButton(
     backdrop: LayerBackdrop,
     modifier: Modifier = Modifier
 ) {
+    val menuAnim by animateFloatAsState(
+        targetValue = if (fabExpanded) 0f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+    )
+    val fabAnim by animateFloatAsState(
+        targetValue = if (currentFab != null) 0f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+    )
+    val menuBackdrop = rememberLayerBackdrop()
+    val fabBackdrop = rememberLayerBackdrop()
     AnimatedVisibility(
         visible = currentFab != null,
         enter = fadeIn() + scaleIn(),
@@ -538,74 +553,128 @@ fun FloatingActionButton(
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
             ) {
                 if (fab.menuItems != null) {
-                    val alpha by animateFloatAsState(
-                        targetValue = if (fabExpanded) 2f else 0f,
-                        animationSpec = tween(500)
-                    )
-                    if (fabExpanded) {
-                        LiquidButton(
-                            backdrop = backdrop,
-                            tint = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier
-                                .zIndex(1f)
-                                .alpha(min(alpha, 1f)),
-                            shape = ContinuousRoundedRectangle(16.dp),
-                            onClick = {},
-                            shadowAlpha = max(0f, alpha - 1)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .width(IntrinsicSize.Max),
-                                horizontalAlignment = Alignment.End
+                    AnimatedVisibility(
+                        visible = fabExpanded,
+                        enter = scaleIn(transformOrigin = TransformOrigin(1f, 1f)) + fadeIn(),
+                        exit = scaleOut(transformOrigin = TransformOrigin(1f, 1f)) + fadeOut(),
+                        modifier = Modifier.zIndex(1f)
+                    ) {
+                        Box {
+                            LiquidButton(
+                                backdrop = backdrop,
+                                tint = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.layerBackdrop(menuBackdrop),
+                                shape = ContinuousRoundedRectangle(16.dp)
                             ) {
-                                fab.menuItems.forEachIndexed { index, item ->
-                                    if (index > 0) {
-                                        HorizontalDivider(
-                                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                            thickness = 1.dp
-                                        )
-                                    }
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 8.dp)
-                                            .clickable(
-                                                interactionSource = null,
-                                                indication = null,
-                                                role = Role.Button,
-                                                onClick = {
-                                                    item.onClick()
-                                                    onFabExpandedChange(false)
-                                                }
-                                            ),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        item.icon?.let { Icon(it, contentDescription = null) }
-                                        item.title?.let { Text(it) }
+                                Column(
+                                    modifier = Modifier
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        .width(IntrinsicSize.Max),
+                                    horizontalAlignment = Alignment.End
+                                ) {
+                                    fab.menuItems.forEachIndexed { index, item ->
+                                        if (index > 0) {
+                                            HorizontalDivider(
+                                                color = MaterialTheme.colorScheme.outline.copy(
+                                                    alpha = 0.2f
+                                                ),
+                                                thickness = 1.dp
+                                            )
+                                        }
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp)
+                                                .clickable(
+                                                    interactionSource = null,
+                                                    indication = null,
+                                                    role = Role.Button,
+                                                    onClick = {
+                                                        item.onClick()
+                                                        onFabExpandedChange(false)
+                                                    }
+                                                ),
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            item.icon?.let {
+                                                Icon(
+                                                    it,
+                                                    contentDescription = null
+                                                )
+                                            }
+                                            item.title?.let { Text(it) }
+                                        }
                                     }
                                 }
                             }
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .drawBackdrop(
+                                        menuBackdrop,
+                                        highlight = null,
+                                        shadow = null,
+                                        shape = { ContinuousRoundedRectangle(16.dp) },
+                                        effects = {
+                                            blur(menuAnim * 32.dp.toPx())
+                                            lens(
+                                                size.minDimension * 0.5f,
+                                                menuAnim * size.minDimension,
+                                                true
+                                            )
+                                            colorControls(brightness = menuAnim)
+                                        })
+                            )
                         }
                     }
                 }
 
-                LiquidButton(
-                    backdrop = backdrop,
-                    modifier = Modifier.size(56.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                    shape = ContinuousCapsule,
-                    onClick = {
-                        if (fab.menuItems == null) {
-                            fab.onClick?.invoke()
-                        } else {
-                            onFabExpandedChange(!fabExpanded)
+                Box {
+                    LiquidButton(
+                        backdrop = backdrop,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .layerBackdrop(fabBackdrop),
+                        tint = MaterialTheme.colorScheme.primary,
+                        shape = ContinuousCapsule,
+                        onClick = {
+                            if (fab.menuItems == null) {
+                                fab.onClick?.invoke()
+                            } else {
+                                onFabExpandedChange(!fabExpanded)
+                            }
+                        }
+                    ) {
+                        Crossfade(
+                            targetState = fab.icon,
+                            animationSpec = tween(500)
+                        ) { targetIcon ->
+                            Icon(
+                                targetIcon,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
                     }
-                ) {
-                    Crossfade(targetState = fab.icon, animationSpec = tween(500)) { targetIcon ->
-                        Icon(targetIcon, contentDescription = null, modifier = Modifier.size(28.dp))
-                    }
+
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .drawBackdrop(
+                                fabBackdrop,
+                                highlight = null,
+                                shadow = null,
+                                shape = { ContinuousCapsule },
+                                effects = {
+                                    blur(fabAnim * 32.dp.toPx())
+                                    lens(
+                                        size.minDimension * 0.5f,
+                                        fabAnim * size.minDimension,
+                                        true
+                                    )
+                                    colorControls(brightness = fabAnim)
+                                })
+                    )
                 }
             }
         }
@@ -614,86 +683,100 @@ fun FloatingActionButton(
 
 @Composable
 fun BottomNavigationSection(
-    barStateProgress: Float,
+    bottomBarMaximized: () -> Boolean,
     selectedTab: () -> Int,
     onTabSelected: (Int) -> Unit,
-    visibleDestinations: Set<BottomBarDestination>,
+    visibleDestinations: List<BottomBarDestination>,
     pagerState: PagerState,
     backdrop: LayerBackdrop,
     onExpandBar: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        contentAlignment = Alignment.BottomCenter,
-        modifier = modifier.padding(bottom = 48.dp * barStateProgress + 8.dp)
-    ) {
-        if (barStateProgress >= 0.25f) {
-            LiquidBottomTabs(
-                selectedTabIndex = selectedTab,
-                onTabSelected = onTabSelected,
-                backdrop = backdrop,
-                tabsCount = visibleDestinations.size,
-                modifier = Modifier
-                    .scale(barStateProgress * 0.85f + 0.15f)
-                    .graphicsLayer(alpha = barStateProgress)
-            ) {
-                repeat(visibleDestinations.size) { index ->
-                    val destination = visibleDestinations.elementAtOrNull(index)
-                    LiquidBottomTab {
-                        Icon(
-                            imageVector = destination?.iconSelected ?: return@LiquidBottomTab,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(id = destination.label),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier
-                                .padding(horizontal = 4.dp)
-                                .basicMarquee()
-                        )
-                    }
-                }
-            }
-        }
-
-        if (barStateProgress < 0.25f) {
-            val selectedColor = MaterialTheme.colorScheme.onSurface
-            val unselectedColor = MaterialTheme.colorScheme.outline
+    val bottomPaddingAnim by animateFloatAsState(
+        targetValue = if (bottomBarMaximized()) 1f else 0f
+    )
+    SharedTransitionLayout {
+        AnimatedContent(targetState = bottomBarMaximized()) { bottomBarMaximized ->
             Box(
-                Modifier
-                    .fillMaxWidth()
-                    .scale(barStateProgress * 0.85f + 0.15f)
-                    .graphicsLayer(alpha = 1 - barStateProgress)
+                contentAlignment = Alignment.BottomCenter,
+                modifier = modifier.padding(bottom = 44.dp * bottomPaddingAnim + 12.dp)
             ) {
-                BackdropSurface(
-                    backdrop = backdrop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(4.dp),
-                    shape = ContinuousCapsule,
-                    tint = MaterialTheme.colorScheme.surface,
-                    onClick = onExpandBar
-                ) {
-                    visibleDestinations.forEachIndexed { index, _ ->
-                        val iconColor by animateColorAsState(
-                            targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
-                            animationSpec = tween(250)
+                if (bottomBarMaximized) {
+                    LiquidBottomTabs(
+                        selectedTabIndex = selectedTab,
+                        onTabSelected = onTabSelected,
+                        backdrop = backdrop,
+                        tabsCount = visibleDestinations.size,
+                        modifier = Modifier.sharedBounds(
+                            sharedContentState = rememberSharedContentState(key = "bottomBar"),
+                            animatedVisibilityScope = this@AnimatedContent,
+                            clipInOverlayDuringTransition = OverlayClip(ContinuousCapsule)
                         )
-                        LiquidBottomTab(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .padding(4.dp)
-                        ) {
-                            BackdropSurface(
-                                backdrop = backdrop,
-                                modifier = Modifier.fillMaxSize(),
-                                shape = ContinuousCapsule,
-                                onClick = onExpandBar,
-                                tint = iconColor
+                    ) {
+                        repeat(visibleDestinations.size) { index ->
+                            val destination = visibleDestinations.elementAtOrNull(index)
+                            LiquidBottomTab(
+                                modifier = Modifier.defaultMinSize(minWidth = 76.dp)
+                            ) {
+                                Icon(
+                                    imageVector = destination?.iconSelected
+                                        ?: return@LiquidBottomTab,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(id = destination.label),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp)
+                                        .basicMarquee(),
+                                    softWrap = false,
+                                    overflow = TextOverflow.Visible
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    val selectedColor = MaterialTheme.colorScheme.onSurface
+                    val unselectedColor = MaterialTheme.colorScheme.outline
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.2f)
+                            .sharedBounds(
+                                sharedContentState = rememberSharedContentState(key = "bottomBar"),
+                                animatedVisibilityScope = this@AnimatedContent,
+                                clipInOverlayDuringTransition = OverlayClip(ContinuousCapsule)
                             )
+                    ) {
+                        BackdropSurface(
+                            backdrop = backdrop,
+                            modifier = Modifier
+                                .height(8.dp)
+                                .padding(2.dp),
+                            shape = ContinuousCapsule,
+                            tint = MaterialTheme.colorScheme.surface,
+                            onClick = onExpandBar
+                        ) {
+                            visibleDestinations.forEachIndexed { index, _ ->
+                                val iconColor by animateColorAsState(
+                                    targetValue = if (pagerState.currentPage == index) selectedColor else unselectedColor,
+                                    animationSpec = tween(250)
+                                )
+                                LiquidBottomTab(
+                                    modifier = Modifier.padding(horizontal = 1.dp)
+                                ) {
+                                    BackdropSurface(
+                                        backdrop = backdrop,
+                                        modifier = Modifier.fillMaxSize(),
+                                        shape = ContinuousCapsule,
+                                        onClick = onExpandBar,
+                                        tint = iconColor
+                                    )
+                                }
+                            }
                         }
                     }
                 }

@@ -127,7 +127,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             if (state != State.ANDROIDPATCH_NOT_INSTALLED && state != State.ANDROIDPATCH_NEED_UPDATE) {
                 return
             }
-            _apStateLiveData.value = State.ANDROIDPATCH_INSTALLING
+            _apStateLiveData.postValue(State.ANDROIDPATCH_INSTALLING)
             val nativeDir = apApp.applicationInfo.nativeLibraryDir
 
             Natives.resetSuPath(LEGACY_SU_PATH)
@@ -145,7 +145,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
                 "ln -s $APD_PATH $MAGISKPOLICY_BIN_PATH",
                 "rm -f $RESETPROP_BIN_PATH",
                 "ln -s $APD_PATH $RESETPROP_BIN_PATH",
-               
+
                 "cp -f ${nativeDir}/libbusybox.so $BUSYBOX_BIN_PATH",
                 "chmod +x $BUSYBOX_BIN_PATH",
                 "cp -f ${nativeDir}/libkptools.so $KPTOOLS_BIN_PATH",

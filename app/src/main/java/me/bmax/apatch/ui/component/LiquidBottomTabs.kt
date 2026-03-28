@@ -1,21 +1,24 @@
 package me.bmax.apatch.ui.component
 
+import android.os.Build
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -28,6 +31,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -72,21 +76,23 @@ fun LiquidBottomTabs(
 
     val tabsBackdrop = rememberLayerBackdrop()
 
-    BoxWithConstraints(
-        modifier,
+    Box(
+        modifier = modifier.width(IntrinsicSize.Min),
         contentAlignment = Alignment.CenterStart
     ) {
         val density = LocalDensity.current
-        val tabWidth = with(density) {
-            (constraints.maxWidth.toFloat() - 8.dp.toPx()) / tabsCount
-        }
+
+        var tabWidthPx by remember { mutableFloatStateOf(0f) }
+        var totalWidthPx by remember { mutableFloatStateOf(0f) }
 
         val offsetAnimation = remember { Animatable(0f) }
         val panelOffset by remember(density) {
             derivedStateOf {
-                val fraction = (offsetAnimation.value / constraints.maxWidth).fastCoerceIn(-1f, 1f)
-                with(density) {
-                    4f.dp.toPx() * fraction.sign * EaseOut.transform(abs(fraction))
+                if (totalWidthPx == 0f) 0f else {
+                    val fraction = (offsetAnimation.value / totalWidthPx).fastCoerceIn(-1f, 1f)
+                    with(density) {
+                        4f.dp.toPx() * fraction.sign * EaseOut.transform(abs(fraction))
+                    }
                 }
             }
         }
@@ -119,7 +125,7 @@ fun LiquidBottomTabs(
                 },
                 onDrag = { change, _, _ ->
                     val offset =
-                        ((change.position.x - panelOffset - tabWidth / 2) / tabWidth * if (isLtr) 1f else -1f).fastCoerceIn(
+                        ((change.position.x - panelOffset - tabWidthPx / 2) / tabWidthPx * if (isLtr) 1f else -1f).fastCoerceIn(
                             0f,
                             (tabsCount - 1).toFloat()
                         )
@@ -146,25 +152,30 @@ fun LiquidBottomTabs(
                 }
         }
 
-        val currentDragValue by rememberUpdatedState(dampedDragAnimation.value)
-        val currentPanelOffset by rememberUpdatedState(panelOffset)
-        val currentTabWidth by rememberUpdatedState(tabWidth)
-
-        val interactiveHighlight = remember(animationScope) {
-            InteractiveHighlight(
-                animationScope = animationScope,
-                position = { size, _ ->
-                    Offset(
-                        if (isLtr) (currentDragValue + 0.5f) * currentTabWidth + currentPanelOffset
-                        else size.width - (currentDragValue + 0.5f) * currentTabWidth + currentPanelOffset,
-                        size.height / 2f
-                    )
-                }
-            )
+        val interactiveHighlight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            remember(animationScope, tabWidthPx) {
+                InteractiveHighlight(
+                    animationScope = animationScope,
+                    position = { size, _ ->
+                        Offset(
+                            if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidthPx + panelOffset
+                            else size.width - (dampedDragAnimation.value + 0.5f) * tabWidthPx + panelOffset,
+                            size.height / 2f
+                        )
+                    }
+                )
+            }
+        } else {
+            null
         }
 
         Row(
             Modifier
+                .onGloballyPositioned { coords ->
+                    totalWidthPx = coords.size.width.toFloat()
+                    val contentWidthPx = totalWidthPx - with(density) { 8.dp.toPx() }
+                    tabWidthPx = contentWidthPx / tabsCount
+                }
                 .graphicsLayer {
                     translationX = panelOffset
                 }
@@ -191,9 +202,8 @@ fun LiquidBottomTabs(
                     },
                     onDrawSurface = { drawRect(containerColor) }
                 )
-                .then(interactiveHighlight.modifier)
+                .then(interactiveHighlight?.modifier ?: Modifier)
                 .height(64.dp)
-                .fillMaxWidth()
                 .padding(4.dp),
             verticalAlignment = Alignment.CenterVertically,
             content = content
@@ -230,11 +240,11 @@ fun LiquidBottomTabs(
                         },
                         onDrawSurface = { drawRect(containerColor) }
                     )
-                    .then(interactiveHighlight.modifier)
+                    .then(interactiveHighlight?.modifier ?: Modifier)
                     .height(56.dp)
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp)
-                    .then(interactiveHighlight.gestureModifier)
+                    .then(interactiveHighlight?.gestureModifier ?: Modifier)
                     .then(dampedDragAnimation.modifier)
                     .graphicsLayer(colorFilter = ColorFilter.tint(accentColor)),
                 verticalAlignment = Alignment.CenterVertically,
@@ -246,9 +256,16 @@ fun LiquidBottomTabs(
             Modifier
                 .padding(horizontal = 4.dp)
                 .graphicsLayer {
-                    translationX =
-                        if (isLtr) dampedDragAnimation.value * tabWidth + panelOffset
-                        else size.width - (dampedDragAnimation.value + 1f) * tabWidth + panelOffset
+                    val contentWidth = totalWidthPx - with(density) { 8.dp.toPx() }
+                    val singleTabWidth = contentWidth / tabsCount
+
+                    val progressOffset = dampedDragAnimation.value * singleTabWidth
+
+                    translationX = if (isLtr) {
+                        progressOffset + panelOffset
+                    } else {
+                        -progressOffset + panelOffset
+                    }
                 }
                 .drawBackdrop(
                     backdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop),
@@ -295,7 +312,7 @@ fun LiquidBottomTabs(
                     }
                 )
                 .height(56.dp)
-                .fillMaxWidth(1f / tabsCount)
+                .width(with(density) { ((totalWidthPx - 8.dp.toPx()) / tabsCount).toDp() })
         )
     }
 }
