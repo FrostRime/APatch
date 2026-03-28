@@ -1,6 +1,7 @@
 package me.bmax.apatch.ui.screen
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.SharedPreferences
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -12,13 +13,21 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,7 +47,6 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -69,10 +77,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -83,8 +93,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.core.content.edit
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.dropUnlessResumed
@@ -105,12 +113,18 @@ import com.composables.icons.tabler.outline.PhotoX
 import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
 import com.kyant.backdrop.backdrops.emptyBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
 import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.materialkolor.ktx.themeColor
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.InstallModeSelectScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.nio.ExtendedFile
 import com.topjohnwu.superuser.nio.FileSystemManager
 import com.yalantis.ucrop.UCrop
@@ -127,6 +141,7 @@ import me.bmax.apatch.ui.component.BackdropSurface
 import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.component.LiquidSlider
 import me.bmax.apatch.ui.component.ProvideMenuShape
+import me.bmax.apatch.ui.component.ScreenShield
 import me.bmax.apatch.ui.component.WarningCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.util.LatestVersionInfo
@@ -145,6 +160,17 @@ import me.bmax.apatch.util.ui.LocalWidgetOpacity
 
 private val managerVersion = getManagerVersion()
 
+enum class DialogType {
+    AuthFailedTipDialog,
+    AuthSuperKey,
+    ResetSUPathDialog
+}
+
+data class DialogData(
+    val sharedContentState: SharedTransitionScope.SharedContentState,
+    val content: @Composable () -> Unit
+)
+
 @Composable
 fun HomeScreen(
     setFab: FabProvider
@@ -152,6 +178,12 @@ fun HomeScreen(
     // State for check_update preference with listener
     var checkUpdate by remember {
         mutableStateOf(APApplication.sharedPreferences.getBoolean("check_update", true))
+    }
+
+    val dialog: MutableState<DialogData?> = remember {
+        mutableStateOf(
+            null
+        )
     }
 
     val navigator = LocalNavigator.current
@@ -174,43 +206,125 @@ fun HomeScreen(
         setFab(null)
     }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopBar(
-                onInstallClick =
-                    dropUnlessResumed {
-                        navigator.navigate(InstallModeSelectScreenDestination)
+    SharedTransitionLayout {
+        Scaffold(
+            containerColor = Color.Transparent,
+            modifier = Modifier
+                .fillMaxSize(),
+            topBar = {
+                TopBar(
+                    onInstallClick =
+                        dropUnlessResumed {
+                            navigator.navigate(InstallModeSelectScreenDestination)
+                        }
+                )
+            }) { innerPadding ->
+            LazyColumn(
+                modifier =
+                    Modifier
+                        .padding(innerPadding)
+                        .padding(horizontal = 12.dp)
+                        .padding(top = 8.dp)
+                        .fillMaxWidth()
+                        .clip(ContinuousRoundedRectangle(16.dp)),
+                contentPadding = LocalInnerPadding.current
+            ) {
+                item(key = "warning_card") {
+                    WarningCard()
+                }
+                item(key = "k_status_card") {
+                    KStatusCard(navigator, dialog)
+                }
+                item(key = "a_status_card") {
+                    AStatusCard()
+                }
+                item(key = "update_card") {
+                    AnimatedVisibility(checkUpdate) {
+                        UpdateCard()
                     }
-            )
-        }) { innerPadding ->
-        LazyColumn(
-            modifier =
-                Modifier
-                    .padding(innerPadding)
-                    .padding(horizontal = 12.dp)
-                    .padding(top = 8.dp)
-                    .fillMaxWidth()
-                    .clip(ContinuousRoundedRectangle(16.dp)),
-            contentPadding = LocalInnerPadding.current
-        ) {
-            item(key = "warning_card") {
-                WarningCard()
-            }
-            item(key = "k_status_card") {
-                KStatusCard(navigator)
-            }
-            item(key = "a_status_card") {
-                AStatusCard()
-            }
-            item(key = "update_card") {
-                AnimatedVisibility(checkUpdate) {
-                    UpdateCard()
+                }
+                item(key = "info_card") {
+                    InfoCard()
                 }
             }
-            item(key = "info_card") {
-                InfoCard()
+        }
+
+        DialogOverlay(dialog)
+    }
+}
+
+@Composable
+fun SharedTransitionScope.DialogOverlay(dialog: MutableState<DialogData?>) {
+    val dialogBackdrop = rememberLayerBackdrop()
+    val dialogAnim by animateFloatAsState(
+        targetValue = if (dialog.value != null) 0f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+    )
+    dialog.value?.let {
+        ScreenShield {
+            AnimatedContent(it) { dialogVal ->
+                Box(
+                    modifier = Modifier
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDrag = { change, _ ->
+                                    change.consume()
+                                }
+                            )
+                        }
+                        .pointerInput(Unit) {
+                            detectTapGestures {
+                                dialog.value = null
+                            }
+                        }
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .wrapContentHeight()
+                            .sharedElement(
+                                sharedContentState = dialogVal.sharedContentState,
+                                animatedVisibilityScope = this@AnimatedContent,
+                            ), contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .layerBackdrop(dialogBackdrop)
+                        ) {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .blur(64.dp * dialogAnim),
+                                shape = ContinuousRoundedRectangle(28.dp),
+                                tonalElevation = AlertDialogDefaults.TonalElevation,
+                                color = AlertDialogDefaults.containerColor,
+                            ) {
+                                dialogVal.content.invoke()
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .drawBackdrop(
+                                    dialogBackdrop,
+                                    highlight = null,
+                                    shadow = null,
+                                    shape = { ContinuousRoundedRectangle(28.dp) },
+                                    effects = {
+                                        vibrancy()
+                                        lens(
+                                            size.minDimension * 0.25f,
+                                            dialogAnim * size.minDimension
+                                        )
+                                    }
+                                )
+                        )
+                    }
+                }
             }
         }
     }
@@ -218,55 +332,40 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AuthFailedTipDialog(showDialog: MutableState<Boolean>) {
-    BasicAlertDialog(
-        onDismissRequest = { showDialog.value = false },
-        properties =
-            DialogProperties(
-                decorFitsSystemWindows = true,
-                usePlatformDefaultWidth = false,
-                securePolicy = SecureFlagPolicy.SecureOff
-            )
+fun SharedTransitionScope.authFailedTipDialog(dialog: MutableState<DialogData?>): DialogData {
+    return DialogData(
+        sharedContentState = rememberSharedContentState(DialogType.AuthFailedTipDialog)
     ) {
-        Surface(
-            modifier = Modifier
-                .width(320.dp)
-                .wrapContentHeight(),
-            shape = MaterialTheme.shapes.extraLarge,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
-            color = AlertDialogDefaults.containerColor,
-        ) {
-            Column(modifier = Modifier.padding(all = 24.dp)) {
-                // Title
-                Box(
-                    Modifier
-                        .padding(bottom = 16.dp)
-                        .align(Alignment.Start)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.home_dialog_auth_fail_title),
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
+        Column(modifier = Modifier.padding(all = 24.dp)) {
+            // Title
+            Box(
+                Modifier
+                    .padding(bottom = 16.dp)
+                    .align(Alignment.Start)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.home_dialog_auth_fail_title),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
 
-                // Content
-                Box(
-                    Modifier
-                        .weight(weight = 1f, fill = false)
-                        .padding(bottom = 24.dp)
-                        .align(Alignment.Start)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.home_dialog_auth_fail_content),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+            // Content
+            Box(
+                Modifier
+                    .weight(weight = 1f, fill = false)
+                    .padding(bottom = 24.dp)
+                    .align(Alignment.Start)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.home_dialog_auth_fail_content),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
-                // Buttons
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { showDialog.value = false }) {
-                        Text(text = stringResource(id = android.R.string.ok))
-                    }
+            // Buttons
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { dialog.value = null }) {
+                    Text(text = stringResource(id = android.R.string.ok))
                 }
             }
         }
@@ -279,110 +378,98 @@ val checkSuperKeyValidation: (superKey: String) -> Boolean = { superKey ->
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AuthSuperKey(showDialog: MutableState<Boolean>, showFailedDialog: MutableState<Boolean>) {
-    var key by remember { mutableStateOf("") }
-    var keyVisible by remember { mutableStateOf(false) }
-    var enable by remember { mutableStateOf(false) }
-
-    BasicAlertDialog(
-        onDismissRequest = { showDialog.value = false },
-        properties =
-            DialogProperties(
-                decorFitsSystemWindows = true,
-                securePolicy = SecureFlagPolicy.SecureOff
-            )
+fun SharedTransitionScope.authSuperKey(
+    dialog: MutableState<DialogData?>,
+    failedDialog: DialogData
+): DialogData {
+    return DialogData(
+        sharedContentState = rememberSharedContentState(DialogType.AuthSuperKey)
     ) {
-        Surface(
-            modifier = Modifier
-                .width(310.dp)
-                .wrapContentHeight(),
-            shape = MaterialTheme.shapes.extraLarge,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
-            color = AlertDialogDefaults.containerColor,
-        ) {
-            Column(modifier = Modifier.padding(all = 24.dp)) {
-                // Title
-                Box(
-                    Modifier
-                        .padding(bottom = 16.dp)
-                        .align(Alignment.Start)
+        var key by remember { mutableStateOf("") }
+        var keyVisible by remember { mutableStateOf(false) }
+        var enable by remember { mutableStateOf(false) }
+        Column(modifier = Modifier.padding(all = 24.dp)) {
+            // Title
+            Box(
+                Modifier
+                    .padding(bottom = 16.dp)
+                    .align(Alignment.Start)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.home_auth_key_title),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
+
+            // Content
+            Box(
+                Modifier
+                    .weight(weight = 1f, fill = false)
+                    .align(Alignment.Start)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.home_auth_key_desc),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            // Content2
+            Box(
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                OutlinedTextField(
+                    value = key,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    onValueChange = {
+                        key = it
+                        enable = checkSuperKeyValidation(key)
+                    },
+                    shape = MaterialTheme.shapes.large,
+                    label = { Text(stringResource(id = R.string.super_key)) },
+                    visualTransformation =
+                        if (keyVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true
+                )
+                IconButton(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .padding(top = 15.dp, end = 5.dp),
+                    onClick = { keyVisible = !keyVisible }
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.home_auth_key_title),
-                        style = MaterialTheme.typography.headlineSmall
+                    Icon(
+                        imageVector =
+                            if (keyVisible) Tabler.Filled.Eye
+                            else Tabler.Outline.EyeOff,
+                        contentDescription = null,
+                        tint = Color.Gray
                     )
                 }
+            }
 
-                // Content
-                Box(
-                    Modifier
-                        .weight(weight = 1f, fill = false)
-                        .align(Alignment.Start)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.home_auth_key_desc),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+            Spacer(modifier = Modifier.height(12.dp))
+            // Buttons
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { dialog.value = null }) {
+                    Text(stringResource(id = android.R.string.cancel))
                 }
 
-                // Content2
-                Box(
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    OutlinedTextField(
-                        value = key,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp),
-                        onValueChange = {
-                            key = it
-                            enable = checkSuperKeyValidation(key)
-                        },
-                        shape = MaterialTheme.shapes.large,
-                        label = { Text(stringResource(id = R.string.super_key)) },
-                        visualTransformation =
-                            if (keyVisible) VisualTransformation.None
-                            else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        singleLine = true
-                    )
-                    IconButton(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .padding(top = 15.dp, end = 5.dp),
-                        onClick = { keyVisible = !keyVisible }
-                    ) {
-                        Icon(
-                            imageVector =
-                                if (keyVisible) Tabler.Filled.Eye
-                                else Tabler.Outline.EyeOff,
-                            contentDescription = null,
-                            tint = Color.Gray
-                        )
-                    }
-                }
+                Button(
+                    onClick = {
+                        dialog.value = null
 
-                Spacer(modifier = Modifier.height(12.dp))
-                // Buttons
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { showDialog.value = false }) {
-                        Text(stringResource(id = android.R.string.cancel))
-                    }
-
-                    Button(
-                        onClick = {
-                            showDialog.value = false
-
-                            val preVerifyKey = Natives.nativeReady(key)
-                            if (preVerifyKey) {
-                                APApplication.superKey = key
-                            } else {
-                                showFailedDialog.value = true
-                            }
-                        },
-                        enabled = enable
-                    ) { Text(stringResource(id = android.R.string.ok)) }
-                }
+                        val preVerifyKey = Natives.nativeReady(key)
+                        if (preVerifyKey) {
+                            APApplication.superKey = key
+                        } else {
+                            dialog.value = failedDialog
+                        }
+                    },
+                    enabled = enable
+                ) { Text(stringResource(id = android.R.string.ok)) }
             }
         }
     }
@@ -395,65 +482,54 @@ fun RebootDropdownItem(@StringRes id: Int, reason: String = "") {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ResetSUPathDialog(showDialog: MutableState<Boolean>) {
-    val context = LocalContext.current
-    var suPath by remember { mutableStateOf(Natives.suPath()) }
-    BasicAlertDialog(
-        onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
-            decorFitsSystemWindows = true
-        )
+fun SharedTransitionScope.resetSUPathDialog(dialog: MutableState<DialogData?>): DialogData {
+    return DialogData(
+        sharedContentState = rememberSharedContentState(DialogType.ResetSUPathDialog)
     ) {
-        Surface(
-            modifier = Modifier
-                .width(310.dp)
-                .wrapContentHeight(),
-            shape = MaterialTheme.shapes.extraLarge,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
-            color = AlertDialogDefaults.containerColor,
-        ) {
-            Column(modifier = Modifier.padding(all = 24.dp)) {
-                Box(
-                    Modifier
-                        .padding(bottom = 16.dp)
-                        .align(Alignment.Start)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.setting_reset_su_path),
-                        style = MaterialTheme.typography.headlineSmall
-                    )
+        val context = LocalContext.current
+        var suPath by remember { mutableStateOf(Natives.suPath()) }
+        Column(modifier = Modifier.padding(all = 24.dp)) {
+            Box(
+                Modifier
+                    .padding(bottom = 16.dp)
+                    .align(Alignment.Start)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.setting_reset_su_path),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
+
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = suPath,
+                onValueChange = {
+                    suPath = it
+                },
+                shape = MaterialTheme.shapes.large,
+                label = { Text(stringResource(id = R.string.setting_reset_su_new_path)) },
+                singleLine = true
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { dialog.value = null }) {
+
+                    Text(stringResource(id = android.R.string.cancel))
                 }
 
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = suPath,
-                    onValueChange = {
-                        suPath = it
-                    },
-                    shape = MaterialTheme.shapes.large,
-                    label = { Text(stringResource(id = R.string.setting_reset_su_new_path)) },
-                    singleLine = true
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = { showDialog.value = false }) {
-
-                        Text(stringResource(id = android.R.string.cancel))
-                    }
-
-                    Button(enabled = suPathChecked(suPath), onClick = {
-                        showDialog.value = false
-                        val success = Natives.resetSuPath(suPath)
-                        Toast.makeText(
-                            context,
-                            if (success) R.string.success else R.string.failure,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        rootShellForResult("echo $suPath > ${APApplication.SU_PATH_FILE}")
-                    }) {
-                        Text(stringResource(id = android.R.string.ok))
-                    }
+                Button(enabled = suPathChecked(suPath), onClick = {
+                    dialog.value = null
+                    val success = Natives.resetSuPath(suPath)
+                    Toast.makeText(
+                        context,
+                        if (success) R.string.success else R.string.failure,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    rootShellForResult("echo $suPath > ${APApplication.SU_PATH_FILE}")
+                }) {
+                    Text(stringResource(id = android.R.string.ok))
                 }
             }
         }
@@ -478,7 +554,7 @@ private fun TopBar(
     val ucropLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             result.data?.let { data ->
-                if (result.resultCode == android.app.Activity.RESULT_OK) {
+                if (result.resultCode == Activity.RESULT_OK) {
                     val output = UCrop.getOutput(data)
                     if (output == null) {
                         wallpaper.value = null
@@ -701,26 +777,17 @@ private fun TopBar(
 }
 
 @Composable
-private fun KStatusCard(
-    navigator: DestinationsNavigator
+private fun SharedTransitionScope.KStatusCard(
+    navigator: DestinationsNavigator,
+    dialog: MutableState<DialogData?>
 ) {
     val kpState by APApplication.kpStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     val apState by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
-    val showAuthFailedTipDialog = remember { mutableStateOf(false) }
+    remember { mutableStateOf(false) }
     val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
-    if (showAuthFailedTipDialog.value) {
-        AuthFailedTipDialog(showDialog = showAuthFailedTipDialog)
-    }
-
-    val showAuthKeyDialog = remember { mutableStateOf(false) }
-    if (showAuthKeyDialog.value) {
-        AuthSuperKey(showDialog = showAuthKeyDialog, showFailedDialog = showAuthFailedTipDialog)
-    }
-
-    val showResetSuPathDialog = remember { mutableStateOf(false) }
-    if (showResetSuPathDialog.value) {
-        ResetSUPathDialog(showResetSuPathDialog)
-    }
+    val authFailedTipDialog = authFailedTipDialog(dialog)
+    val authKeyDialog = authSuperKey(dialog, authFailedTipDialog)
+    val resetSUPathDialog = resetSUPathDialog(dialog)
 
     val wallpaperBackdrop = LocalWallpaperBackdrop.current
     Column {
@@ -819,79 +886,94 @@ private fun KStatusCard(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
-                BackdropSurface(
-                    backdrop = wallpaperBackdrop,
-                    tint = colorScheme.tertiaryContainer,
-                    shape = ContinuousRoundedRectangle(16.dp),
-                    isInteractive = false,
-                    onClick = {
-                        if (!suPatchUnknown) {
-                            showResetSuPathDialog.value = true
+                AnimatedContent(targetState = suPatchUnknown) { suPatchUnknown ->
+                    BackdropSurface(
+                        backdrop = wallpaperBackdrop,
+                        tint = colorScheme.tertiaryContainer,
+                        shape = ContinuousRoundedRectangle(16.dp),
+                        isInteractive = false,
+                        onClick = {
+                            if (!suPatchUnknown) {
+                                dialog.value = resetSUPathDialog
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(intrinsicSize = IntrinsicSize.Min)
+                            .sharedElement(
+                                sharedContentState = resetSUPathDialog.sharedContentState,
+                                animatedVisibilityScope = this@AnimatedContent,
+                            )
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(
+                                text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.basicMarquee(),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .basicMarquee(),
+                                text = stringResource(R.string.home_su_path),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.End
+                            )
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(intrinsicSize = IntrinsicSize.Min)
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.basicMarquee(),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .basicMarquee(),
-                            text = stringResource(R.string.home_su_path),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.End
-                        )
                     }
                 }
 
                 val managerUnknown =
                     apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
-                BackdropSurface(
-                    backdrop = wallpaperBackdrop,
-                    tint = colorScheme.tertiaryContainer,
-                    shape = ContinuousRoundedRectangle(16.dp),
-                    isInteractive = false,
-                    onClick = {
-                        if (managerUnknown) {
-                            showAuthKeyDialog.value = true
-                        } else {
-                            navigator.navigate(AboutScreenDestination)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(intrinsicSize = IntrinsicSize.Min)
-                ) {
-                    Column(
-                        Modifier
-                            .padding(16.dp)
+                AnimatedContent(
+                    targetState = managerUnknown
+                ) { managerUnknown ->
+                    BackdropSurface(
+                        backdrop = wallpaperBackdrop,
+                        tint = colorScheme.tertiaryContainer,
+                        shape = ContinuousRoundedRectangle(16.dp),
+                        isInteractive = false,
+                        onClick = {
+                            if (managerUnknown) {
+                                dialog.value = authKeyDialog
+                            } else {
+                                navigator.navigate(AboutScreenDestination)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(intrinsicSize = IntrinsicSize.Min)
+                            .sharedElement(
+                                sharedContentState = authKeyDialog.sharedContentState,
+                                animatedVisibilityScope = this@AnimatedContent,
+                            )
                     ) {
-                        Text(
-                            text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.basicMarquee(),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .basicMarquee(),
-                            text = stringResource(R.string.home_apatch_version),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.End
-                        )
+                        Column(
+                            Modifier
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.basicMarquee(),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .basicMarquee(),
+                                text = stringResource(R.string.home_apatch_version),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.End
+                            )
+                        }
                     }
                 }
             }
+
         }
         Spacer(Modifier.height(12.dp))
     }
@@ -910,7 +992,7 @@ private fun AStatusCard() {
         kpState != APApplication.State.UNKNOWN_STATE &&
                 apState != APApplication.State.ANDROIDPATCH_INSTALLED
     }
-    AnimatedVisibility(showAStatusCard) {
+    AnimatedVisibility(showAStatusCard, modifier = Modifier.padding(bottom = 8.dp)) {
         BackdropSurface(
             backdrop = wallpaperBackdrop,
             tint = MaterialTheme.colorScheme.secondaryContainer,
@@ -1019,6 +1101,7 @@ private fun AStatusCard() {
                                 backdrop = it,
                                 shape = ContinuousCapsule,
                                 tint = MaterialTheme.colorScheme.primary,
+                                needHighlight = false,
                                 onClick = {
                                     when (apState) {
                                         APApplication.State.ANDROIDPATCH_NOT_INSTALLED,
@@ -1064,8 +1147,6 @@ private fun AStatusCard() {
                 }
             }
         }
-
-        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -1147,7 +1228,7 @@ private fun getDeviceInfo(): String {
 }
 
 private fun getRawSELinuxStatus(): String {
-    val shell = com.topjohnwu.superuser.Shell.Builder.create()
+    val shell = Shell.Builder.create()
         .build("sh")
 
     val list = ArrayList<String>()

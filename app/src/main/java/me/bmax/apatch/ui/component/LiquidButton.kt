@@ -50,6 +50,7 @@ fun LiquidButton(
     isInteractive: Boolean = true,
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
+    needHighlight: Boolean = true,
     shadowAlpha: Float = 1f,
     contentPadding: PaddingValues = ButtonDefaults.contentPaddingFor(ButtonDefaults.MinHeight),
     content: @Composable RowScope.() -> Unit
@@ -109,11 +110,15 @@ fun LiquidButton(
                     null
                 },
                 highlight = {
-                    val progress = interactiveHighlight.pressProgress
-                    Highlight(
-                        style = HighlightStyle.Plain,
-                        alpha = progress * 0.2f + 0.6f
-                    )
+                    if (needHighlight) {
+                        val progress = interactiveHighlight.pressProgress
+                        Highlight(
+                            style = HighlightStyle.Plain,
+                            alpha = progress * 0.2f + 0.6f
+                        )
+                    } else {
+                        null
+                    }
                 },
                 shadow = {
                     Shadow(

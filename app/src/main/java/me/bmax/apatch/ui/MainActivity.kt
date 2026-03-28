@@ -543,8 +543,8 @@ fun FloatingActionButton(
     val fabBackdrop = rememberLayerBackdrop()
     AnimatedVisibility(
         visible = currentFab != null,
-        enter = fadeIn() + scaleIn(),
-        exit = fadeOut() + scaleOut(),
+        enter = scaleIn(transformOrigin = TransformOrigin(1f, 1f)) + fadeIn(),
+        exit = scaleOut(transformOrigin = TransformOrigin(1f, 1f)) + fadeOut(),
         modifier = modifier
     ) {
         lastNotNullFab.let { fab ->

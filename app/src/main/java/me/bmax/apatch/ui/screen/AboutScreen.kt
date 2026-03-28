@@ -1,7 +1,6 @@
 package me.bmax.apatch.ui.screen
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -169,31 +168,10 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = stringResource(id = R.string.app_name),
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            Surface(
-                                shape = ContinuousRoundedRectangle(4.dp),
-                                color = MaterialTheme.colorScheme.tertiary
-                            ) {
-                                Text(
-                                    text = "BETTER",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 8.sp
-                                    ),
-                                    modifier = Modifier.padding(
-                                        horizontal = 4.dp,
-                                        vertical = 0.5.dp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onTertiary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
+                        Text(
+                            text = stringResource(id = R.string.app_name),
+                            style = MaterialTheme.typography.titleLarge
+                        )
                         Text(
                             text = BuildConfig.APPLICATION_ID,
                             style = MaterialTheme.typography.bodyMedium,
@@ -210,7 +188,6 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                             modifier = Modifier.padding(top = 5.dp)
                         )
                         Text(
-
                             text = stringResource(
                                 id = R.string.about_powered_by,
                                 "KernelPatch (${Version.buildKPVString()})"
@@ -222,104 +199,61 @@ fun AboutScreen(navigator: DestinationsNavigator) {
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        Column(
-                            Modifier
-                                .width(intrinsicSize = IntrinsicSize.Max)
-                                .clip(
-                                    ContinuousRoundedRectangle(16.dp)
-                                ),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .clip(
-                                            ContinuousRoundedRectangle(4.dp)
-                                        )
-                                        .clickable {
-                                            uriHandler.openUri("https://github.com/bmax121/APatch")
-                                        }
-                                        .weight(1f)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                        .padding(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Tabler.Outline.BrandGithub,
-                                        contentDescription = null
+                            Icon(
+                                modifier = Modifier
+                                    .clip(
+                                        ContinuousCapsule
                                     )
-                                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                                    Text(text = stringResource(id = R.string.about_github))
-                                }
+                                    .clickable {
+                                        uriHandler.openUri("https://github.com/bmax121/APatch")
+                                    }
+                                    .padding(8.dp),
+                                imageVector = Tabler.Outline.BrandGithub,
+                                contentDescription = null
+                            )
 
-                                Row(
-                                    modifier = Modifier
-                                        .clip(
-                                            ContinuousRoundedRectangle(4.dp)
-                                        )
-                                        .clickable {
-                                            uriHandler.openUri("https://t.me/APatchChannel")
-                                        }
-                                        .weight(1f)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                        .padding(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Tabler.Outline.BrandTelegram,
-                                        contentDescription = null
+                            Icon(
+                                modifier = Modifier
+                                    .clip(
+                                        ContinuousCapsule
                                     )
-                                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                                    Text(text = stringResource(id = R.string.about_telegram_channel))
-                                }
-                            }
+                                    .clickable {
+                                        uriHandler.openUri("https://hosted.weblate.org/engage/APatch")
+                                    }
+                                    .padding(8.dp),
+                                imageVector = Tabler.Outline.BrandWebflow,
+                                contentDescription = null
+                            )
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .clip(
-                                            ContinuousRoundedRectangle(4.dp)
-                                        )
-                                        .clickable {
-                                            uriHandler.openUri("https://hosted.weblate.org/engage/APatch")
-                                        }
-                                        .weight(1f)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                        .padding(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Tabler.Outline.BrandWebflow,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(ButtonDefaults.IconSize)
+                            Icon(
+                                modifier = Modifier
+                                    .clip(
+                                        ContinuousCapsule
                                     )
-                                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                                    Text(text = stringResource(id = R.string.about_weblate))
-                                }
+                                    .clickable {
+                                        uriHandler.openUri("https://t.me/APatchChannel")
+                                    }
+                                    .padding(8.dp),
+                                imageVector = Tabler.Outline.BrandTelegram,
+                                contentDescription = null
+                            )
 
-                                Row(
-                                    modifier = Modifier
-                                        .clip(
-                                            ContinuousRoundedRectangle(4.dp)
-                                        )
-                                        .clickable {
-                                            uriHandler.openUri("https://t.me/apatch_discuss")
-                                        }
-                                        .weight(1f)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                        .padding(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Tabler.Outline.BrandTelegram,
-                                        contentDescription = null
+                            Icon(
+                                modifier = Modifier
+                                    .clip(
+                                        ContinuousCapsule
                                     )
-                                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                                    Text(text = stringResource(id = R.string.about_telegram_group))
-                                }
-                            }
+                                    .clickable {
+                                        uriHandler.openUri("https://t.me/apatch_discuss")
+                                    }
+                                    .padding(8.dp),
+                                imageVector = Tabler.Outline.BrandTelegram,
+                                contentDescription = null
+                            )
                         }
 
                         OutlinedCard(

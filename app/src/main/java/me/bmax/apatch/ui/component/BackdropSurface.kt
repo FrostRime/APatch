@@ -1,6 +1,5 @@
 package me.bmax.apatch.ui.component
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,9 +35,9 @@ import kotlin.math.ln
 
 @Composable
 fun BackdropSurface(
+    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     backdrop: Backdrop,
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     shape: Shape,
     isInteractive: Boolean = true,
     tint: Color = Color.Unspecified,
