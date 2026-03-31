@@ -1,9 +1,12 @@
 use crate::kpm;
-use crate::mpolicy::get_policy_main;
+use crate::sepolicy::get_policy_main;
 #[cfg(unix)]
-use crate::supercall::init_load_package_uid_config;
 use crate::supercall::init_load_su_path;
 use crate::supercall::refresh_ap_package_list;
+use crate::{
+    assets, defs, lua, metamodule, module, restorecon, supercall,
+    utils::{self, switch_cgroups},
+};
 use anyhow::{Context, Result};
 use libc::SIGPWR;
 use log::{info, warn};
@@ -20,11 +23,6 @@ use std::{
     sync::{Arc, Mutex},
     thread,
     time::Duration,
-};
-
-use crate::{
-    assets, defs, lua, metamodule, module, restorecon, supercall,
-    utils::{self, switch_cgroups},
 };
 
 pub fn report_kernel(superkey: Option<String>, event: &str, state: &str) -> Result<()> {
@@ -44,8 +42,6 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     report_kernel(superkey.clone(), "post-fs-data", "before")?;
     use std::process::Stdio;
     #[cfg(unix)]
-    init_load_package_uid_config(&superkey);
-
     init_load_su_path(&superkey);
 
     let mut sepol = get_policy_main(&["magiskpolicy".to_string(), "--live".to_string()])?;

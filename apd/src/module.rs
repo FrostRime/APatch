@@ -1,5 +1,5 @@
 use crate::lua;
-use crate::mpolicy::get_policy_main;
+use crate::sepolicy::get_policy_main;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use const_format::concatcp;
 use is_executable::is_executable;
