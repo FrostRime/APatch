@@ -3,6 +3,10 @@ package me.bmax.apatch.ui.viewmodel
 import android.os.Parcelable
 import androidx.annotation.Keep
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 object KPModel {
@@ -42,8 +46,11 @@ object KPModel {
         var license: String,
         var author: String,
         var description: String,
-        val isInstalled: Boolean = false
-    ) : IExtraInfo
+        val isInstalled: Boolean = false,
+    ) : IExtraInfo {
+        @IgnoredOnParcel
+        var stage by mutableIntStateOf(0)
+    }
 
     @Immutable
     @Parcelize

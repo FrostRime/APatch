@@ -2,7 +2,7 @@
 use anyhow::{Result, anyhow, bail};
 use ap_supercall::su_profile::SuProfile;
 use ap_supercall::supercall::SuperCall;
-use jni::objects::{JClass, JIntArray, JString, JValue};
+use jni::objects::{JClass, JIntArray, JObject, JString, JValue};
 use jni::sys::{JNI_ERR, JNI_FALSE, JNI_VERSION_1_6, jboolean, jint, jlong, jobject, jobjectArray};
 use jni::{JNIEnv, JavaVM};
 use libc::{c_char, c_long, uid_t};
@@ -545,18 +545,24 @@ fn native_installed_kpm_list<'a>(mut env: JNIEnv<'a>, _: JClass) -> jobjectArray
                     let name = String::from_utf8_lossy(&record[0..32])
                         .trim_end_matches('\0')
                         .to_string();
-                    kpm_list.push(env.new_string(name)?);
+                    let stage = &record[33];
+                    kpm_list.push((name, *stage));
                     record.clear();
                 }
             }
         }
-        let array = env.new_object_array(
-            kpm_list.len() as i32,
-            "java/lang/String",
-            JString::default(),
-        )?;
-        for (i, jstr) in kpm_list.iter().enumerate() {
-            env.set_object_array_element(&array, i as i32, jstr)?;
+        let array = env.new_object_array(kpm_list.len() as i32, "kotlin/Pair", JObject::null())?;
+        for (i, (name, stage)) in kpm_list.iter().enumerate() {
+            let int_class = env.find_class("java/lang/Integer")?;
+            let int = env.new_object(int_class, "(I)V", &[JValue::Int(*stage as i32)])?;
+            let pair_class = env.find_class("kotlin/Pair")?;
+            let name = env.new_string(name)?.into();
+            let pair = env.new_object(
+                pair_class,
+                "(Ljava/lang/Object;Ljava/lang/Object;)V",
+                &[JValue::Object(&name), JValue::Object(&int)],
+            )?;
+            env.set_object_array_element(&array, i as i32, pair)?;
         }
         Ok(array.as_raw())
     })
@@ -695,7 +701,7 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
         ),
         method!(
             "nativeInstalledKpmList",
-            "()[Ljava/lang/String;",
+            "()[Lkotlin/Pair;",
             native_installed_kpm_list
         ),
         method!(

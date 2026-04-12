@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
@@ -92,6 +94,8 @@ import java.io.IOException
 
 private const val TAG = "KernelPatchModule"
 private lateinit var targetKPMToControl: KPModel.KPMInfo
+private val installedModuleStages =
+    listOf("boot-completed", "service", "post-fs-data", "post-mount")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -278,12 +282,32 @@ fun KPModuleScreen(
             allModules.map { module ->
                 ListItemData(
                     title = {
-                        Text(
-                            text = module.name,
-                            maxLines = 2,
-                            fontWeight = FontWeight.SemiBold,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Row {
+                            Text(
+                                text = module.name,
+                                maxLines = 2,
+                                fontWeight = FontWeight.SemiBold,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            if (module.isInstalled) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.tertiary
+                                ) {
+                                    Text(
+                                        text = installedModuleStages[module.stage].uppercase(),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        modifier = Modifier.padding(
+                                            horizontal = 4.dp,
+                                            vertical = 1.dp
+                                        ),
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onTertiary
+                                    )
+                                }
+                            }
+                        }
                     },
                     subtitle = { "${module.version}, $moduleAuthor ${module.author}" },
                     description = module.description,

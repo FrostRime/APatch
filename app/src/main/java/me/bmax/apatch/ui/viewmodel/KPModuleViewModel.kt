@@ -69,9 +69,10 @@ class KPModuleViewModel : ViewModel() {
             val start = SystemClock.elapsedRealtime()
 
             kotlin.runCatching {
-                val installedModulesName = Su.exec {
+                val installedModulesList = Su.exec {
                     Natives.installedKpmList()
                 }
+                val installedModulesName = installedModulesList.map { it.first }.toList()
 
                 installedModulesName.forEach { Log.d(TAG, "installed kpm: $it") }
                 var names = Natives.kernelPatchModuleList()
@@ -105,8 +106,10 @@ class KPModuleViewModel : ViewModel() {
 
                 installedModules = emptyList()
 
-                installedModules = installedModulesName.map { name ->
-                    modules.find { it.name == name }
+                installedModules = installedModulesList.map { module ->
+                    val name = module.first
+                    val stage = module.second
+                    val info = modules.find { it.name == name }
                         ?: KPModel.KPMInfo(
                             KPModel.ExtraType.KPM,
                             name,
@@ -118,6 +121,8 @@ class KPModuleViewModel : ViewModel() {
                             "unknown",
                             isInstalled = true
                         )
+                    info.stage = stage
+                    info
                 }
 
                 isNeedRefresh = false

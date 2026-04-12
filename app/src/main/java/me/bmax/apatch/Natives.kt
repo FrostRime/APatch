@@ -72,9 +72,9 @@ object Natives {
     }
 
     @FastNative
-    private external fun nativeInstalledKpmList(): Array<String>
+    private external fun nativeInstalledKpmList(): Array<Pair<String, Int>>
 
-    fun installedKpmList(): Array<String> {
+    fun installedKpmList(): Array<Pair<String, Int>> {
         return nativeInstalledKpmList()
     }
 
