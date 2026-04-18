@@ -89,6 +89,7 @@ import me.bmax.apatch.ui.component.ConfirmResult
 import me.bmax.apatch.ui.component.ListItemData
 import me.bmax.apatch.ui.component.ModuleRemoveButton
 import me.bmax.apatch.ui.component.ModuleSettingsButton
+import me.bmax.apatch.ui.component.ModuleUndoRemoveButton
 import me.bmax.apatch.ui.component.ModuleUpdateButton
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UIList
@@ -105,6 +106,7 @@ import me.bmax.apatch.util.ui.LocalInnerPadding
 import me.bmax.apatch.util.ui.LocalNavigator
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.ui.LocalWallpaperBackdrop
+import me.bmax.apatch.util.undoRemoveModule
 import me.bmax.apatch.util.uninstallModule
 import okhttp3.Request
 
@@ -155,7 +157,9 @@ fun APModuleScreen(
     val failedEnable = stringResource(R.string.apm_failed_to_enable)
     val failedDisable = stringResource(R.string.apm_failed_to_disable)
     val failedUninstall = stringResource(R.string.apm_uninstall_failed)
+    val failedUndoUninstall = stringResource(R.string.apm_module_undo_uninstall_failed)
     val successUninstall = stringResource(R.string.apm_uninstall_success)
+    val successUndoUninstall = stringResource(R.string.apm_module_undo_uninstall_success)
     val reboot = stringResource(id = R.string.reboot)
     val rebootToApply = stringResource(id = R.string.apm_reboot_to_apply)
     val moduleStr = stringResource(id = R.string.apm)
@@ -296,6 +300,34 @@ fun APModuleScreen(
         }
     }
 
+    suspend fun onUndoModuleUninstall(module: APModuleViewModel.ModuleInfo) {
+        val success = loadingDialog.withLoading {
+            withContext(Dispatchers.IO) {
+                undoRemoveModule(module.id)
+            }
+        }
+
+        if (success) {
+            viewModel.fetchModuleList()
+        }
+        val message = if (success) {
+            successUndoUninstall.format(module.name)
+        } else {
+            failedUndoUninstall.format(module.name)
+        }
+        val actionLabel = if (success) {
+            reboot
+        } else {
+            null
+        }
+        val result = snackBarHost.showSnackbar(
+            message = message, actionLabel = actionLabel, duration = SnackbarDuration.Long
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            reboot()
+        }
+    }
+
     val moduleListState = rememberLazyListState()
 
     val listItems by remember {
@@ -357,6 +389,9 @@ fun APModuleScreen(
                             },
                             onUninstall = {
                                 scope.launch { onModuleUninstall(module) }
+                            },
+                            onUndoUninstall = {
+                                scope.launch { onUndoModuleUninstall(module) }
                             },
                             onSettings = {
                                 val id = module.id
@@ -519,6 +554,7 @@ private fun ModuleActionButtons(
     navigator: DestinationsNavigator,
     onUpdate: (APModuleViewModel.ModuleInfo) -> Unit,
     onUninstall: (APModuleViewModel.ModuleInfo) -> Unit,
+    onUndoUninstall: (APModuleViewModel.ModuleInfo) -> Unit,
     onSettings: (APModuleViewModel.ModuleInfo) -> Unit,
     viewModel: APModuleViewModel
 ) {
@@ -573,10 +609,14 @@ private fun ModuleActionButtons(
 
             Spacer(modifier = Modifier.width(12.dp))
         }
-        ModuleRemoveButton(
-            backdrop = backdrop,
-            enabled = !module.remove,
-            onClick = { onUninstall(module) })
+        if (!module.remove) {
+            ModuleRemoveButton(
+                backdrop = backdrop,
+                enabled = true,
+                onClick = { onUninstall(module) })
+        } else {
+            ModuleUndoRemoveButton(backdrop = backdrop, enabled = module.remove, onClick = { onUndoUninstall(module) })
+        }
     }
 }
 

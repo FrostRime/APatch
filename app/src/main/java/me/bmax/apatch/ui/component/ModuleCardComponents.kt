@@ -21,6 +21,7 @@ import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.filled.ArrowAutofitDown
 import com.composables.icons.tabler.filled.Settings
 import com.composables.icons.tabler.filled.Trash
+import com.composables.icons.tabler.outline.ArrowBackUp
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
@@ -119,6 +120,37 @@ fun ModuleRemoveButton(
             modifier = Modifier.size(20.dp),
             imageVector = Tabler.Filled.Trash,
             contentDescription = stringResource(id = R.string.apm_remove)
+        )
+    }
+}
+
+@Composable
+fun ModuleUndoRemoveButton(
+    backdrop: Backdrop,
+    enabled: Boolean, onClick: () -> Unit
+) {
+    val colorScheme by rememberUpdatedState(MaterialTheme.colorScheme)
+    FilledTonalButton(
+        modifier = Modifier.drawBackdrop(
+            backdrop = backdrop,
+            effects = {
+                vibrancy()
+                blur(2f.dp.toPx())
+                lens(12f.dp.toPx(), 24f.dp.toPx())
+            },
+            highlight = null,
+            shape = { ContinuousCapsule },
+            shadow = null,
+            onDrawSurface = {
+                drawRect(colorScheme.secondaryContainer, blendMode = BlendMode.Hue)
+                drawRect(colorScheme.secondaryContainer.copy(alpha = 0.75f))
+            }
+        ), onClick = onClick, enabled = enabled, contentPadding = PaddingValues(12.dp)
+    ) {
+        Icon(
+            modifier = Modifier.size(20.dp),
+            imageVector = Tabler.Outline.ArrowBackUp,
+            contentDescription = stringResource(id = R.string.apm_undo)
         )
     }
 }

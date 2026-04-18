@@ -273,6 +273,13 @@ fun uninstallModule(id: String): Boolean {
     return result
 }
 
+fun undoRemoveModule(id: String): Boolean {
+    val cmd = "module undo-uninstall $id"
+    val result = execApd(cmd,true)
+    Log.i(TAG, "undo-uninstall module $id result: $result")
+    return result
+}
+
 fun installModule(
     uri: Uri,
     type: ModuleType,
