@@ -334,7 +334,7 @@ pub fn start_uid_listener() -> Result<()> {
             debounce = false;
             let skey = c"su";
             refresh_ap_package_list(skey, &mutex);
-            report_kernel(None, "boot-completed", "package-list-updated").unwrap_or_else(|e| {
+            report_kernel(None, "uid_listener", "package-list-updated").unwrap_or_else(|e| {
                 warn!("Failed to report kernel about package list update: {e}");
             });
         } else if !debounce {
