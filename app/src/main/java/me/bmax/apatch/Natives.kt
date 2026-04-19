@@ -85,7 +85,6 @@ object Natives {
         return nativeUninstallKpmModule(APApplication.superKey, moduleName)
     }
 
-
     @FastNative
     private external fun nativeChangeInstalledKpmModuleState(
         key: String,
@@ -98,6 +97,17 @@ object Natives {
     }
 
     @FastNative
+    private external fun nativeChangeInstalledKpmModuleStage(
+        key: String,
+        moduleName: String,
+        stage: Byte
+    ): Long
+
+    fun changeInstalledKpmModuleStage(moduleName: String, stage: Byte): Long {
+        return nativeChangeInstalledKpmModuleStage(APApplication.superKey, moduleName, stage)
+    }
+
+    @FastNative
     private external fun nativeKernelPatchVersion(superKey: String): Long
     fun kernelPatchVersion(): Long {
         return nativeKernelPatchVersion(APApplication.superKey)
@@ -107,14 +117,6 @@ object Natives {
     private external fun nativeKernelPatchBuildTime(superKey: String): String
     fun kernelPatchBuildTime(): String {
         return nativeKernelPatchBuildTime(APApplication.superKey)
-    }
-
-    private external fun nativeLoadKernelPatchModule(
-        superKey: String, modulePath: String, args: String
-    ): Long
-
-    fun loadKernelPatchModule(modulePath: String, args: String): Long {
-        return nativeLoadKernelPatchModule(APApplication.superKey, modulePath, args)
     }
 
     private external fun nativeUnloadKernelPatchModule(superKey: String, moduleName: String): Long

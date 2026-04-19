@@ -568,7 +568,7 @@ fun FloatingActionButton(
                             ) {
                                 Column(
                                     modifier = Modifier
-                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
                                         .width(IntrinsicSize.Max),
                                     horizontalAlignment = Alignment.End
                                 ) {

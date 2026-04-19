@@ -3,7 +3,9 @@ use anyhow::{Result, anyhow, bail};
 use ap_supercall::su_profile::SuProfile;
 use ap_supercall::supercall::SuperCall;
 use jni::objects::{JClass, JIntArray, JObject, JString, JValue};
-use jni::sys::{JNI_ERR, JNI_FALSE, JNI_VERSION_1_6, jboolean, jint, jlong, jobject, jobjectArray};
+use jni::sys::{
+    JNI_ERR, JNI_FALSE, JNI_VERSION_1_6, jboolean, jbyte, jint, jlong, jobject, jobjectArray,
+};
 use jni::{JNIEnv, JavaVM};
 use libc::{c_char, c_long, uid_t};
 use log::debug;
@@ -460,6 +462,66 @@ fn _uninstall_kernel_patch_module(name: &CString) -> Result<()> {
     Ok(())
 }
 
+fn native_change_installed_kpm_module_stage(
+    mut env: JNIEnv,
+    _: JClass,
+    key_jstr: JString,
+    module_name_jstr: JString,
+    stage: jbyte,
+) -> jlong {
+    jni_wrap(&mut env, -1, |env| {
+        ensure_super_key(&key_jstr)?;
+        let name = jstr_to_cstr(env, &module_name_jstr)?;
+        let mut name_buf = [0u8; 32];
+        let name_bytes = name.as_bytes();
+        let len = name_bytes.len().min(32);
+        let key = jstr_to_cstr(env, &key_jstr)?;
+        name_buf[..len].copy_from_slice(&name_bytes[..len]);
+        let kpms_path = Path::new("/data/adb/ap/kpms/");
+        if !kpms_path.exists() {
+            return Ok(0);
+        }
+        let config_path = kpms_path.join("config");
+        let mut reader = BufReader::new(File::open(&config_path)?);
+
+        let mut module_path = String::default();
+
+        let mut kept = Vec::new();
+        let mut record = Vec::new();
+        debug!("stage: {}", stage);
+        while reader.read_until(b'\n', &mut record)? > 0 {
+            if record.len() < 35 {
+                record.clear();
+                continue;
+            }
+            if record[0..32] == name_buf {
+                record[33] = stage as u8;
+
+                module_path = kpms_path
+                    .join(String::from_utf8_lossy(&record[34..]).to_string().trim())
+                    .to_string_lossy()
+                    .to_string();
+                debug!("{}", module_path)
+            }
+            debug!("record len: {}", record.len());
+            debug!("record bytes: {:?}", record);
+
+            kept.extend(&record);
+            record.clear();
+        }
+
+        debug!("kept bytes: {:?}", kept);
+
+        debug!("writing config");
+        let mut writer = BufWriter::new(File::create(config_path)?);
+        writer.write_all(&kept)?;
+        writer.flush()?;
+
+        debug!("done writing config");
+        Ok(0)
+    })
+}
+
 fn native_change_installed_kpm_module_state<'a>(
     mut env: JNIEnv<'a>,
     _: JClass,
@@ -708,6 +770,11 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
             "nativeChangeInstalledKpmModuleState",
             "(Ljava/lang/String;Ljava/lang/String;Z)J",
             native_change_installed_kpm_module_state
+        ),
+        method!(
+            "nativeChangeInstalledKpmModuleStage",
+            "(Ljava/lang/String;Ljava/lang/String;B)J",
+            native_change_installed_kpm_module_stage
         ),
     ];
 

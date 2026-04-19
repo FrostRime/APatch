@@ -1,8 +1,11 @@
 package me.bmax.apatch.ui.screen
 
 import android.app.Activity.RESULT_OK
+import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -19,12 +22,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialogDefaults
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -53,10 +55,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.tabler.Tabler
 import com.composables.icons.tabler.outline.PackageImport
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.PatchesDestination
 import com.topjohnwu.superuser.nio.ExtendedFile
@@ -74,10 +76,13 @@ import me.bmax.apatch.ui.Fab
 import me.bmax.apatch.ui.FabProvider
 import me.bmax.apatch.ui.MenuItem
 import me.bmax.apatch.ui.component.ConfirmResult
+import me.bmax.apatch.ui.component.DialogData
+import me.bmax.apatch.ui.component.DialogOverlay
 import me.bmax.apatch.ui.component.KPModuleRemoveButton
 import me.bmax.apatch.ui.component.ListItemData
 import me.bmax.apatch.ui.component.LoadingDialogHandle
 import me.bmax.apatch.ui.component.ModuleSettingsButton
+import me.bmax.apatch.ui.component.ProvideMenuShape
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UIList
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -102,6 +107,12 @@ private val installedModuleStages =
 fun KPModuleScreen(
     setFab: FabProvider
 ) {
+    val dialog: MutableState<DialogData?> = remember {
+        mutableStateOf(
+            null
+        )
+    }
+
     val state by APApplication.apStateLiveData.observeAsState(APApplication.State.UNKNOWN_STATE)
     if (state == APApplication.State.UNKNOWN_STATE) {
         Column(
@@ -134,8 +145,7 @@ fun KPModuleScreen(
     val confirmDialog = rememberConfirmDialog()
     val loadingDialog = rememberLoadingDialog()
 
-    val showKPMControlDialog = remember { mutableStateOf(false) }
-    KPMControlDialog(showDialog = showKPMControlDialog)
+    val kpmControlDialog = kpmControlDialog(dialog)
 
     suspend fun onModuleUninstall(module: KPModel.KPMInfo) {
         val confirmResult = confirmDialog.awaitConfirm(
@@ -167,7 +177,6 @@ fun KPModuleScreen(
     val context = LocalContext.current
     val wallpaperBackdrop = LocalWallpaperBackdrop.current
 
-    val moduleLoad = stringResource(id = R.string.kpm_load)
     val moduleInstall = stringResource(id = R.string.kpm_install)
     val moduleEmbed = stringResource(id = R.string.kpm_embed)
     val successToastText = stringResource(id = R.string.kpm_load_toast_succ)
@@ -187,29 +196,6 @@ fun KPModuleScreen(
         navigator.navigate(InstallScreenDestination(uri, ModuleType.KPM))
     }
 
-    val selectKpmLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) {
-        if (it.resultCode != RESULT_OK) {
-            return@rememberLauncherForActivityResult
-        }
-        val data = it.data ?: return@rememberLauncherForActivityResult
-        val uri = data.data ?: return@rememberLauncherForActivityResult
-
-        // todo: args
-        scope.launch {
-            val rc = loadModule(loadingDialog, uri, "")
-            val toastText = if (rc == 0) successToastText else "$failToastText: $rc"
-            withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    context, toastText, Toast.LENGTH_SHORT
-                ).show()
-            }
-            viewModel.markNeedRefresh()
-            viewModel.fetchModuleList()
-        }
-    }
-
     val selectKpmInstallLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -221,7 +207,7 @@ fun KPModuleScreen(
 
         // todo: args
         scope.launch {
-            val rc = installModule(loadingDialog, uri, "") == 0
+            val rc = installModule(loadingDialog, context, uri, "") == 0
             val toastText = if (rc) successToastText else failToastText
             withContext(Dispatchers.Main) {
                 Toast.makeText(
@@ -239,30 +225,21 @@ fun KPModuleScreen(
         }
 
         setFab(run {
-            val options = listOf(moduleEmbed, moduleInstall, moduleLoad)
+            val options = listOf(moduleInstall, moduleEmbed)
             Fab(
                 icon = Tabler.Outline.PackageImport,
                 menuItems = (
                         options.map { label ->
                             MenuItem(title = label, onClick = {
                                 when (label) {
-                                    moduleEmbed -> {
-                                        navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_AND_INSTALL))
-                                    }
-
                                     moduleInstall -> {
-                                        //                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
-                                        //                                        intent.type = "application/zip"
-                                        //                                        selectZipLauncher.launch(intent)
                                         val intent = Intent(Intent.ACTION_GET_CONTENT)
                                         intent.type = "*/*"
                                         selectKpmInstallLauncher.launch(intent)
                                     }
 
-                                    moduleLoad -> {
-                                        val intent = Intent(Intent.ACTION_GET_CONTENT)
-                                        intent.type = "*/*"
-                                        selectKpmLauncher.launch(intent)
+                                    moduleEmbed -> {
+                                        navigator.navigate(PatchesDestination(PatchesViewModel.PatchMode.PATCH_AND_INSTALL))
                                     }
                                 }
                             })
@@ -341,15 +318,14 @@ fun KPModuleScreen(
                                 .padding(bottom = 12.dp)
                                 .padding(horizontal = 16.dp)
                                 .fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
                         ) {
-                            Spacer(modifier = Modifier.weight(1f))
-
                             ModuleSettingsButton(
                                 backdrop = it,
                                 onClick = {
                                     targetKPMToControl = module
-                                    showKPMControlDialog.value = true
+                                    dialog.value = kpmControlDialog
                                 })
 
                             Spacer(modifier = Modifier.width(12.dp))
@@ -374,6 +350,7 @@ fun KPModuleScreen(
             }
         }
     }
+
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -396,36 +373,27 @@ fun KPModuleScreen(
             state = kpModuleListState
         )
     }
+    DialogOverlay(dialog)
 }
 
-suspend fun loadModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: String): Int {
-    val rc = loadingDialog.withLoading {
-        withContext(Dispatchers.IO) {
-            run {
-                val kpmDir: ExtendedFile =
-                    FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "kpm")
-                kpmDir.deleteRecursively()
-                kpmDir.mkdirs()
-                val rand = (1..4).map { ('a'..'z').random() }.joinToString("")
-                val kpm = kpmDir.getChildFile("${rand}.kpm")
-                Log.d(TAG, "save tmp kpm: ${kpm.path}")
-                var rc = -1
-                try {
-                    uri.inputStream().buffered().writeTo(kpm)
-                    rc = Natives.loadKernelPatchModule(kpm.path, args).toInt()
-                } catch (e: IOException) {
-                    Log.e(TAG, "Copy kpm error: $e")
-                }
-                Log.d(TAG, "load ${kpm.path} rc: $rc")
-                rc
-            }
-        }
-    }
-    return rc
+private fun getFileName(contextResolver: ContentResolver, uri: Uri): String {
+    return contextResolver.query(uri, null, null, null, null)?.use {
+        val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (nameIndex != -1) {
+            it.moveToFirst()
+            it.getString(nameIndex)
+        } else null
+    } ?: uri.path?.substringAfterLast("/") ?: ((1..4).map { ('a'..'z').random() }
+        .joinToString("") + ".kpm")
 }
 
 @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
-suspend fun installModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: String): Int {
+suspend fun installModule(
+    loadingDialog: LoadingDialogHandle,
+    context: Context,
+    uri: Uri,
+    args: String
+): Int {
     return loadingDialog.withLoading {
         withContext(Dispatchers.IO) {
             run {
@@ -433,8 +401,7 @@ suspend fun installModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: St
                     FileSystemManager.getLocal().getFile(apApp.filesDir.parent, "kpm")
                 kpmDir.deleteRecursively()
                 kpmDir.mkdirs()
-                val rand = (1..4).map { ('a'..'z').random() }.joinToString("")
-                val kpm = kpmDir.getChildFile("${rand}.kpm")
+                val kpm = kpmDir.getChildFile(getFileName(context.contentResolver, uri))
                 Log.d(TAG, "save tmp kpm: ${kpm.path}")
                 try {
                     uri.inputStream().buffered().writeTo(kpm)
@@ -454,7 +421,7 @@ suspend fun installModule(loadingDialog: LoadingDialogHandle, uri: Uri, args: St
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KPMControlDialog(showDialog: MutableState<Boolean>) {
+fun kpmControlDialog(dialog: MutableState<DialogData?>): DialogData {
     var controlParam by remember { mutableStateOf("") }
     var enable by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -463,6 +430,7 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
     val okStringRes = stringResource(id = R.string.kpm_control_ok)
     val failedStringRes = stringResource(id = R.string.kpm_control_failed)
 
+    var showStageDropdown by remember { mutableStateOf(false) }
     var bottomSheetText by remember { mutableStateOf(Pair("", "")) }
 
     lateinit var controlResult: Natives.KPMCtlRes
@@ -482,97 +450,124 @@ fun KPMControlDialog(showDialog: MutableState<Boolean>) {
     }
 
 
-    if (showDialog.value) {
-        BasicAlertDialog(
-            onDismissRequest = { showDialog.value = false }, properties = DialogProperties(
-                decorFitsSystemWindows = true,
-                usePlatformDefaultWidth = false,
-            )
-        ) {
-            Surface(
-                modifier = Modifier
-                    .width(310.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.extraLarge,
-                tonalElevation = AlertDialogDefaults.TonalElevation,
-                color = AlertDialogDefaults.containerColor,
+    return DialogData {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Box(
+                Modifier
+                    .padding(PaddingValues(bottom = 16.dp))
+                    .align(Alignment.Start)
             ) {
-                Column(modifier = Modifier.padding(PaddingValues(all = 24.dp))) {
-                    Box(
-                        Modifier
-                            .padding(PaddingValues(bottom = 16.dp))
-                            .align(Alignment.Start)
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.kpm_control_dialog_title),
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                    }
+                Text(
+                    text = stringResource(id = R.string.kpm_control_dialog_title),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
 
-                    Box(
-                        Modifier
-                            .weight(weight = 1f, fill = false)
-                            .align(Alignment.Start)
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.kpm_control_dialog_content),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
+            Box(
+                Modifier
+                    .weight(weight = 1f, fill = false)
+                    .align(Alignment.Start)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.kpm_control_dialog_content),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
-                    Box(
-                        contentAlignment = Alignment.CenterEnd,
-                    ) {
-                        OutlinedTextField(
-                            value = controlParam,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp),
-                            onValueChange = {
-                                controlParam = it
-                                enable = controlParam.isNotBlank()
-                            },
-                            shape = MaterialTheme.shapes.large,
-                            label = { Text(stringResource(id = R.string.kpm_control_paramters)) },
-                            visualTransformation = VisualTransformation.None,
-                        )
-                    }
+            Box(
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                OutlinedTextField(
+                    value = controlParam,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    onValueChange = {
+                        controlParam = it
+                        enable = controlParam.isNotBlank()
+                    },
+                    shape = MaterialTheme.shapes.large,
+                    label = { Text(stringResource(id = R.string.kpm_control_paramters)) },
+                    visualTransformation = VisualTransformation.None,
+                )
+            }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { showDialog.value = false }) {
-                            Text(stringResource(id = android.R.string.cancel))
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (targetKPMToControl.isInstalled) {
+                    Box {
+                        TextButton(onClick = {
+                            showStageDropdown = true
+                        }) {
+                            Text(installedModuleStages[targetKPMToControl.stage])
                         }
 
-                        Button(onClick = {
-                            showDialog.value = false
-
-                            scope.launch { onModuleControl(targetKPMToControl) }
-
-                        }, enabled = enable) {
-                            Text(stringResource(id = android.R.string.ok))
+                        ProvideMenuShape(ContinuousRoundedRectangle(16.dp)) {
+                            DropdownMenu(
+                                expanded = showStageDropdown,
+                                onDismissRequest = { showStageDropdown = false }
+                            ) {
+                                for (stage in installedModuleStages) {
+                                    DropdownMenuItem(
+                                        text = { Text(stage) },
+                                        onClick = {
+                                            scope.launch(Dispatchers.IO) {
+                                                Su.exec {
+                                                    try {
+                                                        Natives.changeInstalledKpmModuleStage(
+                                                            targetKPMToControl.name,
+                                                            installedModuleStages.indexOf(stage)
+                                                                .toByte()
+                                                        )
+                                                    } finally {
+                                                        showStageDropdown = false
+                                                        if (!enable) {
+                                                            dialog.value = null
+                                                        }
+                                                        targetKPMToControl.stage =
+                                                            installedModuleStages.indexOf(stage)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                TextButton(onClick = { dialog.value = null }) {
+                    Text(stringResource(id = android.R.string.cancel))
+                }
+
+                Button(onClick = {
+                    dialog.value = null
+
+                    scope.launch { onModuleControl(targetKPMToControl) }
+
+                }, enabled = enable) {
+                    Text(stringResource(id = android.R.string.ok))
                 }
             }
         }
-    }
 
-    if (bottomSheetText.second.isNotEmpty()) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                @Suppress("AssignedValueIsNeverRead")
-                bottomSheetText = Pair("", "")
-            },
-            contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-            content = {
-                Column(Modifier.padding(24.dp)) {
-                    Text(bottomSheetText.first, style = MaterialTheme.typography.titleLarge)
-                    Text(bottomSheetText.second, style = MaterialTheme.typography.bodyMedium)
+        if (bottomSheetText.second.isNotEmpty()) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    @Suppress("AssignedValueIsNeverRead")
+                    bottomSheetText = Pair("", "")
+                },
+                contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+                content = {
+                    Column(Modifier.padding(24.dp)) {
+                        Text(bottomSheetText.first, style = MaterialTheme.typography.titleLarge)
+                        Text(bottomSheetText.second, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 }

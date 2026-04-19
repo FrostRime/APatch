@@ -13,21 +13,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,10 +35,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -57,7 +47,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -77,12 +66,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -113,11 +100,6 @@ import com.composables.icons.tabler.outline.PhotoX
 import com.composables.icons.tabler.outline.Reload
 import com.composables.icons.tabler.outline.Wand
 import com.kyant.backdrop.backdrops.emptyBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
 import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.materialkolor.ktx.themeColor
@@ -138,10 +120,11 @@ import me.bmax.apatch.TAG
 import me.bmax.apatch.apApp
 import me.bmax.apatch.ui.FabProvider
 import me.bmax.apatch.ui.component.BackdropSurface
+import me.bmax.apatch.ui.component.DialogData
+import me.bmax.apatch.ui.component.DialogOverlay
 import me.bmax.apatch.ui.component.LiquidButton
 import me.bmax.apatch.ui.component.LiquidSlider
 import me.bmax.apatch.ui.component.ProvideMenuShape
-import me.bmax.apatch.ui.component.ScreenShield
 import me.bmax.apatch.ui.component.WarningCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.util.LatestVersionInfo
@@ -160,16 +143,6 @@ import me.bmax.apatch.util.ui.LocalWidgetOpacity
 
 private val managerVersion = getManagerVersion()
 
-enum class DialogType {
-    AuthFailedTipDialog,
-    AuthSuperKey,
-    ResetSUPathDialog
-}
-
-data class DialogData(
-    val sharedContentState: SharedTransitionScope.SharedContentState,
-    val content: @Composable () -> Unit
-)
 
 @Composable
 fun HomeScreen(
@@ -206,7 +179,6 @@ fun HomeScreen(
         setFab(null)
     }
 
-    SharedTransitionLayout {
         Scaffold(
             containerColor = Color.Transparent,
             modifier = Modifier
@@ -250,92 +222,12 @@ fun HomeScreen(
         }
 
         DialogOverlay(dialog)
-    }
-}
-
-@Composable
-fun SharedTransitionScope.DialogOverlay(dialog: MutableState<DialogData?>) {
-    val dialogBackdrop = rememberLayerBackdrop()
-    val dialogAnim by animateFloatAsState(
-        targetValue = if (dialog.value != null) 0f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-    )
-    dialog.value?.let {
-        ScreenShield {
-            AnimatedContent(it) { dialogVal ->
-                Box(
-                    modifier = Modifier
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDrag = { change, _ ->
-                                    change.consume()
-                                }
-                            )
-                        }
-                        .pointerInput(Unit) {
-                            detectTapGestures {
-                                dialog.value = null
-                            }
-                        }
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.85f)
-                            .wrapContentHeight()
-                            .sharedElement(
-                                sharedContentState = dialogVal.sharedContentState,
-                                animatedVisibilityScope = this@AnimatedContent,
-                            ), contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .layerBackdrop(dialogBackdrop)
-                        ) {
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .blur(64.dp * dialogAnim),
-                                shape = ContinuousRoundedRectangle(28.dp),
-                                tonalElevation = AlertDialogDefaults.TonalElevation,
-                                color = AlertDialogDefaults.containerColor,
-                            ) {
-                                dialogVal.content.invoke()
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .drawBackdrop(
-                                    dialogBackdrop,
-                                    highlight = null,
-                                    shadow = null,
-                                    shape = { ContinuousRoundedRectangle(28.dp) },
-                                    effects = {
-                                        vibrancy()
-                                        lens(
-                                            size.minDimension * 0.25f,
-                                            dialogAnim * size.minDimension
-                                        )
-                                    }
-                                )
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SharedTransitionScope.authFailedTipDialog(dialog: MutableState<DialogData?>): DialogData {
-    return DialogData(
-        sharedContentState = rememberSharedContentState(DialogType.AuthFailedTipDialog)
-    ) {
+fun authFailedTipDialog(dialog: MutableState<DialogData?>): DialogData {
+    return DialogData {
         Column(modifier = Modifier.padding(all = 24.dp)) {
             // Title
             Box(
@@ -378,13 +270,11 @@ val checkSuperKeyValidation: (superKey: String) -> Boolean = { superKey ->
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SharedTransitionScope.authSuperKey(
+fun authSuperKey(
     dialog: MutableState<DialogData?>,
     failedDialog: DialogData
 ): DialogData {
-    return DialogData(
-        sharedContentState = rememberSharedContentState(DialogType.AuthSuperKey)
-    ) {
+    return DialogData {
         var key by remember { mutableStateOf("") }
         var keyVisible by remember { mutableStateOf(false) }
         var enable by remember { mutableStateOf(false) }
@@ -482,10 +372,8 @@ fun RebootDropdownItem(@StringRes id: Int, reason: String = "") {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SharedTransitionScope.resetSUPathDialog(dialog: MutableState<DialogData?>): DialogData {
-    return DialogData(
-        sharedContentState = rememberSharedContentState(DialogType.ResetSUPathDialog)
-    ) {
+fun resetSUPathDialog(dialog: MutableState<DialogData?>): DialogData {
+    return DialogData {
         val context = LocalContext.current
         var suPath by remember { mutableStateOf(Natives.suPath()) }
         Column(modifier = Modifier.padding(all = 24.dp)) {
@@ -677,7 +565,7 @@ private fun TopBar(
                         )
                     }
 
-                    ProvideMenuShape(MaterialTheme.shapes.medium) {
+                    ProvideMenuShape(ContinuousRoundedRectangle(16.dp)) {
                         DropdownMenu(
                             expanded = showWidgetBlurEdit,
                             onDismissRequest = { showWidgetBlurEdit = false }
@@ -703,7 +591,7 @@ private fun TopBar(
                         }
                     }
 
-                    ProvideMenuShape(MaterialTheme.shapes.medium) {
+                    ProvideMenuShape(ContinuousRoundedRectangle(16.dp)) {
                         DropdownMenu(
                             expanded = showWidgetOpacityEdit,
                             onDismissRequest = { showWidgetOpacityEdit = false }
@@ -747,7 +635,7 @@ private fun TopBar(
                                 contentDescription = stringResource(id = R.string.reboot)
                             )
 
-                            ProvideMenuShape(MaterialTheme.shapes.medium) {
+                            ProvideMenuShape(ContinuousRoundedRectangle(16.dp)) {
                                 DropdownMenu(
                                     expanded = showDropdownReboot,
                                     onDismissRequest = { showDropdownReboot = false }
@@ -777,7 +665,7 @@ private fun TopBar(
 }
 
 @Composable
-private fun SharedTransitionScope.KStatusCard(
+private fun KStatusCard(
     navigator: DestinationsNavigator,
     dialog: MutableState<DialogData?>
 ) {
@@ -886,90 +774,76 @@ private fun SharedTransitionScope.KStatusCard(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 val suPatchUnknown = kpState == APApplication.State.UNKNOWN_STATE
-                AnimatedContent(targetState = suPatchUnknown) { suPatchUnknown ->
-                    BackdropSurface(
-                        backdrop = wallpaperBackdrop,
-                        tint = colorScheme.tertiaryContainer,
-                        shape = ContinuousRoundedRectangle(16.dp),
-                        isInteractive = false,
-                        onClick = {
-                            if (!suPatchUnknown) {
-                                dialog.value = resetSUPathDialog
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(intrinsicSize = IntrinsicSize.Min)
-                            .sharedElement(
-                                sharedContentState = resetSUPathDialog.sharedContentState,
-                                animatedVisibilityScope = this@AnimatedContent,
-                            )
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(
-                                text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.basicMarquee(),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .basicMarquee(),
-                                text = stringResource(R.string.home_su_path),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.End
-                            )
+                BackdropSurface(
+                    backdrop = wallpaperBackdrop,
+                    tint = colorScheme.tertiaryContainer,
+                    shape = ContinuousRoundedRectangle(16.dp),
+                    isInteractive = false,
+                    onClick = {
+                        if (!suPatchUnknown) {
+                            dialog.value = resetSUPathDialog
                         }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(intrinsicSize = IntrinsicSize.Min)
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            text = if (suPatchUnknown) "Unknown" else Natives.suPath(),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.basicMarquee(),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .basicMarquee(),
+                            text = stringResource(R.string.home_su_path),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.End
+                        )
                     }
                 }
 
                 val managerUnknown =
                     apState == APApplication.State.UNKNOWN_STATE || apState == APApplication.State.ANDROIDPATCH_NOT_INSTALLED
-                AnimatedContent(
-                    targetState = managerUnknown
-                ) { managerUnknown ->
-                    BackdropSurface(
-                        backdrop = wallpaperBackdrop,
-                        tint = colorScheme.tertiaryContainer,
-                        shape = ContinuousRoundedRectangle(16.dp),
-                        isInteractive = false,
-                        onClick = {
-                            if (managerUnknown) {
-                                dialog.value = authKeyDialog
-                            } else {
-                                navigator.navigate(AboutScreenDestination)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(intrinsicSize = IntrinsicSize.Min)
-                            .sharedElement(
-                                sharedContentState = authKeyDialog.sharedContentState,
-                                animatedVisibilityScope = this@AnimatedContent,
-                            )
-                    ) {
-                        Column(
-                            Modifier
-                                .padding(16.dp)
-                        ) {
-                            Text(
-                                text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.basicMarquee(),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .basicMarquee(),
-                                text = stringResource(R.string.home_apatch_version),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.End
-                            )
+                BackdropSurface(
+                    backdrop = wallpaperBackdrop,
+                    tint = colorScheme.tertiaryContainer,
+                    shape = ContinuousRoundedRectangle(16.dp),
+                    isInteractive = false,
+                    onClick = {
+                        if (managerUnknown) {
+                            dialog.value = authKeyDialog
+                        } else {
+                            navigator.navigate(AboutScreenDestination)
                         }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(intrinsicSize = IntrinsicSize.Min)
+                ) {
+                    Column(
+                        Modifier
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = if (managerUnknown) stringResource(R.string.home_install_unknown_summary) else managerVersion.second.toString() + " (" + managerVersion.first + ")",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.basicMarquee(),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .basicMarquee(),
+                            text = stringResource(R.string.home_apatch_version),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.End
+                        )
                     }
                 }
             }
@@ -1304,6 +1178,7 @@ private fun InfoCard() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(1.dp),
+                        isInteractive = false,
                         tint = MaterialTheme.colorScheme.surfaceContainer,
                         shape = ContinuousRoundedRectangle(16.dp),
                     )
