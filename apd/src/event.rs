@@ -27,7 +27,7 @@ use std::{
 
 pub fn report_kernel(superkey: Option<String>, event: &str, state: &str) -> Result<()> {
     let args = [
-        superkey.unwrap_or_default(),
+        superkey.unwrap_or("su".to_string()),
         "event".to_string(),
         event.to_string(),
         state.to_string(),
@@ -303,6 +303,7 @@ pub fn start_uid_listener() -> Result<()> {
                 log::warn!("[shutdown] Caught signal {sig}, refreshing package list...");
                 let skey = c"su";
                 refresh_ap_package_list(skey, &mutex_clone);
+                break;
             }
         });
     }
@@ -333,6 +334,9 @@ pub fn start_uid_listener() -> Result<()> {
             debounce = false;
             let skey = c"su";
             refresh_ap_package_list(skey, &mutex);
+            report_kernel(None, "boot-completed", "package-list-updated").unwrap_or_else(|e| {
+                warn!("Failed to report kernel about package list update: {e}");
+            });
         } else if !debounce {
             thread::sleep(Duration::from_secs(1));
             debounce = true;
