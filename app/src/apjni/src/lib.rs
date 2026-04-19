@@ -162,22 +162,6 @@ fn native_su_profile<'a>(mut env: JNIEnv<'a>, _: JClass, key: JString, uid: jint
     })
 }
 
-fn native_load_kernel_patch_module<'a>(
-    mut env: JNIEnv<'a>,
-    _: JClass,
-    key: JString,
-    module_path_jstr: JString,
-    args_jstr: JString,
-) -> jlong {
-    jni_wrap(&mut env, -1, |env| {
-        ensure_super_key(&key)?;
-        let key = jstr_to_cstr(env, &key)?;
-        let module_path = jstr_to_cstr(env, &module_path_jstr)?;
-        let args = jstr_to_cstr(env, &args_jstr)?;
-        _load_kernel_patch_module(&key, &module_path, &args)
-    })
-}
-
 fn _load_kernel_patch_module(key: &CStr, module_path: &CStr, args: &CStr) -> Result<c_long> {
     let binding = module_path.to_string_lossy().to_string();
     let path = Path::new(&binding);
@@ -704,11 +688,6 @@ pub extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut c_void) -> jint {
             "nativeSuProfile",
             "(Ljava/lang/String;I)Lme/bmax/apatch/Natives$Profile;",
             native_su_profile
-        ),
-        method!(
-            "nativeLoadKernelPatchModule",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
-            native_load_kernel_patch_module
         ),
         method!(
             "nativeControlKernelPatchModule",
