@@ -53,6 +53,11 @@ pub fn on_post_data_fs(superkey: Option<String>) -> Result<()> {
     info!("Re-privilege apd profile after injecting sepolicy");
     supercall::privilege_apd_profile(&superkey);
 
+    // Clear all temporary module configs early
+    if let Err(e) = crate::module_config::clear_all_temp_configs() {
+        warn!("clear temp configs failed: {e}");
+    }
+
     if utils::has_magisk() {
         warn!("Magisk detected, skip post-fs-data!");
         report_kernel(superkey.clone(), "post-fs-data", "after")?;
@@ -303,7 +308,6 @@ pub fn start_uid_listener() -> Result<()> {
                 log::warn!("[shutdown] Caught signal {sig}, refreshing package list...");
                 let skey = c"su";
                 refresh_ap_package_list(skey, &mutex_clone);
-                break;
             }
         });
     }
