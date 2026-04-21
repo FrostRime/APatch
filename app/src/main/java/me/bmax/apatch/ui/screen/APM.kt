@@ -615,7 +615,7 @@ private fun ModuleActionButtons(
                 enabled = true,
                 onClick = { onUninstall(module) })
         } else {
-            ModuleUndoRemoveButton(backdrop = backdrop, enabled = module.remove, onClick = { onUndoUninstall(module) })
+            ModuleUndoRemoveButton(backdrop = backdrop, enabled = true, onClick = { onUndoUninstall(module) })
         }
     }
 }
